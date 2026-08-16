@@ -1089,7 +1089,133 @@ function buildExteriorStreet(maxSpan){
       cars.push({wrap, z:startZ, dir, speed: 2.6+Math.random()*1.4, zMin:zMin-2, zMax:zMax+2, x:laneX});
     }
   }
+
+  /* ---------- sol du quartier ---------- */
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(70, (zMax-zMin)+30),
+    new THREE.MeshStandardMaterial({color:'#221d2e', roughness:0.95})
+  );
+  ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true;
+  exteriorStreetGroup.add(ground);
+
+  /* ---------- trottoir devant l'arcade + file d'attente ---------- */
+  const queueX = -6.4;
+  for(let i=0;i<5;i++){
+    const key = ['PED_MALE','PED_FEMALE','PED_MALE2','PED_FEMALE2'][i%4];
+    const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, queueX + (i%2?0.35:-0.2), -2.6 + i*0.85, Math.PI/2);
+    if(wrap) extMovers.push({type:'queue', wrap, base:wrap.position.y, phase:Math.random()*6.28});
+  }
+  // barrières lumineuses au sol devant l'entrée (flaques de néon)
+  [-2.2, 0, 2.2].forEach((z,i)=>{
+    const puddle = new THREE.Mesh(
+      new THREE.CircleGeometry(0.7+Math.random()*0.4, 18),
+      new THREE.MeshStandardMaterial({color: i%2 ? '#2fd4c8':'#ff2e88', roughness:0.15, metalness:0.6,
+        transparent:true, opacity:0.28, emissive: i%2 ? 0x2fd4c8:0xff2e88, emissiveIntensity:0.25})
+    );
+    puddle.rotation.x = -Math.PI/2; puddle.position.set(sidewalkX+0.4, 0.09, z);
+    exteriorStreetGroup.add(puddle);
+  });
+
+  /* ---------- ruelle arrière (côté est) : porte de service clandestine ---------- */
+  const alleyX = 7.4;
+  const alleyFloor = box(3.4, 0.06, (zMax-zMin)*0.8, '#1d1a26');
+  alleyFloor.position.set(alleyX, 0.03, 0); alleyFloor.receiveShadow = true;
+  exteriorStreetGroup.add(alleyFloor);
+  // mur du fond de la ruelle, avec graffitis néon
+  const alleyWall = box(0.35, 4.2, (zMax-zMin)*0.8, '#241f31');
+  alleyWall.position.set(alleyX+1.9, 2.1, 0);
+  exteriorStreetGroup.add(alleyWall);
+  ['#ff2e88','#2fd4c8','#ffd23f'].forEach((c,i)=>{
+    const tag = box(0.04, 0.9, 1.6, c, {emissive:new THREE.Color(c).getHex(), emissiveIntensity:0.5});
+    tag.position.set(alleyX+1.7, 1.5+ (i%2)*0.9, -5 + i*4.5);
+    exteriorStreetGroup.add(tag);
+  });
+  placeExt(exteriorStreetGroup, 'DUMPSTER', {mode:'height',target:0.9}, alleyX-0.4, -3.2, Math.PI/2);
+  placeExt(exteriorStreetGroup, 'DUMPSTER', {mode:'height',target:0.9}, alleyX+0.6, 4.1, -Math.PI/2);
+  [[-2.2,-1.4],[0.6,2.6],[1.2,-5.4]].forEach(([dx,z])=>{
+    placeExt(exteriorStreetGroup, 'TRASHBAG', {mode:'height',target:0.45}, alleyX+dx*0.4, z, Math.random()*6);
+  });
+  placeExt(exteriorStreetGroup, 'CRATE', {mode:'height',target:0.5}, alleyX+0.9, -1.0, 0.4);
+  placeExt(exteriorStreetGroup, 'CRATE', {mode:'height',target:0.5}, alleyX+1.2, -0.5, 1.1);
+  placeExt(exteriorStreetGroup, 'BARREL', {mode:'height',target:0.75}, alleyX-0.9, 6.2, 0);
+  // néon "SORTIE" au-dessus de la porte de service + fumée d'égout
+  const alleyNeon = placeExt(exteriorStreetGroup, 'NEON_TUBE', {mode:'height',target:0.14}, alleyX-1.4, 0.2, 0);
+  if(alleyNeon){ alleyNeon.position.y = 2.3; extFlickers.push({obj:alleyNeon, phase:Math.random()*6.28, speed:5.5}); }
+  const alleyLight = makeGlowSprite('#2fd4c8', 1.6);
+  alleyLight.position.set(alleyX-1.4, 2.3, 0.2);
+  exteriorStreetGroup.add(alleyLight);
+  // chat de ruelle qui rôde
+  const cat = placeExt(exteriorStreetGroup, 'CAT', {mode:'height',target:0.22}, alleyX, -1, 0);
+  if(cat) extMovers.push({type:'cat', wrap:cat, z:-1, dir:1, speed:0.9, zMin:-6, zMax:6, x:alleyX});
+
+  /* ---------- parking latéral (côté nord) ---------- */
+  const parkZ = zMin + 2.2;
+  const lot = box(9, 0.06, 5, '#2a2635');
+  lot.position.set(1.5, 0.03, parkZ - 1.5); lot.receiveShadow = true;
+  exteriorStreetGroup.add(lot);
+  for(let i=0;i<4;i++){
+    const line = box(0.08, 0.02, 2.2, '#d8d2c0');
+    line.position.set(-1.6 + i*2.0, 0.08, parkZ - 1.4);
+    exteriorStreetGroup.add(line);
+  }
+  ['CAR_SEDAN','CAR_HATCH','CAR_SUV'].forEach((key,i)=>{
+    placeExt(exteriorStreetGroup, key, {mode:'footprint',target:1.05}, -0.6 + i*2.0, parkZ - 1.4, 0);
+  });
+  placeExt(exteriorStreetGroup, 'BIKE', {mode:'height',target:0.55}, -4.2, parkZ + 0.6, 0.6);
+  placeExt(exteriorStreetGroup, 'BIKE', {mode:'height',target:0.55}, -4.6, parkZ + 1.1, -0.3);
+
+  /* ---------- coin snack / arrêt de bus (côté sud) ---------- */
+  const southZ = zMax - 2.4;
+  placeExt(exteriorStreetGroup, 'HOTDOG_STAND', {mode:'height',target:1.7}, sidewalkX + 0.6, southZ - 2.0, Math.PI/2);
+  const vendor = placeExt(exteriorStreetGroup, 'PED_MALE2', {mode:'height',target:1.3}, sidewalkX + 0.1, southZ - 2.0, Math.PI/2);
+  if(vendor) extMovers.push({type:'queue', wrap:vendor, base:vendor.position.y, phase:1.2});
+  placeExt(exteriorStreetGroup, 'BUS_STOP', {mode:'height',target:2.0}, sidewalkX - 0.2, southZ + 1.4, Math.PI/2);
+  ['PED_FEMALE','PED_MALE'].forEach((key,i)=>{
+    const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX - 0.9, southZ + 0.8 + i*1.1, -Math.PI/2);
+    if(wrap) extMovers.push({type:'queue', wrap, base:wrap.position.y, phase:i*2.1});
+  });
+  placeExt(exteriorStreetGroup, 'PHONE_BOOTH', {mode:'height',target:2.0}, sidewalkX + 0.8, southZ + 3.6, Math.PI/2);
+  placeExt(exteriorStreetGroup, 'MAILBOX', {mode:'height',target:0.9}, sidewalkX + 0.9, parkZ + 3.0, Math.PI/2);
+  placeExt(exteriorStreetGroup, 'HYDRANT', {mode:'height',target:0.5}, sidewalkX + 1.1, -0.8, 0);
+
+  /* ---------- bancs et détails le long du trottoir ---------- */
+  for(let z=zMin+3; z<=zMax-3; z+=7.2){
+    placeExt(exteriorStreetGroup, 'BENCH_EXT', {mode:'height',target:0.7}, sidewalkX - 0.6, z, Math.PI/2);
+  }
+
+  /* ---------- commerces voisins de l'autre côté de la rue ---------- */
+  const shopColors = ['#ffd23f','#2fd4c8','#ff2e88','#8b5cf6'];
+  for(let i=0;i<4;i++){
+    const z = zMin + 3 + i*((zMax-zMin-6)/3);
+    placeExt(exteriorStreetGroup, 'SHOPFRONT', {mode:'height',target:2.8}, -13.2, z, Math.PI/2);
+    const tube = placeExt(exteriorStreetGroup, 'NEON_TUBE', {mode:'height',target:0.14}, -12.0, z, Math.PI/2);
+    if(tube){
+      tube.position.y = 2.0;
+      tube.traverse(o=>{ if(o.isMesh && o.material){ o.material = o.material.clone(); o.material.color.set(shopColors[i]); if(o.material.emissive) o.material.emissive.set(shopColors[i]); } });
+      extFlickers.push({obj:tube, phase:i*1.7, speed:3+Math.random()*4});
+    }
+    const halo = makeGlowSprite(shopColors[i], 1.8);
+    halo.position.set(-12.0, 2.0, z);
+    exteriorStreetGroup.add(halo);
+  }
+  placeExt(exteriorStreetGroup, 'BILLBOARD', {mode:'height',target:3.4}, -12.6, zMin + 0.5, Math.PI/2);
+
+  /* ---------- pigeons qui picorent devant l'entrée ---------- */
+  for(let i=0;i<5;i++){
+    const px = sidewalkX + 0.2 + Math.random()*1.4;
+    const pz = -4 + Math.random()*8;
+    const wrap = placeExt(exteriorStreetGroup, 'PIGEON', {mode:'height',target:0.16}, px, pz, Math.random()*6.28);
+    if(wrap) extMovers.push({type:'pigeon', wrap, x:px, z:pz, t:Math.random()*10, nextHop:1+Math.random()*2.5});
+  }
+
+  /* ---------- voiture de patrouille (visible quand la suspicion monte) ---------- */
+  const patrol = placeExt(exteriorStreetGroup, 'CAR_POLICE', {mode:'footprint',target:1.05}, roadX - roadLaneOffset, zMax, Math.PI);
+  if(patrol){
+    patrolCar = {wrap:patrol, z:zMax, dir:-1, speed:2.2, zMin:zMin-2, zMax:zMax+2};
+    patrol.visible = false;
+  }
 }
+
 
 // building shell — rebuilt whenever the arcade's stage or footprint changes
 function buildExteriorBuilding(stageIdx, cols, rows){
