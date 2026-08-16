@@ -3198,6 +3198,7 @@ function maybeTriggerEvent(){
 }
 function newDay(){
   state.day+=1;
+  questEvent('day');
   if(state.debt>0){
     const payment = Math.min(state.debt, 20+state.rep*3);
     if(state.money>=payment){ state.money-=payment; state.debt-=payment; log(`Jour ${state.day} — Remboursement banque : -${Math.round(payment)}¢.`); }
