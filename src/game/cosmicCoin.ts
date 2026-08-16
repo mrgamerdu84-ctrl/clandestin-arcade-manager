@@ -1489,52 +1489,14 @@ function buildExteriorStreet(maxSpan){
   walk.receiveShadow = true;
   exteriorStreetGroup.add(walk);
 
-  // streetlights along the sidewalk. The curved-lamp model is centred on its
-  // bounding box, so the mast ends up off the sidewalk and the bulb hangs the
-  // wrong way. We re-anchor on the mast, aim the arm over the road, and put the
-  // halo / point light exactly on the measured bulb position.
+  // streetlights along the sidewalk — arm always overhangs the road (-x side)
   let slIndex = 0;
   const lampX = sidewalkX - 1.0; // mast on the road-side edge of the sidewalk
   for(let z=zMin; z<=zMax; z+=4.8){
-    const lightWrap = placeExt(exteriorStreetGroup, 'STREETLIGHT', {mode:'height',target:2.9}, lampX, z, 0);
-    if(lightWrap){
-      const obj = lightWrap.children[0];
-      const bb = new THREE.Box3().setFromObject(obj);
-      // highest mesh = lamp head; its x tells us which way the arm points
-      let headX = 0, headY = bb.max.y, headZ = 0, best = -Infinity;
-      obj.traverse(o=>{
-        if(!o.isMesh) return;
-        const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
-        if(c.y > best){ best = c.y; headX = c.x; headY = c.y; headZ = c.z; }
-      });
-      const armDir = Math.max(Math.abs(headX), Math.abs(headZ)) < 0.15
-        ? 'none'
-        : Math.abs(headX) > Math.abs(headZ)
-        ? (headX >= 0 ? 'x+' : 'x-')
-        : (headZ >= 0 ? 'z+' : 'z-');
-      // the mast sits on the side opposite the arm — slide it back onto the kerb
-      if(armDir === 'none'){ /* straight pole: already centred */ }
-      else if(armDir === 'x+'){ obj.position.x -= bb.min.x; }
-      else if(armDir === 'x-'){ obj.position.x -= bb.max.x; }
-      else if(armDir === 'z+'){ obj.position.z -= bb.min.z; }
-      else { obj.position.z -= bb.max.z; }
-      // rotate so the arm always overhangs the road (road is at -x)
-      const yaw = (armDir === 'x-' || armDir === 'none') ? 0 : armDir === 'x+' ? Math.PI : armDir === 'z+' ? Math.PI/2 : -Math.PI/2;
-      lightWrap.rotation.y = yaw;
-      const bulb = new THREE.Vector3(headX + obj.position.x, headY, headZ + obj.position.z)
-        .applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
-      const bx = lampX + bulb.x, by = bulb.y, bz = z + bulb.z;
-      if(!isMobile && slIndex%2===0){
-        const glow = new THREE.PointLight(0xffdd99, 0.9, 6, 2);
-        glow.position.set(bx, by, bz);
-        exteriorStreetGroup.add(glow);
-      }
-      const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
-      halo.position.set(bx, by - 0.05, bz);
-      exteriorStreetGroup.add(halo);
-    }
+    placeStreetlight(lampX, z, 'x-', slIndex%2===0);
     slIndex++;
   }
+
 
   // houses + trees + fences across the street
   const houseKeys = ['HOUSE_A','HOUSE_E','HOUSE_J'];
