@@ -1320,9 +1320,9 @@ function setExteriorMode(on){
     const {cols,rows} = state.dims;
     // vue 3/4 depuis la rue : on voit la façade, le trottoir animé, la ruelle
     // arrière et le parking dans le même cadre
-    orbit.target.set(-1.5, 1.4, 0);
-    orbit.theta = -Math.PI/2 - 0.4; orbit.phi = 1.05;
-    orbit.radius = 24 + Math.max(cols,rows)*1.1;
+    orbit.target.set(-3.0, 0.8, 0);
+    orbit.theta = -Math.PI/2 - 0.55; orbit.phi = 0.82;
+    orbit.radius = 30 + Math.max(cols,rows)*1.1;
     // dusk sky so the streetlights and neon signs read clearly as a "living city at night"
     scene.background.set(0x0e1230);
     scene.fog.color.set(0x0e1230);
