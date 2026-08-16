@@ -1464,15 +1464,34 @@ function buildExteriorStreet(maxSpan){
   const houseX = -15.5;
   const zMin = -maxSpan, zMax = maxSpan;
 
-  // avenue transversale au nord : le quartier n'est plus une seule rue
+  // avenues transversales : le quartier n'est plus une seule rue
   const crossZ = zMin + 2.3;
+  const crossZ2 = zMax - 2.3;
   // road strip (crosswalk tile right in front of the arcade entrance)
   for(let z=zMin; z<=zMax; z+=2.3){
-    if(Math.abs(z - crossZ) < 0.5) continue; // laissé au carrefour
+    if(Math.abs(z - crossZ) < 0.5 || Math.abs(z - crossZ2) < 0.5) continue; // laissé aux carrefours
     const key = Math.abs(z) < 1.2 ? 'ROAD_CROSS' : 'ROAD_STRAIGHT';
     placeExt(exteriorStreetGroup, key, {mode:'footprint',target:2.3}, roadX, z, Math.PI/2);
   }
   placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:2.3}, roadX, crossZ, 0);
+  placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:2.3}, roadX, crossZ2, 0);
+  // deuxième avenue (sud) + trottoirs + lampadaires tournés vers la chaussée
+  for(let x=roadX-2.3; x>=roadX-16; x-=2.3){
+    placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, x, crossZ2, 0);
+  }
+  [-1.55, 1.55].forEach(off=>{
+    const w = box(20, 0.08, 1.1, '#5c5568');
+    w.position.set(roadX - 6.5, 0.04, crossZ2 + off);
+    w.receiveShadow = true;
+    exteriorStreetGroup.add(w);
+  });
+  for(let x=roadX-3.5; x>=roadX-15; x-=5.2){
+    placeStreetlight(x, crossZ2 - 1.6, 'z+', true);
+  }
+  for(let x=roadX-6; x>=roadX-14; x-=5.2){
+    placeStreetlight(x, crossZ2 + 1.6, 'z-', false);
+  }
+
   for(let x=roadX-2.3; x>=roadX-16; x-=2.3){
     placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, x, crossZ, 0);
   }
