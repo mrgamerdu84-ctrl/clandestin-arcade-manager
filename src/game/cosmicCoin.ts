@@ -1767,20 +1767,20 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const gravel = box(w-0.2, 0.04, d-0.2, casino?'#3a2430':'#2a2340');
   gravel.position.set(0, roofTop, 0);
   exteriorBuildingGroup.add(gravel);
-  const acPos = [[-w*0.28, -d*0.26],[w*0.24, -d*0.3],[-w*0.18, d*0.3]];
+  const acPos = [[-w*0.3,-d*0.28],[w*0.26,-d*0.3],[-w*0.2,d*0.3],[w*0.32,d*0.12],[-w*0.34,d*0.02],[w*0.06,d*0.32]];
   acPos.forEach(([ax,az],i)=>{
-    const unit = box(0.75, 0.42, 0.6, '#4a4358'); unit.position.set(ax, roofTop+0.23, az);
+    const unit = box(1.05, 0.6, 0.85, '#4a4358'); unit.position.set(ax, roofTop+0.23, az);
     unit.castShadow = true; exteriorBuildingGroup.add(unit);
-    const fan = cyl(0.2,0.2,0.06,'#6b6480'); fan.position.set(ax, roofTop+0.47, az);
+    const fan = cyl(0.28,0.28,0.07,'#6b6480'); fan.position.set(ax, roofTop+0.64, az);
     exteriorBuildingGroup.add(fan);
     if(i===0){
-      const duct = box(0.25,0.22,d*0.45,'#3c3550'); duct.position.set(ax+0.7, roofTop+0.13, az+d*0.2);
+      const duct = box(0.32,0.28,d*0.45,'#3c3550'); duct.position.set(ax+0.95, roofTop+0.16, az+d*0.2);
       exteriorBuildingGroup.add(duct);
     }
   });
   // water tank sur pieds
-  const tank = cyl(0.42,0.42,0.8, casino?'#5a3a24':'#4a3a5a');
-  tank.position.set(w*0.3, roofTop+0.95, d*0.26); tank.castShadow = true;
+  const tank = cyl(0.6,0.6,1.1, casino?'#5a3a24':'#4a3a5a');
+  tank.position.set(w*0.3, roofTop+1.2, d*0.26); tank.castShadow = true;
   exteriorBuildingGroup.add(tank);
   [[-0.28,-0.28],[0.28,-0.28],[-0.28,0.28],[0.28,0.28]].forEach(([px,pz])=>{
     const leg = cyl(0.045,0.045,0.55,'#2b2438');
@@ -1788,19 +1788,19 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     exteriorBuildingGroup.add(leg);
   });
   // cage d'escalier + verrière
-  const hatch = box(0.9, 0.55, 0.9, casino?'#3a1c26':'#221a38');
-  hatch.position.set(-w*0.05, roofTop+0.3, d*0.05); hatch.castShadow = true;
+  const hatch = box(1.3, 0.8, 1.3, casino?'#3a1c26':'#221a38');
+  hatch.position.set(-w*0.05, roofTop+0.42, d*0.05); hatch.castShadow = true;
   exteriorBuildingGroup.add(hatch);
-  const sky = box(1.1, 0.06, 0.8, '#7fd6ff', {emissive:0x2a6a88, emissiveIntensity:0.35, opacity:0.85, transparent:true});
+  const sky = box(1.8, 0.06, 1.2, '#7fd6ff', {emissive:0x2a6a88, emissiveIntensity:0.35, opacity:0.85, transparent:true});
   sky.position.set(w*0.05, roofTop+0.06, -d*0.05);
   exteriorBuildingGroup.add(sky);
   // enseigne néon sur le toit
-  const neonBar = box(w*0.5, 0.1, 0.1, casino?PAL.casinoGold:PAL.pink, {emissive: casino?0xffcc55:0xff2f8e, emissiveIntensity:1.1});
-  neonBar.position.set(0, roofTop+0.7, -d/2+0.35);
+  const neonBar = box(w*0.5, 0.16, 0.16, casino?PAL.casinoGold:PAL.pink, {emissive: casino?0xffcc55:0xff2f8e, emissiveIntensity:1.1});
+  neonBar.position.set(0, roofTop+1.05, -d/2+0.5);
   exteriorBuildingGroup.add(neonBar);
   [-w*0.22, w*0.22].forEach(px=>{
-    const mast = cyl(0.035,0.035,0.65,'#2b2438');
-    mast.position.set(px, roofTop+0.33, -d/2+0.35);
+    const mast = cyl(0.05,0.05,1.0,'#2b2438');
+    mast.position.set(px, roofTop+0.5, -d/2+0.5);
     exteriorBuildingGroup.add(mast);
   });
 
