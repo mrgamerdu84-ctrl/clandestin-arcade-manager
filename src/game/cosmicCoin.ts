@@ -1950,11 +1950,30 @@ function spawnCustomer(){
 function updateCustomers(dt){
   for(let i=state.customers.length-1;i>=0;i--){
     const c = state.customers[i];
+    // machine disparue (vendue, saisie, planquée) : le client repart au lieu de rester figé
+    if(c.phase!=='out' && (!c.target || state.machines.indexOf(c.target)===-1)){
+      if(c.target) c.target.busy = false;
+      c.target = null; c.phase = 'out';
+    }
     if(c.phase==='in'){
       const dir = new THREE.Vector3().subVectors(c.targetPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
-      if(dist<0.15){ c.phase='playing'; c.playTimer=0; }
-      else{ dir.normalize(); c.mesh.position.addScaledVector(dir, (1.6*dt/1000)); c.mesh.lookAt(c.targetPos.x,0,c.targetPos.z); }
+      // la machine a pu être déplacée/pivotée : on resynchronise la cible
+      if(c.target) c.targetPos.set(c.target.mesh.position.x, 0, c.target.mesh.position.z);
+      if(dist<0.35){ c.phase='playing'; c.playTimer=0; c.stuck=0; }
+      else{
+        dir.normalize();
+        c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
+        c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+        c.mesh.lookAt(c.targetPos.x, c.mesh.position.y, c.targetPos.z);
+        // anti-blocage : si on n'avance plus, on rejoint directement la machine
+        c.stuck = (c.prevDist!==undefined && dist > c.prevDist-0.002) ? (c.stuck||0)+dt : 0;
+        if(c.stuck > 4000){
+          c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
+          c.phase='playing'; c.playTimer=0; c.stuck=0;
+        }
+      }
+      c.prevDist = dist;
     } else if(c.phase==='playing'){
       c.mesh.position.y = Math.sin(performance.now()/150)*0.03+0.0;
       c.playTimer += dt;
@@ -1974,18 +1993,25 @@ function updateCustomers(dt){
         state.money += gain;
         spawnFloatText(c.mesh.position, `+${gain}¢`);
         c.target.busy=false;
+        c.target=null;
         c.phase='out';
       }
     } else if(c.phase==='out'){
-      c.mesh.position.y = 0;
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
       if(dist<0.2){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
-      dir.normalize(); c.mesh.position.addScaledVector(dir,(1.8*dt/1000)); c.mesh.lookAt(c.doorPos.x,0,c.doorPos.z);
+      dir.normalize();
+      c.mesh.position.addScaledVector(dir,(1.8*dt/1000));
+      c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      c.mesh.lookAt(c.doorPos.x, c.mesh.position.y, c.doorPos.z);
+      // filet : un client qui traîne trop longtemps dehors est retiré
+      c.outTimer = (c.outTimer||0) + dt;
+      if(c.outTimer > 20000){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
     }
   }
   if(state.staff.host && Math.random()<0.0025) spawnCustomer();
 }
+
 
 const floaters=[];
 function spawnFloatText(pos,text){
