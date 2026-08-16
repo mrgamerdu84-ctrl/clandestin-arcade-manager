@@ -538,7 +538,14 @@ const CITY_FILES = {
   CITY_SKY_A:'city/building-skyscraper-b.glb', CITY_SKY_B:'city/building-skyscraper-d.glb',
   CAR_SEDAN:'city/sedan.glb', CAR_TAXI:'city/taxi.glb', CAR_VAN:'city/van.glb',
   CAR_SUV:'city/suv.glb', CAR_POLICE_M:'city/police.glb',
+  CAR_HATCH:'city/hatchback-sports.glb', CAR_SPORT:'city/sedan-sports.glb',
+  CAR_DELIVERY:'city/delivery.glb', CAR_GARBAGE:'city/garbage-truck.glb',
   AWNING:'city/detail-awning.glb', PARASOL:'city/detail-parasol-a.glb', CONE:'city/cone.glb',
+  // city-kit-roads 2 — real asphalt tiles, sidewalks and lamps
+  ROAD_STRAIGHT:'roads/road-straight.glb', ROAD_CROSS:'roads/road-crossing.glb',
+  ROAD_BEND:'roads/road-bend.glb', ROAD_SIDE:'roads/road-side.glb',
+  STREETLIGHT:'roads/light-curved.glb',
+  BARRIER:'roads/construction-barrier.glb', CONE_WORK:'roads/construction-cone.glb',
 };
 const GLB_KEY_MAP = {
   arcade:'ARCADE', pinball:'PINBALL', claw:'CLAW', vending:'VENDING', ticket:'TICKET',
@@ -1351,10 +1358,15 @@ function buildExteriorStreet(maxSpan){
   const houseX = -15.5;
   const zMin = -maxSpan, zMax = maxSpan;
 
-  // road strip
+  // road strip (crosswalk tile right in front of the arcade entrance)
   for(let z=zMin; z<=zMax; z+=2.3){
-    placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, roadX, z, Math.PI/2);
+    const key = Math.abs(z) < 1.2 ? 'ROAD_CROSS' : 'ROAD_STRAIGHT';
+    placeExt(exteriorStreetGroup, key, {mode:'footprint',target:2.3}, roadX, z, Math.PI/2);
   }
+  // roadworks on the far end — breaks the perfectly regular street
+  placeExt(exteriorStreetGroup, 'BARRIER', {mode:'footprint',target:1.5}, roadX-0.7, zMin+2.2, 0.2);
+  placeExt(exteriorStreetGroup, 'CONE_WORK', {mode:'height',target:0.5}, roadX-0.2, zMin+3.0, 0);
+  placeExt(exteriorStreetGroup, 'CONE_WORK', {mode:'height',target:0.5}, roadX+0.3, zMin+3.6, 0);
   // sidewalk (flat light strip, procedural — no dedicated sidewalk-only model chosen)
   const walk = box(2.6, 0.08, (zMax-zMin)+4, '#5c5568');
   walk.position.set(sidewalkX, 0.04, 0);
@@ -1408,7 +1420,7 @@ function buildExteriorStreet(maxSpan){
   });
 
   // a handful of cars driving up and down the road, each in its own lane direction
-  const carRoster = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV'];
+  const carRoster = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV','CAR_SPORT','CAR_DELIVERY','CAR_GARBAGE'];
   for(let i=0;i<4;i++){
     const key = carRoster[i % carRoster.length];
     const dir = i%2===0 ? 1 : -1;
