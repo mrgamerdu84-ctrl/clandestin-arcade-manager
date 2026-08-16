@@ -1544,17 +1544,22 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
   const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
 
-  // big neon sign, visible from the street
+  // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
+  // qui traverse le mur comme le faisait le sprite billboard)
   const signText = casino ? "CASINO" : (stageIdx===1 ? "ARCADE" : "COSMIC COIN");
-  const sign = makeSprite(signText, casino?'#ffd23f':'#ff2e88');
-  sign.position.set(-w/2-0.6, bodyH*0.75+0.2, 0);
-  sign.scale.set(3.6,1.3,1);
-  exteriorBuildingGroup.add(sign);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.4, 10, 2);
+  const signColor = casino?'#ffd23f':'#ff2e88';
+  const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
+  signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
+  signPanel.rotation.y = -Math.PI/2;
+  exteriorBuildingGroup.add(signPanel);
+  const signBack = box(0.08, 1.15, 4.3, '#150a1e');
+  signBack.position.set(-w/2-0.06, bodyH*0.75+0.2, 0);
+  exteriorBuildingGroup.add(signBack);
+  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.2, 10, 2);
   signGlow.position.set(-w/2-0.8, bodyH*0.75+0.2, 0);
   exteriorBuildingGroup.add(signGlow);
-  const signHalo = makeGlowSprite(casino?'#ffd23f':'#ff2e88', 4.2);
-  signHalo.position.copy(sign.position);
+  const signHalo = registerNightHalo(makeGlowSprite(signColor, 2.6), 0.8);
+  signHalo.position.set(-w/2-0.5, bodyH*0.75+0.2, 0);
   exteriorBuildingGroup.add(signHalo);
   exteriorBuildingGroup.userData.signHalo = signHalo;
 
@@ -1562,9 +1567,10 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const doorGlow = new THREE.PointLight(0xffd9a0, 0.8, 4, 2);
   doorGlow.position.set(-w/2-0.4, 2.0, doorZ);
   exteriorBuildingGroup.add(doorGlow);
-  const doorHalo = makeGlowSprite('#ffd9a0', 1.4);
+  const doorHalo = registerNightHalo(makeGlowSprite('#ffd9a0', 1.0), 0.8);
   doorHalo.position.copy(doorGlow.position);
   exteriorBuildingGroup.add(doorHalo);
+
 }
 
 let exteriorMode = false;
