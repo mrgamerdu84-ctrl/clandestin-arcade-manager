@@ -680,9 +680,9 @@ function makeCarpetTexture(casino){
   const size = 256;
   const cvs = document.createElement('canvas'); cvs.width=size; cvs.height=size;
   const c = cvs.getContext('2d');
-  const base1 = casino ? '#3a1020' : '#241238';
-  const base2 = casino ? '#4a1830' : '#2c1548';
-  const accent = casino ? '#c9a04a' : '#6b4e9e';
+  const base1 = casino ? '#6b2038' : '#463069';
+  const base2 = casino ? '#83294a' : '#573c82';
+  const accent = casino ? '#f0cd7c' : '#b39ae8';
   c.fillStyle = base1; c.fillRect(0,0,size,size);
   c.fillStyle = base2;
   const step = size/4;
