@@ -1358,10 +1358,15 @@ function buildExteriorStreet(maxSpan){
   const houseX = -15.5;
   const zMin = -maxSpan, zMax = maxSpan;
 
-  // road strip
+  // road strip (crosswalk tile right in front of the arcade entrance)
   for(let z=zMin; z<=zMax; z+=2.3){
-    placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, roadX, z, Math.PI/2);
+    const key = Math.abs(z) < 1.2 ? 'ROAD_CROSS' : 'ROAD_STRAIGHT';
+    placeExt(exteriorStreetGroup, key, {mode:'footprint',target:2.3}, roadX, z, Math.PI/2);
   }
+  // roadworks on the far end — breaks the perfectly regular street
+  placeExt(exteriorStreetGroup, 'BARRIER', {mode:'footprint',target:1.5}, roadX-0.7, zMin+2.2, 0.2);
+  placeExt(exteriorStreetGroup, 'CONE_WORK', {mode:'height',target:0.5}, roadX-0.2, zMin+3.0, 0);
+  placeExt(exteriorStreetGroup, 'CONE_WORK', {mode:'height',target:0.5}, roadX+0.3, zMin+3.6, 0);
   // sidewalk (flat light strip, procedural — no dedicated sidewalk-only model chosen)
   const walk = box(2.6, 0.08, (zMax-zMin)+4, '#5c5568');
   walk.position.set(sidewalkX, 0.04, 0);
