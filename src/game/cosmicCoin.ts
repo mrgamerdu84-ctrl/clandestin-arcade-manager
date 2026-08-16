@@ -202,7 +202,7 @@ addWin('pointermove', e=>{
     const pts=[...pointers.values()];
     const d = pointerDist(pts[0],pts[1]);
     if(pinchStartDist>0){
-      orbit.radius = Math.min(30, Math.max(7, pinchStartRadius * (pinchStartDist/d)));
+      orbit.radius = Math.min(60, Math.max(7, pinchStartRadius * (pinchStartDist/d)));
       updateCamera();
     }
     dragMoved=true;
@@ -229,7 +229,7 @@ addWin('pointerup', releasePointer);
 addWin('pointercancel', releasePointer);
 canvas.addEventListener('wheel', e=>{
   e.preventDefault();
-  orbit.radius = Math.min(30, Math.max(7, orbit.radius + e.deltaY*0.01));
+  orbit.radius = Math.min(60, Math.max(7, orbit.radius + e.deltaY*0.01));
   updateCamera();
 },{passive:false});
 
@@ -1321,7 +1321,7 @@ function setExteriorMode(on){
     // arrière et le parking dans le même cadre
     orbit.target.set(-1.5, 1.2, 0);
     orbit.theta = -Math.PI/2 - 0.45; orbit.phi = 0.95;
-    orbit.radius = 26 + Math.max(cols,rows)*1.2;
+    orbit.radius = 40 + Math.max(cols,rows)*1.2;
     // dusk sky so the streetlights and neon signs read clearly as a "living city at night"
     scene.background.set(0x0e1230);
     scene.fog.color.set(0x0e1230);
