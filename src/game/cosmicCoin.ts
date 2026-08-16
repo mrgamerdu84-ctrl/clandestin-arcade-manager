@@ -2640,6 +2640,9 @@ preloadModels(()=>{
   renderShop();
   updateHUD();
   log("Bienvenue au Cosmic Coin. Achète ta première borne — la porte du fond attendra ce soir.");
+  if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
+  else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
+
   _raf = requestAnimationFrame(animate);
 });
 
