@@ -2244,6 +2244,8 @@ function updateCustomers(dt){
         c.phase='out';
       }
     } else if(c.phase==='out'){
+      c.mesh.rotation.z = 0;
+
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
       if(dist<0.2){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
