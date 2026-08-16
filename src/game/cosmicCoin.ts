@@ -905,7 +905,6 @@ function buildRoom(stageIdx){
     ch.position.set(px, 0, pz);
     ch.rotation.y = Math.atan2(danceCx-px, danceCz-pz);
     roomGroup.add(ch);
-    window.__ccDancers = dancers;
     dancers.push({wrap:ch, base:0, phase:Math.random()*6.3, style: i%3===0?'jump':(i%3===1?'sway':'spin'), x:px, z:pz});
   }
 
@@ -931,15 +930,16 @@ function buildRoom(stageIdx){
   for(let i=0;i<segCount;i++){
     const t = i/(segCount-1);
     const px = danceX0 + t*backW*CELL;
-    const bulge = Math.sin(t*Math.PI)*0.55; // courbure => moins carré
-    const seg = box(backW*CELL/segCount + 0.12, 2.3, 0.22, casino?'#2a1420':'#221630');
-    seg.position.set(px + (backW*CELL/segCount)/2, 1.15, danceZ1 - bulge);
+    const bulge = Math.sin(t*Math.PI)*0.45; // courbure => moins carré
+    const segH = 1.45; // assez bas pour voir la piste par-dessus
+    const seg = box(backW*CELL/segCount + 0.12, segH, 0.22, casino?'#2a1420':'#221630');
+    seg.position.set(px + (backW*CELL/segCount)/2, segH/2, danceZ1 + bulge);
     seg.rotation.y = Math.cos(t*Math.PI)*0.18;
     if(i === Math.floor(segCount/2)) continue; // passage
     partition.add(seg);
     const strip = box(backW*CELL/segCount + 0.1, 0.08, 0.24, '#ff2e88');
     strip.material.emissive = new THREE.Color(0xff2e88); strip.material.emissiveIntensity = 0.8;
-    strip.position.set(seg.position.x, 1.9, seg.position.z);
+    strip.position.set(seg.position.x, 1.4, seg.position.z);
     strip.rotation.y = seg.rotation.y;
     partition.add(strip);
   }
