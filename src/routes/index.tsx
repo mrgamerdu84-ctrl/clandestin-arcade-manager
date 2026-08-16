@@ -193,6 +193,7 @@ function GamePage() {
             <li>🕹️ Choisis une machine dans la boutique puis clique une case au sol.</li>
             <li>🚪 Rouvre l'arrière-salle : les machines clandestines rapportent x2,3.</li>
             <li>🚨 Chaque mise fait monter la <b>suspicion</b>. Blanchis, arrose l'inspecteur.</li>
+            <li>🚪 Trie les clandestins à la porte : fouille, laisse passer ou refuse — les indics et les flics infiltrés font grimper le <b>danger</b> ☠️.</li>
             <li>👮 En pleine descente, planque tout avant la fin du compte à rebours.</li>
             <li>⚖️ Trois descentes ratées et le juge met les scellés.</li>
           </ul>
