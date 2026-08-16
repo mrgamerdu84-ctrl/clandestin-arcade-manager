@@ -1454,10 +1454,12 @@ function buildExteriorStreet(maxSpan){
   const blockKeys = ['CITY_A','CITY_B','CITY_C','CITY_D','CITY_E','CITY_F','CITY_G'];
   let bi = 0;
   for(let z=zMin+1; z<=zMax; z+=4.6){
+    if(Math.abs(z - crossZ) < 2.6) continue;
     placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
       {mode:'height', target: 4.5 + Math.random()*2.5}, -21.5 + Math.random()*0.8, z + Math.random()*0.6, Math.PI/2 + (Math.random()*0.2-0.1));
   }
   for(let z=zMin+2; z<=zMax; z+=6.2){
+    if(Math.abs(z - crossZ) < 2.6) continue;
     placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
       {mode:'height', target: 5.5 + Math.random()*3}, -27 + Math.random()*1.2, z, Math.PI/2);
   }
@@ -1537,6 +1539,7 @@ function buildExteriorStreet(maxSpan){
   const houseKeys = ['HOUSE_A','HOUSE_E','HOUSE_J'];
   let hi = 0;
   for(let z=zMin; z<=zMax; z+=3.4){
+    if(Math.abs(z - crossZ) < 2.8) continue;
     const key = houseKeys[hi % houseKeys.length]; hi++;
     const jitter = (Math.random()*0.6-0.3);
     placeExt(exteriorStreetGroup, key, {mode:'height',target:1.8}, houseX+jitter, z, Math.PI);
