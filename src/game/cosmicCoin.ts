@@ -1024,20 +1024,23 @@ function buildRoom(stageIdx){
       }
     });
   }
-  // neon sign
-  const signText = casino ? "CASINO" : (stageIdx===1 ? "ARCADE" : "COSMIC");
-  const signSprite = makeSprite(signText, casino?'#ffd23f':'#ff2e88');
+  // enseigne néon intérieure : pas de sprite texte (il masquait la salle),
+  // juste une barre lumineuse discrète au-dessus du mur nord.
   const northMid = cellToWorld(cols/2-0.5,0,cols,rows);
-  signSprite.position.set(northMid.x, wallH+0.6, northMid.z-CELL/2);
-  signSprite.scale.set(3,1.1,1);
-  roomGroup.add(signSprite);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.1, 8, 2);
-  signGlow.position.set(northMid.x, wallH+0.4, northMid.z-CELL/2+0.6);
+  const signBar = new THREE.Mesh(
+    new THREE.BoxGeometry(CELL*2.2, 0.12, 0.12),
+    new THREE.MeshStandardMaterial({
+      color: casino?0xffd23f:0xff2e88,
+      emissive: casino?0xffd23f:0xff2e88, emissiveIntensity:1.4, roughness:0.4
+    })
+  );
+  signBar.position.set(northMid.x, wallH*0.9, northMid.z-CELL/2+0.08);
+  roomGroup.add(signBar);
+  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 0.8, 7, 2);
+  signGlow.position.set(northMid.x, wallH*0.8, northMid.z-CELL/2+0.6);
   roomGroup.add(signGlow);
-  const signHalo = makeGlowSprite(casino?'#ffd23f':'#ff2e88', 3.4);
-  signHalo.position.copy(signSprite.position);
-  roomGroup.add(signHalo);
-  roomGroup.userData.signHalo = signHalo;
+  roomGroup.userData.signHalo = signBar;
+
 
   // door — a proper detailed doorway (frame, glass panels, handles, canopy)
   const doorP = cellToWorld(0,doorRow,cols,rows);
