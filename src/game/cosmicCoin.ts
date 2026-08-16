@@ -605,7 +605,15 @@ function fitSmart(obj, spec){
   }
 }
 
+const missingModels = [];   // clés dont le GLB n'a pas pu être chargé
 function preloadModels(onDone){
+  const loadText = document.getElementById('loadText');
+  if(lightRender){
+    // rendu léger : on saute complètement les GLB, tout sera en placeholders
+    if(loadText) loadText.innerText = 'Mode léger — placeholders…';
+    onDone();
+    return;
+  }
   const loader = new GLTFLoader();
   const entries = [
     ...Object.entries(GLB_FILES),
@@ -615,7 +623,6 @@ function preloadModels(onDone){
   let done = 0;
   let started = false;
   const total = entries.length;
-  const loadText = document.getElementById('loadText');
   const go = ()=>{ if(started) return; started = true; onDone(); };
   // filet de sécurité : si un modèle ne répond pas, on démarre quand même
   const safety = window.setTimeout(go, 9000);
@@ -637,10 +644,11 @@ function preloadModels(onDone){
       if(key.startsWith('__CUST')) CUSTOMER_TEMPLATES.push(root);
       else MODEL_TEMPLATES[key] = root;
       finish();
-    }, undefined, ()=>finish());
+    }, undefined, ()=>{ if(!key.startsWith('__CUST')) missingModels.push(key); finish(); });
   });
   if(total===0){ window.clearTimeout(safety); go(); }
 }
+
 
 
 function buildMachineMesh(defId){
