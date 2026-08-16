@@ -743,17 +743,9 @@ function buildMachineMesh(defId){
   return fn();
 }
 
-/* ---------- character (real model, with procedural fallback) ---------- */
+/* ---------- character (procédural : plus de modèles importés) ---------- */
 function buildCharacter(shirtColor){
-  if(CUSTOMER_TEMPLATES.length){
-    const wrapper = group();
-    const tpl = CUSTOMER_TEMPLATES[Math.floor(Math.random()*CUSTOMER_TEMPLATES.length)];
-    const clone = tpl.clone(true);
-    clone.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
-    wrapper.add(clone);
-    fitHeight(clone, 1.25 + Math.random()*0.18);
-    return wrapper;
-  }
+
   const g = group();
   const legs = cyl(0.16,0.18,0.5, PAL.black,10); legs.position.y=0.25; g.add(legs);
   const body = cyl(0.2,0.24,0.55, shirtColor,10); body.position.y=0.75; g.add(body);
