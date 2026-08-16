@@ -1771,6 +1771,7 @@ const MACHINES = [
   {id:'roulette', name:'Roulette', color:PAL.green, price:400, earn:[15,28], time:4200, repReq:6, stageReq:1, illegal:true},
   {id:'poker', name:'Table de poker', color:PAL.green, price:450, earn:[17,32], time:4600, repReq:8, stageReq:1, illegal:true},
   {id:'blackjack', name:'Table de blackjack', color:PAL.green, price:380, earn:[14,26], time:4000, repReq:7, stageReq:1, illegal:true},
+  {id:'vip', name:'Table VIP de la Reine', color:'#e8b64a', price:520, earn:[24,42], time:4800, repReq:0, stageReq:0, illegal:true, unlockReq:'vip'},
 ];
 const DECOR = [
   {id:'trash', name:'Poubelle', color:PAL.chrome, price:20, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
@@ -1779,6 +1780,9 @@ const DECOR = [
   {id:'cashregister', name:'Caisse enregistreuse', color:PAL.red, price:50, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'bench', name:"Banc d'attente", color:PAL.orange, price:55, repBoost:0.6, repReq:1, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'neon', name:'Enseigne néon', color:PAL.pink, price:80, repBoost:0.8, repReq:2, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'jukebox', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
+  {id:'safe', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
+  {id:'falsewall', name:'Faux mur automatique', color:PAL.purpleDark, price:260, repBoost:0.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'falsewall'},
   {id:'statue', name:'Statue dorée', color:PAL.casinoGold||'#e8b64a', price:150, repBoost:1.2, repReq:0, stageReq:2, earn:[0,0], time:0, passive:true, decor:true},
 ];
 const STAFF = [
@@ -1800,6 +1804,7 @@ function freshState(){
     backroom:false, suspicion:0, hidden:false, busts:0, raid:null, raidsSurvived:0,
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
     danger:0, doorTimer:0,
+    unlocks:[], storyDone:[],
   };
 }
 let state = freshState();
@@ -1816,6 +1821,8 @@ function renderItemInto(container, def){
   const stageLocked = state.stage < def.stageReq;
   const repLocked = state.rep < def.repReq;
   const backLocked = !!def.illegal && !state.backroom;
+  const storyLocked = !!def.unlockReq && !state.unlocks.includes(def.unlockReq);
+  if(storyLocked) return; // pas encore raconté : l'objet n'existe pas dans la boutique
   const locked = stageLocked || repLocked || backLocked;
   const div = document.createElement('div');
   div.className='item'+(locked?' locked':'')+(state.selected===def.id?' selected':'');
@@ -2456,6 +2463,10 @@ document.getElementById('doorRefuse').onclick = doorRefuse;
 function startRaid(){
   const warn = Math.round((state.lookout ? 22000 : 13000) * (1 - Math.min(0.35, state.danger/300)));
   if(doorVisitor) visitorLeaves();
+  if(!state.hidden && state.machines.some(m=>m.def.id==='falsewall')){
+    setHidden(true);
+    log("Le faux mur automatique claque : tout est planqué avant même que tu bouges.");
+  }
   state.raid = {timer:warn, total:warn};
   const banner = document.getElementById('raidBanner');
   banner.classList.add('on');
@@ -2539,6 +2550,8 @@ function newDay(){
       ? "La banque est remboursée — avec l'argent de l'arrière-salle. Le Cosmic Coin est à toi, et la moitié du quartier sait déjà pour la porte du fond. Continue : empire clandestin ou blanchiment total, à toi de voir."
       : "La banque est remboursée, jeton par jeton, à la loyale. Rosa serait fière. Rien ne t'empêche maintenant de rouvrir la porte du fond… ou de la murer pour de bon.");
   }
+  const safes = state.machines.filter(m=>m.def.id==='safe').length;
+  if(safes) state.suspicion = Math.max(0, state.suspicion - safes*3);
   // suspicion : décroît les nuits calmes, monte si la salle secrète tourne à découvert
   if(state.backroom){
     const active = illegalMachines().length;
