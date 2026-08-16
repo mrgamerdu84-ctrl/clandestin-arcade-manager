@@ -3589,15 +3589,31 @@ function updateDayNight(){
   if(starField) starField.material.opacity = nightFactor*0.85;
 
   // les halos néon s'estompent en plein jour (sinon grosses taches blanches)
-  const haloFactor = 0.25 + nightFactor*0.75;
+  const haloFactor = 0.18 + nightFactor*0.9;
   for(let i=0;i<nightHalos.length;i++){
     const h = nightHalos[i];
     if(!h.parent) continue;
-    h.material.opacity = (h.userData.maxOpacity ?? 1) * haloFactor;
-    const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.3);
+    h.material.opacity = (h.userData.maxOpacity ?? 1) * Math.min(1, haloFactor);
+    const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.35);
     h.scale.set(s,s,1);
   }
+
+  // lampadaires : éteints en plein jour, allumés au crépuscule
+  const lampFactor = Math.min(1, Math.max(0, (nightFactor + 0.12) * 1.35));
+  for(let i=0;i<nightLamps.length;i++){
+    const l = nightLamps[i];
+    if(!l.parent) continue;
+    l.intensity = (l.userData.maxIntensity ?? 1) * lampFactor;
+  }
+  for(let i=0;i<lightCones.length;i++){
+    const c = lightCones[i];
+    if(!c.parent) continue;
+    c.visible = lampFactor > 0.08;
+    c.material.opacity = (c.userData.maxOpacity ?? 0.12) * lampFactor;
+  }
+  nightAmount = lampFactor;
 }
+
 
 function animate(ts){
   if(_disposed) return;
