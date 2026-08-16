@@ -2,6 +2,7 @@
 /* Cosmic Coin — salle d'arcade clandestine (moteur 3D, procédural, sans modèle externe) */
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { createDiscoAudio } from "./discoAudio";
 
 export function startCosmicCoin(): () => void {
 /* ============================================================
@@ -774,6 +775,7 @@ function buildDoorway(casino, height){
 
 /* ---------- zones : arcade / piste de danse / arrière-salle ---------- */
 let danceTiles = [];
+let dancers = [];
 let zoneLights = [];
 let discoBall = null;
 function zoneSplit(cols, rows){
@@ -819,7 +821,7 @@ function buildRoom(stageIdx){
   roomGroup.add(floorPlane);
 
   /* ---------- découpage en 3 espaces ---------- */
-  danceTiles = []; zoneLights = []; discoBall = null;
+  danceTiles = []; zoneLights = []; discoBall = null; dancers = [];
   const {splitX, splitZ} = zoneSplit(cols, rows);
   const halfW = cols*CELL/2, halfD = rows*CELL/2;
   const danceX0 = -halfW + splitX*CELL, danceZ1 = -halfD + splitZ*CELL;
@@ -845,9 +847,9 @@ function buildRoom(stageIdx){
     new THREE.IcosahedronGeometry(0.32, 1),
     new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
   );
-  discoBall.position.set(danceCx, 2.4-0.35, danceCz);
+  discoBall.position.set(danceCx, 2.15, danceCz);
   roomGroup.add(discoBall);
-  const ballGlow = makeGlowSprite('#bcd0ff', 1.6);
+  const ballGlow = makeGlowSprite('#bcd0ff', 0.7);
   ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
   [[0xff2e88, -1], [0x20e6d0, 1]].forEach(([col, side], i)=>{
     const spot = new THREE.PointLight(col, 1.6, 11, 2);
@@ -870,6 +872,41 @@ function buildRoom(stageIdx){
   djChar.position.set(dj.position.x, 0, dj.position.z + 0.9);
   djChar.rotation.y = Math.PI;
   roomGroup.add(djChar);
+  dancers.push({wrap:djChar, base:0, phase:0, style:'dj', x:djChar.position.x, z:djChar.position.z});
+
+  // anneau néon arrondi autour de la piste : casse l'aspect carré
+  const ringR = Math.min(danceW, danceD)*CELL*0.46;
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(ringR, 0.06, 8, 64),
+    new THREE.MeshStandardMaterial({color:0x20e6d0, emissive:new THREE.Color(0x20e6d0), emissiveIntensity:1.4, roughness:0.4})
+  );
+  ring.rotation.x = -Math.PI/2; ring.position.set(danceCx, 0.075, danceCz);
+  roomGroup.add(ring);
+  // arche lumineuse au-dessus de la piste (structure de club, pas un cube)
+  for(let a=0;a<2;a++){
+    const arch = new THREE.Mesh(
+      new THREE.TorusGeometry(ringR*0.8, 0.05, 6, 40, Math.PI),
+      new THREE.MeshStandardMaterial({color:0xff2e88, emissive:new THREE.Color(0xff2e88), emissiveIntensity:1.1, roughness:0.4})
+    );
+    arch.position.set(danceCx, 0.05, danceCz);
+    arch.rotation.y = a*Math.PI/2;
+    arch.scale.y = 1.35;
+    roomGroup.add(arch);
+  }
+
+  // foule qui danse sur la piste
+  const dancerCount = Math.min(8, Math.max(4, Math.round(danceW*danceD*0.55)));
+  const dCols = ['#ff2e88','#20e6d0','#ffe600','#9b5cff','#ff8a3c'];
+  for(let i=0;i<dancerCount;i++){
+    const ang = (i/dancerCount)*Math.PI*2 + Math.random()*0.4;
+    const rad = ringR*(0.25 + Math.random()*0.6);
+    const ch = buildCharacter(dCols[i%dCols.length]);
+    const px = danceCx + Math.cos(ang)*rad, pz = danceCz + Math.sin(ang)*rad;
+    ch.position.set(px, 0, pz);
+    ch.rotation.y = Math.atan2(danceCx-px, danceCz-pz);
+    roomGroup.add(ch);
+    dancers.push({wrap:ch, base:0, phase:Math.random()*6.3, style: i%3===0?'jump':(i%3===1?'sway':'spin'), x:px, z:pz});
+  }
 
   // arrière-salle clandestine (sud-est) : moquette rouge sombre + lumière tamisée
   const backW = cols-splitX, backD = rows-splitZ;
@@ -893,15 +930,16 @@ function buildRoom(stageIdx){
   for(let i=0;i<segCount;i++){
     const t = i/(segCount-1);
     const px = danceX0 + t*backW*CELL;
-    const bulge = Math.sin(t*Math.PI)*0.55; // courbure => moins carré
-    const seg = box(backW*CELL/segCount + 0.12, 2.3, 0.22, casino?'#2a1420':'#221630');
-    seg.position.set(px + (backW*CELL/segCount)/2, 1.15, danceZ1 - bulge);
+    const bulge = Math.sin(t*Math.PI)*0.45; // courbure => moins carré
+    const segH = 1.45; // assez bas pour voir la piste par-dessus
+    const seg = box(backW*CELL/segCount + 0.12, segH, 0.22, casino?'#2a1420':'#221630');
+    seg.position.set(px + (backW*CELL/segCount)/2, segH/2, danceZ1 + bulge);
     seg.rotation.y = Math.cos(t*Math.PI)*0.18;
     if(i === Math.floor(segCount/2)) continue; // passage
     partition.add(seg);
     const strip = box(backW*CELL/segCount + 0.1, 0.08, 0.24, '#ff2e88');
     strip.material.emissive = new THREE.Color(0xff2e88); strip.material.emissiveIntensity = 0.8;
-    strip.position.set(seg.position.x, 1.9, seg.position.z);
+    strip.position.set(seg.position.x, 1.4, seg.position.z);
     strip.rotation.y = seg.rotation.y;
     partition.add(strip);
   }
@@ -1569,6 +1607,19 @@ if(brightSlider){
   };
 }
 refreshLightUI();
+
+/* ---------- musique de discothèque ---------- */
+const disco = createDiscoAudio();
+const musicBtn = document.getElementById('musicBtn');
+function refreshMusicUI(){
+  if(!musicBtn) return;
+  const on = disco.isOn();
+  musicBtn.classList.toggle('on', on);
+  musicBtn.innerText = on ? '🔊' : '🔈';
+  musicBtn.title = on ? 'Couper la musique' : 'Musique disco';
+}
+if(musicBtn){ musicBtn.onclick = ()=>{ disco.toggle(); refreshMusicUI(); }; }
+refreshMusicUI();
 
 /* ============================================================
    MACHINE DEFS
@@ -2268,6 +2319,24 @@ function animate(ts){
       tile.material.emissive.setHSL(((t*0.12 + tile.userData.phase*0.09) % 1), 0.85, 0.55);
     }
     if(discoBall) discoBall.rotation.y = t*0.8;
+    for(let i=0;i<dancers.length;i++){
+      const d = dancers[i];
+      const beat = Math.abs(Math.sin(t*2.4 + d.phase));
+      if(d.style==='jump'){
+        d.wrap.position.y = d.base + beat*0.22;
+        d.wrap.rotation.z = Math.sin(t*2.4 + d.phase)*0.06;
+      } else if(d.style==='sway'){
+        d.wrap.position.y = d.base + beat*0.05;
+        d.wrap.rotation.z = Math.sin(t*1.6 + d.phase)*0.16;
+        d.wrap.position.x = d.x + Math.sin(t*1.2 + d.phase)*0.18;
+      } else if(d.style==='spin'){
+        d.wrap.rotation.y += 0.02;
+        d.wrap.position.y = d.base + beat*0.1;
+      } else { // dj
+        d.wrap.position.y = d.base + beat*0.06;
+        d.wrap.rotation.z = Math.sin(t*2.4)*0.05;
+      }
+    }
     zoneLights.forEach((l,i)=>{
       if(l.userData.kind==='dance'){
         const b = l.userData.base;
@@ -2278,6 +2347,8 @@ function animate(ts){
       }
     });
   }
+
+  disco.setDucked(exteriorMode || state.paused);
 
   if(exteriorMode){
     pedestrians.forEach(p=>{
@@ -2375,6 +2446,7 @@ return () => {
   _disposed = true;
   cancelAnimationFrame(_raf);
   _winL.forEach(([t,f,o])=>window.removeEventListener(t,f,o));
+  try { disco.dispose(); } catch(e) {}
   try { renderer.dispose(); } catch(e) {}
 };
 }

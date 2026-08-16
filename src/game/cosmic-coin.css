@@ -200,3 +200,6 @@
   #lightBar input[type=range]{width:64px;}
   #brightVal{display:none;}
 }
+
+#musicBtn{font-size:13px;}
+#musicBtn.on{border-color:var(--neon1); color:var(--neon1); box-shadow:0 0 10px rgba(255,0,127,0.45);}
