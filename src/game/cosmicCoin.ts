@@ -3416,7 +3416,25 @@ function animate(ts){
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
     updateHUD();
   }
+  // enseignes néon + marquise de l'entrée
+  if(exteriorMode){
+    const tn = ts*0.001;
+    const signs = exteriorBuildingGroup.userData.neonSigns || [];
+    for(const s of signs){
+      const flick = Math.random() < 0.012 ? 0.25 : 0.65 + 0.35*Math.abs(Math.sin(tn*s.freq + s.phase));
+      s.panel.material.opacity = flick;
+      s.panel.material.transparent = true;
+      if(s.halo.userData.maxOpacity != null) s.halo.userData.dynamic = flick;
+      s.halo.material.opacity = (s.halo.userData.dayFade ?? 1) * s.halo.userData.maxOpacity * flick;
+    }
+    const bulbs = exteriorBuildingGroup.userData.marqueeBulbs || [];
+    for(let i=0;i<bulbs.length;i++){
+      const on = ((Math.floor(tn*4) + i) % 3) !== 0;
+      bulbs[i].material.emissiveIntensity = on ? 1.6 : 0.15;
+    }
+  }
   // vie de la piste de danse : dalles qui pulsent, boule à facettes, spots mobiles
+
   if(!exteriorMode){
     const t = ts*0.001;
     for(let i=0;i<danceTiles.length;i++){
