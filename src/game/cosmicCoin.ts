@@ -2098,6 +2098,7 @@ function freshState(){
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
     danger:0, doorTimer:0,
     unlocks:[], storyDone:[],
+    questIdx:0, questProgress:{}, questsDone:[],
     stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
            passed:0, refused:0, searched:0, timeMs:0},
     scored:false,
@@ -2243,6 +2244,7 @@ canvas.addEventListener('click', (e)=>{
     // les clients en route vers cette machine suivent le déménagement
     state.customers.forEach(c=>{ if(c.target===m){ c.targetPos.set(np.x,0,np.z); c.stuck=0; } });
     log(`${m.def.name} déplacé.`);
+    questEvent('move');
     endMoveMode();
     return;
   }
@@ -2291,6 +2293,7 @@ canvas.addEventListener('click', (e)=>{
   mesh.userData.machine = machine;
   state.grid[gz][gx]=machine;
   state.machines.push(machine);
+  if(def.illegal) questSet('illegal_built', illegalMachines().length);
   if(def.decor){
     state.rep = Math.min(30, state.rep + (def.repBoost||0));
     log(`Décoration ajoutée : ${def.name} (+${def.repBoost}★ réputation).`);
@@ -2526,7 +2529,9 @@ const BRIBE_COST = 220;
 function illegalMachines(){ return state.machines.filter(m=>m.def.illegal); }
 
 function setHidden(on){
+  const was = state.hidden;
   state.hidden = on;
+  if(on && !was) questEvent('hide');
   if(on && typeof doorVisitor!=='undefined' && doorVisitor) visitorLeaves();
   illegalMachines().forEach(m=>{
     m.mesh.visible = !on;
@@ -2553,6 +2558,7 @@ function renderBackroom(){
     box.appendChild(backAction("Rouvrir l'arrière-salle", "La porte cachée de Rosa. Machines clandestines, gains x2,3.", BACKROOM_COST, state.money>=BACKROOM_COST, ()=>{
       state.money -= BACKROOM_COST;
       state.backroom = true;
+      questEvent('backroom');
       log("Tu descelles la porte du fond. L'arrière-salle de Rosa rouvre ce soir.");
       showEvent("L'ARRIÈRE-SALLE", "Derrière le mur, la moquette rouge n'a pas bougé depuis 1985. Les machines clandestines rapportent bien plus — mais chaque mise fait monter la suspicion, et le commissariat de la 9e finit toujours par frapper à la porte. Planque tout avant la descente.");
       renderShop();
@@ -2664,6 +2670,7 @@ function doorSearch(){
   const v = doorVisitor; if(!v || v.searched || v.phase!=='wait') return;
   v.searched = true;
   state.stats.searched += 1;
+  questEvent('search');
   v.timer = Math.min(v.timer, 9000);
   const acc = 0.5 + (state.lookout?0.22:0) + (state.staff.security?0.18:0);
   if(Math.random() < acc){
@@ -2694,6 +2701,8 @@ function doorPass(){
     const [lo,hi] = v.kind.pay;
     const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
     state.money += gain; state.illegalEarned += gain; state.stats.earned += gain;
+    questEvent('pass_good');
+    questEvent('illegal_earn', gain);
     state.rep = Math.min(30, state.rep+0.2);
     addDanger(v.kind.danger);
     spawnFloatText(v.mesh.position, `+${gain}¢`);
@@ -2713,6 +2722,7 @@ function doorRefuse(){
   const v = doorVisitor; if(!v || v.phase!=='wait') return;
   state.stats.refused += 1;
   if(v.kind.danger>0){
+    questEvent('refuse_bad');
     addDanger(-Math.min(12, v.kind.danger*0.6));
     log(`Porte refermée au nez de « ${v.kind.name.toLowerCase()} ». Bien vu.`);
   } else {
@@ -3126,6 +3136,7 @@ function resolveRaid(){
   if(exposed.length===0){
     state.suspicion = Math.max(0, state.suspicion-35);
     state.raidsSurvived += 1;
+    questEvent('raid_survived');
     log("Contrôle terminé : rien à signaler. Les flics repartent bredouilles.");
     showEvent("RIEN À SIGNALER", "Deux agents traversent la salle, tapotent une borne, repartent. Derrière le faux mur, personne n'ose respirer. Suspicion en forte baisse.");
   } else {
@@ -3239,6 +3250,7 @@ function updateHUD(){
   renderDoorPanel();
   renderExpandBox();
   renderBackroom();
+  renderQuestPanel();
 }
 
 /* ---------- events modal ---------- */
@@ -3315,6 +3327,7 @@ function serializeSave(){
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
     danger: state.danger, unlocks: state.unlocks, storyDone: state.storyDone,
+    questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
   };
@@ -3343,6 +3356,7 @@ function applySave(data){
     launderDay:data.launderDay??-1, bribeDay:data.bribeDay??-99, gameOver:!!data.gameOver,
     illegalEarned:data.illegalEarned||0, danger:data.danger||0,
     unlocks:data.unlocks||[], storyDone:data.storyDone||[],
+    questIdx:data.questIdx??0, questProgress:data.questProgress||{}, questsDone:data.questsDone||[],
     stats:{...state.stats, ...(data.stats||{})},
     logMsgs:data.logMsgs||[],
   });
