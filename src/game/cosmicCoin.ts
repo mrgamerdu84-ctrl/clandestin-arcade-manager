@@ -835,7 +835,7 @@ function buildRoom(stageIdx){
     new THREE.IcosahedronGeometry(0.32, 1),
     new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
   );
-  discoBall.position.set(danceCx, wallHeightRef-0.35, danceCz);
+  discoBall.position.set(danceCx, 2.4-0.35, danceCz);
   roomGroup.add(discoBall);
   const ballGlow = makeGlowSprite('#bcd0ff', 1.6);
   ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
