@@ -1433,16 +1433,19 @@ function buildExteriorStreet(maxSpan){
         const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
         if(c.y > best){ best = c.y; headX = c.x; headY = c.y; headZ = c.z; }
       });
-      const armDir = Math.abs(headX) > Math.abs(headZ)
+      const armDir = Math.max(Math.abs(headX), Math.abs(headZ)) < 0.15
+        ? 'none'
+        : Math.abs(headX) > Math.abs(headZ)
         ? (headX >= 0 ? 'x+' : 'x-')
         : (headZ >= 0 ? 'z+' : 'z-');
       // the mast sits on the side opposite the arm — slide it back onto the kerb
-      if(armDir === 'x+'){ obj.position.x -= bb.min.x; }
+      if(armDir === 'none'){ /* straight pole: already centred */ }
+      else if(armDir === 'x+'){ obj.position.x -= bb.min.x; }
       else if(armDir === 'x-'){ obj.position.x -= bb.max.x; }
       else if(armDir === 'z+'){ obj.position.z -= bb.min.z; }
       else { obj.position.z -= bb.max.z; }
       // rotate so the arm always overhangs the road (road is at -x)
-      const yaw = armDir === 'x-' ? 0 : armDir === 'x+' ? Math.PI : armDir === 'z+' ? Math.PI/2 : -Math.PI/2;
+      const yaw = (armDir === 'x-' || armDir === 'none') ? 0 : armDir === 'x+' ? Math.PI : armDir === 'z+' ? Math.PI/2 : -Math.PI/2;
       lightWrap.rotation.y = yaw;
       const bulb = new THREE.Vector3(headX + obj.position.x, headY, headZ + obj.position.z)
         .applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
