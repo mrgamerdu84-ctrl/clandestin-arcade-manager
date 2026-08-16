@@ -36,16 +36,37 @@ try {
 } catch(e) {}
 renderer.toneMappingExposure = brightness;
 
-function makeSprite(text, color){
-  const cvs = document.createElement('canvas'); cvs.width=128; cvs.height=48;
+function makeTextTexture(text, color){
+  const cvs = document.createElement('canvas'); cvs.width=512; cvs.height=128;
   const c = cvs.getContext('2d');
-  c.font='bold 28px monospace'; c.fillStyle=color; c.textAlign='center';
-  c.fillText(text,64,34);
-  const tex = new THREE.CanvasTexture(cvs);
+  c.font='bold 76px monospace'; c.fillStyle=color; c.textAlign='center'; c.textBaseline='middle';
+  c.shadowColor = color; c.shadowBlur = 24;
+  c.fillText(text,256,68);
+  return new THREE.CanvasTexture(cvs);
+}
+function makeSprite(text, color){
+  const tex = makeTextTexture(text, color);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
   sp.scale.set(1.6,0.6,1);
   return sp;
 }
+// panneau plat (ne traverse pas les murs comme un sprite billboard)
+function makeSignPanel(text, color, width, height){
+  const tex = makeTextTexture(text, color);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, height),
+    new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, depthWrite:false})
+  );
+  return m;
+}
+// halos néon qui s'estompent en plein jour
+const nightHalos = [];
+function registerNightHalo(sp, maxOpacity){
+  sp.userData.maxOpacity = maxOpacity ?? 1;
+  nightHalos.push(sp);
+  return sp;
+}
+
 
 // "fake bloom": a soft radial-gradient sprite with additive blending, placed
 // behind/around a light source. Real post-processing (UnrealBloomPass) needs
