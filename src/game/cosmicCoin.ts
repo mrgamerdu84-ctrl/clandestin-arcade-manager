@@ -905,6 +905,7 @@ function buildRoom(stageIdx){
     ch.position.set(px, 0, pz);
     ch.rotation.y = Math.atan2(danceCx-px, danceCz-pz);
     roomGroup.add(ch);
+    window.__ccDancers = dancers;
     dancers.push({wrap:ch, base:0, phase:Math.random()*6.3, style: i%3===0?'jump':(i%3===1?'sway':'spin'), x:px, z:pz});
   }
 
