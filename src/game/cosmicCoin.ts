@@ -1420,7 +1420,7 @@ function buildExteriorStreet(maxSpan){
   });
 
   // a handful of cars driving up and down the road, each in its own lane direction
-  const carRoster = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV'];
+  const carRoster = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV','CAR_SPORT','CAR_DELIVERY','CAR_GARBAGE'];
   for(let i=0;i<4;i++){
     const key = carRoster[i % carRoster.length];
     const dir = i%2===0 ? 1 : -1;
