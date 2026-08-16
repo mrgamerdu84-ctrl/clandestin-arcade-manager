@@ -1847,6 +1847,9 @@ function freshState(){
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
     danger:0, doorTimer:0,
     unlocks:[], storyDone:[],
+    stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
+           passed:0, refused:0, searched:0, timeMs:0},
+    scored:false,
   };
 }
 let state = freshState();
@@ -2025,6 +2028,8 @@ canvas.addEventListener('click', (e)=>{
   if(zone === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
   if(state.money < def.price){ log("Pas assez de jetons pour cet achat."); return; }
   state.money -= def.price;
+  state.stats.spent += def.price;
+  state.stats.machinesBuilt += 1;
   const mesh = buildMachineMesh(def.id);
   const p = cellToWorld(gx,gz,cols,rows);
   const jitter = 0.08;
@@ -2166,6 +2171,8 @@ function updateCustomers(dt){
           state.rep = Math.min(30,state.rep+0.15);
         }
         state.money += gain;
+        state.stats.earned += gain;
+        state.stats.customers += 1;
         spawnFloatText(c.mesh.position, `+${gain}¢`);
         c.target.busy=false;
         c.target=null;
@@ -2384,6 +2391,7 @@ function visitorLeaves(){
 function doorSearch(){
   const v = doorVisitor; if(!v || v.searched || v.phase!=='wait') return;
   v.searched = true;
+  state.stats.searched += 1;
   v.timer = Math.min(v.timer, 9000);
   const acc = 0.5 + (state.lookout?0.22:0) + (state.staff.security?0.18:0);
   if(Math.random() < acc){
@@ -2399,6 +2407,7 @@ function doorSearch(){
 }
 function doorPass(){
   const v = doorVisitor; if(!v || v.phase!=='wait') return;
+  state.stats.passed += 1;
   const free = state.machines.filter(m=>m.def.illegal && !m.busy && !m.broken && !state.hidden);
   if(v.kind.id==='flic'){
     addDanger(v.kind.danger);
@@ -2412,7 +2421,7 @@ function doorPass(){
   } else {
     const [lo,hi] = v.kind.pay;
     const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
-    state.money += gain; state.illegalEarned += gain;
+    state.money += gain; state.illegalEarned += gain; state.stats.earned += gain;
     state.rep = Math.min(30, state.rep+0.2);
     addDanger(v.kind.danger);
     spawnFloatText(v.mesh.position, `+${gain}¢`);
@@ -2430,6 +2439,7 @@ function doorPass(){
 }
 function doorRefuse(){
   const v = doorVisitor; if(!v || v.phase!=='wait') return;
+  state.stats.refused += 1;
   if(v.kind.danger>0){
     addDanger(-Math.min(12, v.kind.danger*0.6));
     log(`Porte refermée au nez de « ${v.kind.name.toLowerCase()} ». Bien vu.`);
@@ -2690,6 +2700,7 @@ function startRaid(){
     log("Le faux mur automatique claque : tout est planqué avant même que tu bouges.");
   }
   state.raid = {timer:warn, total:warn};
+  state.stats.raids += 1;
   const banner = document.getElementById('raidBanner');
   banner.classList.add('on');
   log("🚨 Une voiture banalisée se gare en face. DESCENTE !");
@@ -2711,6 +2722,8 @@ function resolveRaid(){
     state.money -= fine;
     state.rep = Math.max(0, state.rep-2);
     state.busts += 1;
+    state.stats.busts += 1;
+    state.stats.incidents += 1;
     state.suspicion = 45;
     const seized = exposed[Math.floor(Math.random()*exposed.length)];
     machinesGroup.remove(seized.mesh);
@@ -2719,6 +2732,7 @@ function resolveRaid(){
     log(`Descente ratée : -${Math.round(fine)}¢ d'amende, ${seized.def.name} saisie.`);
     if(state.busts>=3){
       state.gameOver = true;
+      recordRun('scellés');
       showEvent("SCELLÉS SUR LA PORTE", "Troisième descente ratée. Le juge ferme le Cosmic Coin et la dette de Rosa passe au liquidateur. Fin de l'histoire — appuie sur Reset pour retenter ta chance.");
     } else {
       showEvent("DESCENTE RATÉE", `Les agents trouvent ${exposed.length} machine(s) clandestine(s). Amende de ${Math.round(fine)}¢, "${seized.def.name}" part à la fourrière. Encore ${3-state.busts} avertissement(s) avant la fermeture.`);
@@ -2745,6 +2759,7 @@ function maybeTriggerEvent(){
     const target = state.machines[Math.floor(Math.random()*state.machines.length)];
     if(!target.def.passive && !target.broken){
       target.broken = true; target.busy = true;
+      state.stats.incidents += 1;
       if(state.staff.tech){
         setTimeout(()=>{ target.broken=false; target.busy=false; log(`Le technicien a réparé : ${target.def.name}.`); },4000);
       } else {
@@ -2768,6 +2783,7 @@ function newDay(){
   }
   if(state.debt<=0 && !state.won){
     state.won=true;
+    recordRun('dette remboursée');
     showEvent("DETTE REMBOURSÉE 🎉", state.illegalEarned>500
       ? "La banque est remboursée — avec l'argent de l'arrière-salle. Le Cosmic Coin est à toi, et la moitié du quartier sait déjà pour la porte du fond. Continue : empire clandestin ou blanchiment total, à toi de voir."
       : "La banque est remboursée, jeton par jeton, à la loyale. Rosa serait fière. Rien ne t'empêche maintenant de rouvrir la porte du fond… ou de la murer pour de bon.");
@@ -2806,6 +2822,8 @@ function updateHUD(){
   suspStat.classList.toggle('hot', state.suspicion>=55);
   const bar = document.getElementById('suspFill');
   if(bar) bar.style.width = Math.min(100,state.suspicion)+'%';
+  const scoreEl = document.getElementById('score');
+  if(scoreEl) scoreEl.innerText = computeScore().toLocaleString('fr-FR');
   updateDangerHUD();
   renderDoorPanel();
   renderExpandBox();
@@ -2852,6 +2870,7 @@ document.getElementById('pauseBtn').onclick=()=>{
   document.getElementById('pauseBtn').innerText = state.paused?'▶ Reprendre':'⏸ Pause';
 };
 document.getElementById('resetBtn').onclick=()=>{
+  recordRun(state.gameOver ? 'scellés' : 'abandon');
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
   state.customers.forEach(c=>customersGroup.remove(c.mesh));
   removeVisitor();
@@ -2867,6 +2886,91 @@ document.getElementById('resetBtn').onclick=()=>{
   document.getElementById('pauseBtn').innerText='⏸ Pause';
   renderShop(); updateHUD();
   log("Nouvelle partie lancée. Bonne chance avec le Cosmic Coin !");
+};
+
+/* ============================================================
+   SCORE, STATS & CLASSEMENT
+   ============================================================ */
+const SCORE_KEY = 'cc_scores_v1';
+function computeScore(){
+  const st = state.stats;
+  const days = state.day - 1;
+  return Math.max(0, Math.round(
+    st.earned * 0.6
+    + state.money * 0.4
+    + state.rep * 25
+    + days * 40
+    + state.raidsSurvived * 120
+    + state.machines.length * 15
+    + (state.debt <= 0 ? 600 : 0)
+    - st.busts * 200
+    - st.incidents * 25
+    - state.suspicion * 2
+  ));
+}
+function loadScores(){
+  try { return JSON.parse(localStorage.getItem(SCORE_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveScore(entry){
+  const list = loadScores();
+  list.push(entry);
+  list.sort((a,b)=>b.score-a.score);
+  const top = list.slice(0,10);
+  try { localStorage.setItem(SCORE_KEY, JSON.stringify(top)); } catch(e){}
+  return top;
+}
+function fmtTime(ms){
+  const total = Math.round(ms/1000);
+  const m = Math.floor(total/60), sec = total%60;
+  return `${m}m ${String(sec).padStart(2,'0')}s`;
+}
+function recordRun(reason){
+  if(state.scored) return null;
+  if(state.day<=1 && state.stats.earned<=0) return null;
+  state.scored = true;
+  const entry = {
+    score: computeScore(), day: state.day, money: Math.round(state.money),
+    rep: Number(state.rep.toFixed(1)), busts: state.stats.busts,
+    incidents: state.stats.incidents, time: Math.round(state.stats.timeMs),
+    reason, date: new Date().toISOString().slice(0,10),
+  };
+  saveScore(entry);
+  log(`🏆 Partie enregistrée : ${entry.score} points (${reason}).`);
+  return entry;
+}
+function renderScorePanel(){
+  const modal = document.getElementById('scoreModal');
+  if(!modal) return;
+  const st = state.stats;
+  document.getElementById('scoreNow').innerText = computeScore().toLocaleString('fr-FR');
+  document.getElementById('statList').innerHTML = [
+    ['📅 Jours tenus', state.day-1],
+    ['⏱️ Temps de jeu', fmtTime(st.timeMs)],
+    ['💰 Jetons gagnés', Math.round(st.earned)+'¢'],
+    ['🕶️ Dont clandestin', Math.round(state.illegalEarned)+'¢'],
+    ['🛒 Dépensé', Math.round(st.spent)+'¢'],
+    ['🕹️ Machines posées', st.machinesBuilt],
+    ['🙋 Clients servis', st.customers],
+    ['🚪 Clandestins acceptés / refusés', st.passed+' / '+st.refused],
+    ['🔦 Fouilles', st.searched],
+    ['🚨 Descentes subies', st.raids],
+    ['⚖️ Descentes ratées', st.busts],
+    ['🔧 Incidents', st.incidents],
+  ].map(([k,v])=>`<div class="statRow"><span>${k}</span><b>${v}</b></div>`).join('');
+  const scores = loadScores();
+  document.getElementById('scoreBoard').innerHTML = scores.length
+    ? scores.map((e,i)=>`<div class="statRow"><span>${i+1}. J${e.day} · ${fmtTime(e.time)} · ${e.reason}</span><b>${e.score.toLocaleString('fr-FR')}</b></div>`).join('')
+    : '<div class="statRow"><span>Aucune partie enregistrée pour le moment.</span></div>';
+}
+function openScorePanel(){
+  renderScorePanel();
+  document.getElementById('scoreModal').style.display = 'flex';
+}
+document.getElementById('scoreBtn').onclick = openScorePanel;
+document.getElementById('closeScoreBtn').onclick = ()=>{ document.getElementById('scoreModal').style.display='none'; };
+document.getElementById('clearScoreBtn').onclick = ()=>{
+  try { localStorage.removeItem(SCORE_KEY); } catch(e){}
+  renderScorePanel();
 };
 
 /* ============================================================
@@ -2964,6 +3068,7 @@ function animate(ts){
     updateParticles(dt);
     updateRaid(dt);
     updateDoor(dt);
+    state.stats.timeMs += dt;
     state.dayTimer+=dt;
     updateDayNight();
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }

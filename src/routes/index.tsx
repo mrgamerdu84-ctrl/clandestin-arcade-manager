@@ -65,6 +65,9 @@ function GamePage() {
           <div className="stat">
             🎯 Dette <b id="debt">400</b>¢
           </div>
+          <div className="stat" id="scoreStat">
+            🏆 <b id="score">0</b>
+          </div>
           <div className="stat" id="dangerStat">
             ☠️ <b id="danger">0% CALME</b>
           </div>
@@ -157,6 +160,9 @@ function GamePage() {
           <button className="btn" id="pauseBtn" type="button">
             ⏸ Pause
           </button>
+          <button className="btn" id="scoreBtn" type="button">
+            🏆 Score
+          </button>
           <button className="btn pink" id="resetBtn" type="button">
             ↺ Reset
           </button>
@@ -212,6 +218,27 @@ function GamePage() {
           <button className="btn pink" id="closeStoryBtn" type="button">
             OUVRIR LA SALLE ▶
           </button>
+        </div>
+      </div>
+
+      <div id="scoreModal" style={{ display: "none" }}>
+        <div className="card">
+          <h2>SCORE & CLASSEMENT</h2>
+          <p>
+            Score de la partie en cours : <b id="scoreNow">0</b> points
+          </p>
+          <h3 className="scoreHead">Statistiques</h3>
+          <div id="statList" />
+          <h3 className="scoreHead">Meilleures parties (top 10)</h3>
+          <div id="scoreBoard" />
+          <div id="scoreActions">
+            <button className="btn" id="clearScoreBtn" type="button">
+              Effacer
+            </button>
+            <button className="btn pink" id="closeScoreBtn" type="button">
+              FERMER
+            </button>
+          </div>
         </div>
       </div>
 
