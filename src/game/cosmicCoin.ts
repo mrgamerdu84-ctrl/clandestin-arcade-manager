@@ -551,6 +551,15 @@ const GLB_KEY_MAP = {
   arcade:'ARCADE', pinball:'PINBALL', claw:'CLAW', vending:'VENDING', ticket:'TICKET',
   airhockey:'AIRHOCKEY', basket:'BASKET', dance:'DANCE', gambling:'GAMBLING', wheel:'WHEEL',
   prizes:'PRIZES', cashregister:'CASHREGISTER',
+  // arrière-salle & déco : on réutilise les vrais modèles Kenney plutôt que des
+  // formes procédurales, avec une teinte propre à chaque usage
+  roulette:'WHEEL', poker:'AIRHOCKEY', blackjack:'AIRHOCKEY', vip:'AIRHOCKEY',
+  statue:'COLUMN', neon:'PRIZES',
+};
+// teinte appliquée au modèle réutilisé pour distinguer les usages
+const MODEL_TINT = {
+  roulette:'#2fbf6a', poker:'#1f7a4a', blackjack:'#12603a', vip:'#e8b64a',
+  statue:'#e8b64a',
 };
 // per-machine target proportions, tuned by hand to look right instead of a
 // one-size-fits-all footprint fit (a pinball table is low & long, a vending
@@ -568,7 +577,14 @@ const MACHINE_FIT = {
   wheel:    {mode:'height', target:1.75},
   prizes:   {mode:'height', target:1.35},
   cashregister:{mode:'height', target:0.75},
+  roulette: {mode:'height', target:1.7},
+  poker:    {mode:'footprint', target:1.8},
+  blackjack:{mode:'footprint', target:1.75},
+  vip:      {mode:'footprint', target:1.85},
+  statue:   {mode:'height', target:1.9},
+  neon:     {mode:'height', target:1.2},
 };
+
 
 function fitFootprint(obj, targetSize){
   let box = new THREE.Box3().setFromObject(obj);
