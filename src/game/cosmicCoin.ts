@@ -882,17 +882,18 @@ function buildRoom(stageIdx){
   );
   ring.rotation.x = -Math.PI/2; ring.position.set(danceCx, 0.075, danceCz);
   roomGroup.add(ring);
-  // arche lumineuse au-dessus de la piste (structure de club, pas un cube)
+  // arceaux néon discrets au-dessus de la piste (pas de grosses arches)
   for(let a=0;a<2;a++){
     const arch = new THREE.Mesh(
-      new THREE.TorusGeometry(ringR*0.8, 0.05, 6, 40, Math.PI),
-      new THREE.MeshStandardMaterial({color:0xff2e88, emissive:new THREE.Color(0xff2e88), emissiveIntensity:1.1, roughness:0.4})
+      new THREE.TorusGeometry(ringR*0.9, 0.03, 6, 48, Math.PI),
+      new THREE.MeshStandardMaterial({color:0xff2e88, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.9, roughness:0.4})
     );
     arch.position.set(danceCx, 0.05, danceCz);
-    arch.rotation.y = a*Math.PI/2;
-    arch.scale.y = 1.35;
+    arch.rotation.y = a*Math.PI/2 + 0.4;
+    arch.scale.y = Math.min(0.75, 1.9/(ringR*0.9));
     roomGroup.add(arch);
   }
+
 
   // foule qui danse sur la piste
   const dancerCount = Math.min(8, Math.max(4, Math.round(danceW*danceD*0.55)));
