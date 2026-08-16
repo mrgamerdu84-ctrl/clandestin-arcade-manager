@@ -84,6 +84,10 @@ function GamePage() {
           </button>
           <input id="brightness" type="range" min="60" max="220" step="5" aria-label="Luminosité" />
           <span id="brightVal">125%</span>
+          <button id="musicBtn" type="button" title="Musique disco">
+            🔈
+          </button>
+
         </div>
         <canvas id="three" />
         <div id="raidBanner">
