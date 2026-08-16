@@ -1447,10 +1447,20 @@ function placeStreetlight(x, z, roadDir, withPointLight){
     .applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
   const bx = x + bulb.x, by = bulb.y, bz = z + bulb.z;
   if(!isMobile && withPointLight){
-    const glow = new THREE.PointLight(0xffdd99, 0.9, 6, 2);
+    const glow = registerNightLamp(new THREE.PointLight(0xffdd99, 0, 9, 2), 2.2);
     glow.position.set(bx, by, bz);
     exteriorStreetGroup.add(glow);
+    // cône de lumière visible sous le lampadaire (rendu plus dramatique la nuit)
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(1.7, Math.max(0.8, by), 14, 1, true),
+      new THREE.MeshBasicMaterial({color:0xffdd99, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending})
+    );
+    cone.position.set(bx, by/2, bz);
+    cone.userData.maxOpacity = 0.13;
+    lightCones.push(cone);
+    exteriorStreetGroup.add(cone);
   }
+
   const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
   halo.position.set(bx, by - 0.05, bz);
   exteriorStreetGroup.add(halo);
