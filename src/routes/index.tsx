@@ -100,6 +100,18 @@ function GamePage() {
         <div id="raidBanner">
           <div id="raidText">DESCENTE !</div>
         </div>
+        <div id="cinema">
+          <div className="cineBar top" />
+          <div className="cineBar bottom" />
+          <div id="cineBox">
+            <div id="cineWho" />
+            <div id="cineText" />
+            <div id="cineActions">
+              <button id="cineSkip" type="button">Passer</button>
+              <button id="cineNext" type="button">SUITE ▶</button>
+            </div>
+          </div>
+        </div>
         <div id="doorPanel">
           <div id="doorWho">Quelqu'un frappe à la porte du fond</div>
           <div id="doorTell" />
