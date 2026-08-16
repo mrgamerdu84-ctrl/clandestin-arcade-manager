@@ -177,3 +177,5 @@
   #suspWrap{top:52px; width:70vw;}
   #raidText{top:80px; font-size:11px; padding:7px 10px;}
 }
+
+.sr-only-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
