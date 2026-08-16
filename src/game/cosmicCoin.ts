@@ -17,7 +17,9 @@ const canvas = document.getElementById('three');
 const _winL = [];
 function addWin(t,f,o){ window.addEventListener(t,f,o); _winL.push([t,f,o]); }
 let _raf = 0; let _disposed = false;
+THREE.ColorManagement.enabled = false;
 const renderer = new THREE.WebGLRenderer({canvas, antialias:!isMobile, powerPreference:'high-performance'});
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile?1.5:2));
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
