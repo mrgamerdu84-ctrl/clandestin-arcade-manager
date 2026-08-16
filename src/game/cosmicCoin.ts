@@ -1363,7 +1363,7 @@ function buildExteriorStreet(maxSpan){
   /* ---------- sol du quartier ---------- */
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(70, (zMax-zMin)+30),
-    new THREE.MeshStandardMaterial({color:'#221d2e', roughness:0.95})
+    new THREE.MeshStandardMaterial({color:'#4c4660', roughness:0.95})
   );
   ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true;
   exteriorStreetGroup.add(ground);
