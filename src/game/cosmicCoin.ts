@@ -3651,7 +3651,7 @@ function animate(ts){
     const t2 = ts*0.001;
     sl.grp.rotation.y = t2*sl.speed + sl.phase;
     sl.grp.rotation.z = Math.sin(t2*0.45 + sl.phase)*0.42;
-    sl.spot.intensity = on * (state.raidActive ? 26 : 14);
+    sl.spot.intensity = on * (state.raid ? 26 : 14);
     sl.beam.material.opacity = on * 0.09;
   }
   // enseignes néon + marquise de l'entrée
