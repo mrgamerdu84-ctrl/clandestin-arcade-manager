@@ -189,6 +189,33 @@ scene.add(moonSprite);
 const moonHalo = makeGlowSprite('#c9d4ff', 9);
 scene.add(moonHalo);
 
+/* ---------- projecteurs de nuit : deux faisceaux qui balaient le quartier ---------- */
+const searchlights = [];
+if(!isMobile){
+  const beamDefs = [
+    { x:-14, z:-9,  color:0xff2e88, speed:0.32, phase:0 },
+    { x: 12, z: 11, color:0x20e6d0, speed:-0.24, phase:1.9 },
+  ];
+  for(const d of beamDefs){
+    const grp = new THREE.Group();
+    grp.position.set(d.x, 0.2, d.z);
+    const spot = new THREE.SpotLight(d.color, 0, 46, 0.22, 0.6, 1.2);
+    spot.position.set(0, 0.6, 0);
+    spot.target.position.set(0, 16, 0);
+    grp.add(spot); grp.add(spot.target);
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 3.2, 34, 16, 1, true),
+      new THREE.MeshBasicMaterial({color:d.color, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide})
+    );
+    beam.position.set(0, 17, 0);
+    grp.add(beam);
+    scene.add(grp);
+    searchlights.push({ grp, spot, beam, speed:d.speed, phase:d.phase });
+  }
+}
+
+
+
 // starfield, fades in at night
 let starField = null;
 if(!isMobile){
