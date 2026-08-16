@@ -2495,7 +2495,7 @@ function doorPass(){
       const target = free[Math.floor(Math.random()*free.length)];
       target.busy = true;
       const d = doorWorld();
-      state.customers.push({mesh:v.mesh, target, targetPos:target.mesh.position.clone(),
+      state.customers.push({mesh:v.mesh, target, targetPos:standSpotFor(target),
         doorPos:new THREE.Vector3(d.x-CELL,0,d.z), phase:'in', playTimer:0});
       doorVisitor = null; renderDoorPanel(); return;
     }
