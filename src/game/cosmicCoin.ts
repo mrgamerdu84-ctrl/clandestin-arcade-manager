@@ -1819,6 +1819,84 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     exteriorBuildingGroup.add(glass);
   }
 
+  // ---- vitrines d'entrée : grandes baies vitrées de chaque côté de la porte
+  const winColors = ['#ff2e88','#00f3ff','#ffd23f','#8b5cf6'];
+  [doorZ-1.55, doorZ+1.55].forEach((wz, side)=>{
+    // encadrement
+    const frame = box(0.14, 1.9, 2.5, casino?'#3a2010':'#1b1030');
+    frame.position.set(-w/2-0.05, 1.25, wz);
+    exteriorBuildingGroup.add(frame);
+    const glass = box(0.05, 1.65, 2.25, '#9fe9ff', {transparent:true, opacity:0.24, roughness:0.05, metalness:0.5});
+    glass.position.set(-w/2-0.13, 1.25, wz);
+    exteriorBuildingGroup.add(glass);
+    // bornes d'arcade visibles derrière la vitre
+    for(let i=0;i<3;i++){
+      const cz = wz - 0.75 + i*0.75;
+      const cabCol = winColors[(i+side*2)%winColors.length];
+      const cab = box(0.42, 1.15, 0.5, '#1a1230');
+      cab.position.set(-w/2+0.18, 0.98, cz);
+      exteriorBuildingGroup.add(cab);
+      const screen = box(0.04, 0.4, 0.36, cabCol, {emissive:new THREE.Color(cabCol).getHex(), emissiveIntensity:1.2});
+      screen.position.set(-w/2-0.04, 1.3, cz);
+      exteriorBuildingGroup.add(screen);
+      const marq = box(0.05, 0.16, 0.4, '#ffffff', {emissive:0xffffff, emissiveIntensity:0.8});
+      marq.position.set(-w/2-0.04, 1.58, cz);
+      exteriorBuildingGroup.add(marq);
+    }
+    // tube néon qui borde la vitrine
+    const tubeCol = side ? '#00f3ff' : '#ff2e88';
+    [[1.25, 0],[-0.05,0]].forEach(([ty])=>{
+      const tube = box(0.07, 0.07, 2.4, tubeCol, {emissive:new THREE.Color(tubeCol).getHex(), emissiveIntensity:1.4});
+      tube.position.set(-w/2-0.18, 1.25+ty-0.6+0.6, wz);
+      tube.position.y = 1.25 + (ty>0 ? 0.95 : -0.95);
+      exteriorBuildingGroup.add(tube);
+    });
+    const wHalo = registerNightHalo(makeGlowSprite(tubeCol, 2.2), 0.55);
+    wHalo.position.set(-w/2-0.5, 1.3, wz);
+    exteriorBuildingGroup.add(wHalo);
+    if(!isMobile){
+      const wLight = new THREE.PointLight(new THREE.Color(tubeCol).getHex(), 0.7, 5, 2);
+      wLight.position.set(-w/2-0.7, 1.4, wz);
+      exteriorBuildingGroup.add(wLight);
+    }
+  });
+
+  // ---- petites enseignes néon animées autour de l'entrée
+  const neonSigns = [];
+  const addNeonSign = (text, color, wdt, hgt, y, z, freq)=>{
+    const backer = box(0.07, hgt+0.16, wdt+0.16, '#12081c');
+    backer.position.set(-w/2-0.16, y, z);
+    exteriorBuildingGroup.add(backer);
+    const panel = makeSignPanel(text, color, wdt, hgt);
+    panel.position.set(-w/2-0.22, y, z);
+    panel.rotation.y = -Math.PI/2;
+    exteriorBuildingGroup.add(panel);
+    const halo = registerNightHalo(makeGlowSprite(color, Math.max(wdt,1)*1.1), 0.6);
+    halo.position.set(-w/2-0.42, y, z);
+    exteriorBuildingGroup.add(halo);
+    neonSigns.push({panel, halo, freq, phase: Math.random()*6.28});
+  };
+  addNeonSign('OPEN', '#2fd4c8', 1.2, 0.42, 2.15, doorZ-1.6, 1.4);
+  addNeonSign('JEUX', '#ffd23f', 1.2, 0.42, 2.15, doorZ+1.6, 1.9);
+  addNeonSign('25c', '#ff2e88', 0.8, 0.36, 0.85, doorZ-2.9, 2.6);
+  addNeonSign(casino?'VIP':'TOKENS', '#8b5cf6', 1.1, 0.36, 0.85, doorZ+2.9, 2.2);
+  exteriorBuildingGroup.userData.neonSigns = neonSigns;
+
+  // ampoules de marquise au-dessus de l'entrée
+  const bulbs = [];
+  for(let i=0;i<9;i++){
+    const bz = doorZ - 1.6 + i*0.4;
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.055, 8, 8),
+      new THREE.MeshStandardMaterial({color:0xfff0c0, emissive:0xffcc66, emissiveIntensity:1.4})
+    );
+    bulb.position.set(-w/2-0.42, 2.62, bz);
+    exteriorBuildingGroup.add(bulb);
+    bulbs.push(bulb);
+  }
+  exteriorBuildingGroup.userData.marqueeBulbs = bulbs;
+
+
   // a proper detailed entrance doorway instead of a flat marker
   const doorway = buildDoorway(casino, 2.15);
   doorway.position.set(-w/2, 0.2, doorZ);
@@ -3338,7 +3416,25 @@ function animate(ts){
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
     updateHUD();
   }
+  // enseignes néon + marquise de l'entrée
+  if(exteriorMode){
+    const tn = ts*0.001;
+    const signs = exteriorBuildingGroup.userData.neonSigns || [];
+    for(const s of signs){
+      const flick = Math.random() < 0.012 ? 0.25 : 0.65 + 0.35*Math.abs(Math.sin(tn*s.freq + s.phase));
+      s.panel.material.opacity = flick;
+      s.panel.material.transparent = true;
+      s.halo.material.opacity *= flick;
+
+    }
+    const bulbs = exteriorBuildingGroup.userData.marqueeBulbs || [];
+    for(let i=0;i<bulbs.length;i++){
+      const on = ((Math.floor(tn*4) + i) % 3) !== 0;
+      bulbs[i].material.emissiveIntensity = on ? 1.6 : 0.15;
+    }
+  }
   // vie de la piste de danse : dalles qui pulsent, boule à facettes, spots mobiles
+
   if(!exteriorMode){
     const t = ts*0.001;
     for(let i=0;i<danceTiles.length;i++){
