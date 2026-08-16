@@ -1313,7 +1313,7 @@ function buildExteriorStreet(maxSpan){
         glow.position.set(sidewalkX-1.1, 2.15, z);
         exteriorStreetGroup.add(glow);
       }
-      const halo = makeGlowSprite('#ffdd99', 0.9);
+      const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
       halo.position.set(sidewalkX-1.1, 2.15, z);
       exteriorStreetGroup.add(halo);
     }
