@@ -1513,33 +1513,36 @@ function buildExteriorStreet(maxSpan){
     placeStreetlight(x, crossZ - 1.6, 'z+', false);
   }
 
-  // pâté d'immeubles derrière les maisons + gratte-ciels en fond de décor
+  // pâté d'immeubles derrière les maisons + gratte-ciels en fond de décor.
+  // On cale les immeubles sur leur EMPRISE (pas leur hauteur) : sinon le modèle
+  // est agrandi uniformément et devient une caisse géante hors d'échelle.
   const blockKeys = ['CITY_A','CITY_B','CITY_C','CITY_D','CITY_E','CITY_F','CITY_G'];
   let bi = 0;
-  for(let z=zMin+1; z<=zMax; z+=4.6){
-    if(Math.abs(z - crossZ) < 2.6 || Math.abs(z - crossZ2) < 2.6) continue;
+  for(let z=zMin+1; z<=zMax; z+=4.2){
+    if(Math.abs(z - crossZ) < 2.8 || Math.abs(z - crossZ2) < 2.8) continue;
     placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'height', target: 4.5 + Math.random()*2.5}, -21.5 + Math.random()*0.8, z + Math.random()*0.6, Math.PI/2 + (Math.random()*0.2-0.1));
+      {mode:'footprint', target: 3.4 + Math.random()*0.8}, -21.5 + Math.random()*0.8, z + Math.random()*0.5, Math.PI/2 + (Math.random()*0.16-0.08));
   }
-  for(let z=zMin+2; z<=zMax; z+=6.2){
-    if(Math.abs(z - crossZ) < 2.6 || Math.abs(z - crossZ2) < 2.6) continue;
+  for(let z=zMin+2; z<=zMax; z+=5.0){
+    if(Math.abs(z - crossZ) < 2.8 || Math.abs(z - crossZ2) < 2.8) continue;
     placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'height', target: 5.5 + Math.random()*3}, -27 + Math.random()*1.2, z, Math.PI/2);
+      {mode:'footprint', target: 3.8 + Math.random()*1.0}, -26.5 + Math.random()*1.0, z, Math.PI/2);
   }
   const skyKeys = ['CITY_SKY_A','CITY_SKY_B','CITY_SKY_C','CITY_SKY_D'];
   skyKeys.forEach((k,i)=>{
-    placeExt(exteriorStreetGroup, k, {mode:'height', target: 11 + i*2.5}, -34 - (i%2)*4, zMin + 4 + i*8, Math.PI/2);
+    placeExt(exteriorStreetGroup, k, {mode:'footprint', target: 4.5 + (i%2)*1.2}, -33 - (i%2)*4.5, zMin + 4 + i*8, Math.PI/2);
   });
   // immeubles bordant l'avenue transversale (côté nord)
-  for(let x=roadX-3; x>=roadX-15; x-=4.4){
+  for(let x=roadX-3.5; x>=roadX-15; x-=4.0){
     placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'height', target: 4 + Math.random()*3}, x, crossZ - 4.2 - Math.random()*0.8, Math.PI);
+      {mode:'footprint', target: 3.2 + Math.random()*0.8}, x, crossZ - 4.0 - Math.random()*0.6, Math.PI);
   }
-  // quelques immeubles côté est, derrière la ruelle
-  for(let z=zMin+3; z<=zMax-2; z+=5.4){
+  // quelques immeubles côté est, bien en retrait derrière la ruelle
+  for(let z=zMin+3; z<=zMax-2; z+=4.8){
     placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'height', target: 4 + Math.random()*2.5}, 14.5 + Math.random(), z, -Math.PI/2);
+      {mode:'footprint', target: 3.2 + Math.random()*0.9}, 18.5 + Math.random()*1.2, z, -Math.PI/2);
   }
+
 
   // roadworks on the far end — breaks the perfectly regular street
   placeExt(exteriorStreetGroup, 'BARRIER', {mode:'footprint',target:1.5}, roadX-0.7, zMin+2.2, 0.2);
