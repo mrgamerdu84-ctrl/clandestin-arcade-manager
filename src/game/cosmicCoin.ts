@@ -3424,8 +3424,8 @@ function animate(ts){
       const flick = Math.random() < 0.012 ? 0.25 : 0.65 + 0.35*Math.abs(Math.sin(tn*s.freq + s.phase));
       s.panel.material.opacity = flick;
       s.panel.material.transparent = true;
-      if(s.halo.userData.maxOpacity != null) s.halo.userData.dynamic = flick;
-      s.halo.material.opacity = (s.halo.userData.dayFade ?? 1) * s.halo.userData.maxOpacity * flick;
+      s.halo.material.opacity *= flick;
+
     }
     const bulbs = exteriorBuildingGroup.userData.marqueeBulbs || [];
     for(let i=0;i<bulbs.length;i++){
