@@ -24,6 +24,16 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile?1.5:2));
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+/* ---------- réglages de lumière du joueur ---------- */
+let lightMode = 'auto';           // 'day' | 'night' | 'auto'
+let brightness = 1.25;
+try {
+  lightMode = localStorage.getItem('cc_lightmode') || 'auto';
+  brightness = parseFloat(localStorage.getItem('cc_brightness') || '1.25');
+  if(!isFinite(brightness)) brightness = 1.25;
+} catch(e) {}
+renderer.toneMappingExposure = brightness;
 
 function makeSprite(text, color){
   const cvs = document.createElement('canvas'); cvs.width=128; cvs.height=48;
