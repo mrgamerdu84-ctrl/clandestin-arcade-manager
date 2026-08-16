@@ -2780,6 +2780,130 @@ function updateDoor(dt){
 }
 
 /* ============================================================
+   QUÊTES CLANDESTINES
+   ============================================================ */
+const QUESTS = [
+  {
+    id:'q_porte', title:"Chapitre 1 — La porte de Rosa",
+    intro:"Momo : « La porte du fond est encore scellée. Tant qu'elle est murée, on ne rembourse rien. »",
+    done:"Momo : « Voilà. La salle du fond respire à nouveau. Maintenant fais gaffe à qui tu fais entrer. »",
+    objectives:[
+      {id:'backroom', label:"Rouvrir l'arrière-salle", goal:1, track:'backroom'},
+      {id:'ill1', label:"Installer une machine clandestine", goal:1, track:'illegal_built'},
+    ],
+    reward:{money:120, log:"Momo glisse 120¢ « pour la peine »."},
+  },
+  {
+    id:'q_tri', title:"Chapitre 2 — Trier les visages",
+    intro:"Momo : « Un sur cinq qui frappe est un problème. Fouille, refuse, apprends les têtes. »",
+    done:"Momo : « T'as l'œil maintenant. Le quartier va se calmer un peu. »",
+    objectives:[
+      {id:'search', label:"Fouiller 3 visiteurs", goal:3, track:'search'},
+      {id:'refuse', label:"Refuser 2 indics ou flics", goal:2, track:'refuse_bad'},
+    ],
+    reward:{money:150, danger:-12, log:"Le bouche-à-oreille filtre déjà les curieux (-12 danger)."},
+  },
+  {
+    id:'q_planque', title:"Chapitre 3 — Planquer avant l'orage",
+    intro:"Momo : « Quand la banalisée se gare, t'as quelques secondes. Entraîne-toi à tout planquer. »",
+    done:"Momo : « Rien vu, rien saisi. C'est comme ça qu'on dure. »",
+    objectives:[
+      {id:'hide', label:"Planquer les machines 2 fois", goal:2, track:'hide'},
+      {id:'raid', label:"Survivre à une descente", goal:1, track:'raid_survived'},
+    ],
+    reward:{money:200, rep:1, log:"Les habitués reviennent : la maison sait se tenir (+1★)."},
+  },
+  {
+    id:'q_plan', title:"Chapitre 4 — Réagencer la salle du fond",
+    intro:"La Reine : « Vos tables sont mal posées. Déplace-moi ça, on joue à l'abri des regards. »",
+    done:"La Reine : « Mieux. On peut travailler ici. »",
+    objectives:[
+      {id:'move', label:"Déplacer 3 machines", goal:3, track:'move'},
+      {id:'ill3', label:"Avoir 3 machines clandestines", goal:3, track:'illegal_built'},
+    ],
+    reward:{money:250, log:"La Reine laisse une enveloppe de 250¢ sur le tapis."},
+  },
+  {
+    id:'q_nuit', title:"Chapitre 5 — La grande nuit",
+    intro:"La Reine : « Ce soir j'amène mes joueurs. Fais entrer les bons, et seulement les bons. »",
+    done:"La Reine : « Belle soirée. La caisse s'en souviendra. »",
+    objectives:[
+      {id:'pass', label:"Faire entrer 6 vrais joueurs", goal:6, track:'pass_good'},
+      {id:'earn', label:"Encaisser 400¢ au fond", goal:400, track:'illegal_earn'},
+    ],
+    reward:{money:400, rep:2, log:"La nuit de la Reine rapporte gros (+400¢, +2★)."},
+  },
+  {
+    id:'q_final', title:"Chapitre 6 — Payer Rosa",
+    intro:"Vasseur : « Je repasserai. Deux fois plutôt qu'une. »",
+    done:"Toi : « Deux descentes de plus, rien saisi. Rosa peut dormir. »",
+    objectives:[
+      {id:'raid2', label:"Survivre à 2 descentes de plus", goal:2, track:'raid_survived'},
+      {id:'days', label:"Tenir 5 nuits de plus", goal:5, track:'day'},
+    ],
+    reward:{money:600, rep:2, danger:-20, log:"Le quartier te laisse tranquille. 600¢ et la paix."},
+  },
+];
+
+function activeQuest(){
+  if(state.questIdx==null || state.questIdx>=QUESTS.length) return null;
+  return QUESTS[state.questIdx];
+}
+function questEvent(track, n=1){
+  const q = activeQuest();
+  if(!q || state.gameOver) return;
+  let changed = false;
+  for(const o of q.objectives){
+    if(o.track!==track) continue;
+    const cur = state.questProgress[o.id]||0;
+    if(cur>=o.goal) continue;
+    state.questProgress[o.id] = Math.min(o.goal, cur+n);
+    changed = true;
+    if(state.questProgress[o.id]>=o.goal) log(`✅ Objectif : ${o.label}.`);
+  }
+  if(!changed) return;
+  renderQuestPanel();
+  if(q.objectives.every(o=>(state.questProgress[o.id]||0)>=o.goal)) completeQuest();
+}
+function completeQuest(){
+  const q = activeQuest(); if(!q) return;
+  const r = q.reward||{};
+  if(r.money){ state.money += r.money; state.stats.earned += r.money; }
+  if(r.rep) state.rep = Math.min(30, state.rep + r.rep);
+  if(r.danger) addDanger(r.danger);
+  state.questsDone.push(q.id);
+  log(`🎯 ${q.title} — terminé. ${r.log||''}`);
+  showEvent(`${q.title} · TERMINÉ`, `${q.done}\n\n${r.log||''}`);
+  state.questIdx += 1;
+  state.questProgress = {};
+  const next = activeQuest();
+  if(next) log(`🎯 Nouvelle mission : ${next.title}. ${next.intro}`);
+  renderQuestPanel();
+}
+function renderQuestPanel(){
+  const box = document.getElementById('questBox');
+  if(!box) return;
+  const q = activeQuest();
+  if(!q){
+    box.innerHTML = `<div class="qTitle">Toutes les missions accomplies</div>
+      <div class="qIntro">La dette de Rosa est derrière toi. Fais tourner la salle comme tu veux.</div>`;
+    return;
+  }
+  const rows = q.objectives.map(o=>{
+    const cur = Math.min(o.goal, state.questProgress[o.id]||0);
+    const ok = cur>=o.goal;
+    const pct = Math.round((cur/o.goal)*100);
+    return `<div class="qObj${ok?' ok':''}">
+      <span>${ok?'✔':'○'} ${o.label}</span><b>${cur}/${o.goal}</b>
+      <div class="qBar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div class="qTitle">${q.title}</div>
+    <div class="qIntro">${q.intro}</div>${rows}`;
+}
+
+
+/* ============================================================
    DIALOGUES & CINÉMATIQUES
    ============================================================ */
 const CAST = {
