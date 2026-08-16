@@ -3642,10 +3642,23 @@ function animate(ts){
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
     updateHUD();
   }
+  // projecteurs qui balaient le ciel dès la tombée de la nuit
+  for(let i=0;i<searchlights.length;i++){
+    const sl = searchlights[i];
+    const on = exteriorMode ? nightAmount : 0;
+    sl.grp.visible = on > 0.06;
+    if(!sl.grp.visible) continue;
+    const t2 = ts*0.001;
+    sl.grp.rotation.y = t2*sl.speed + sl.phase;
+    sl.grp.rotation.z = Math.sin(t2*0.45 + sl.phase)*0.42;
+    sl.spot.intensity = on * (state.raidActive ? 26 : 14);
+    sl.beam.material.opacity = on * 0.09;
+  }
   // enseignes néon + marquise de l'entrée
   if(exteriorMode){
     const tn = ts*0.001;
     const signs = exteriorBuildingGroup.userData.neonSigns || [];
+
     for(const s of signs){
       const flick = Math.random() < 0.012 ? 0.25 : 0.65 + 0.35*Math.abs(Math.sin(tn*s.freq + s.phase));
       s.panel.material.opacity = flick;
