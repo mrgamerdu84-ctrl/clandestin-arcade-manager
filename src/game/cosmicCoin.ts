@@ -3459,6 +3459,8 @@ if(import.meta.env && import.meta.env.DEV){
     get doorVisitor(){ return doorVisitor; }, renderShop, updateHUD,
     get orbit(){ return orbit; },
     get camPos(){ return camera.position.toArray(); },
+    get scene(){ return scene; },
+    get exteriorBuildingGroup(){ return exteriorBuildingGroup; },
   };
 }
 
