@@ -762,6 +762,28 @@ function buildDoorway(casino, height){
   return g;
 }
 
+/* ---------- zones : arcade / piste de danse / arrière-salle ---------- */
+let danceTiles = [];
+let zoneLights = [];
+let discoBall = null;
+function zoneSplit(cols, rows){
+  return { splitX: Math.max(2, Math.round(cols*0.58)), splitZ: Math.max(2, Math.round(rows*0.5)) };
+}
+function zoneAt(x, z){
+  if(!state || !state.dims) return 'arcade';
+  const {cols, rows} = state.dims;
+  const {splitX, splitZ} = zoneSplit(cols, rows);
+  if(x < splitX) return 'arcade';
+  return z < splitZ ? 'dance' : 'back';
+}
+const ZONE_LABEL = {arcade:"zone arcade", dance:"piste de danse", back:"arrière-salle"};
+function zoneAllows(def, zone){
+  if(def.decor) return true;
+  if(def.illegal) return zone === 'back';
+  if(def.id === 'dance') return zone === 'dance';
+  return zone !== 'back';
+}
+
 function buildRoom(stageIdx){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]);
   const st = STAGES[stageIdx];
