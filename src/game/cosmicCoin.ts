@@ -1567,7 +1567,7 @@ function buildExteriorStreet(maxSpan){
   const houseKeys = ['HOUSE_A','HOUSE_E','HOUSE_J'];
   let hi = 0;
   for(let z=zMin; z<=zMax; z+=3.4){
-    if(Math.abs(z - crossZ) < 2.8) continue;
+    if(Math.abs(z - crossZ) < 2.8 || Math.abs(z - crossZ2) < 2.8) continue;
     const key = houseKeys[hi % houseKeys.length]; hi++;
     const jitter = (Math.random()*0.6-0.3);
     placeExt(exteriorStreetGroup, key, {mode:'height',target:1.8}, houseX+jitter, z, Math.PI);
@@ -1763,8 +1763,8 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   parapet.position.set(0, bodyH+0.44, 0);
   exteriorBuildingGroup.add(parapet);
   // rooftop dressing — évite la grosse dalle violette vue du dessus
-  const roofTop = bodyH + 0.4;
-  const gravel = box(w-0.1, 0.04, d-0.1, casino?'#3a2430':'#2a2340');
+  const roofTop = bodyH + 0.52;
+  const gravel = box(w-0.2, 0.04, d-0.2, casino?'#3a2430':'#2a2340');
   gravel.position.set(0, roofTop, 0);
   exteriorBuildingGroup.add(gravel);
   const acPos = [[-w*0.28, -d*0.26],[w*0.24, -d*0.3],[-w*0.18, d*0.3]];
