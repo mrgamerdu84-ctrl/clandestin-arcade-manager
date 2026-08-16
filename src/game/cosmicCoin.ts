@@ -1274,6 +1274,50 @@ const EXT_BUILDERS = {
 };
 
 
+// placeholder générique quand un GLB manque (ou en mode rendu léger) :
+// une forme simple mais correctement proportionnée plutôt qu'un trou dans la scène
+function placeholderFor(key, spec){
+  const target = spec && spec.target ? spec.target : 1.5;
+  if(key.startsWith('CITY_SKY')){
+    const g = group();
+    const h = Math.max(target, 6);
+    const b = box(3.4, h, 3.4, '#3b3550'); b.position.y = h/2; g.add(b);
+    const win = box(3.44, h*0.6, 0.06, '#8fd8ff', {emissive:0x2fd4c8, emissiveIntensity:0.25});
+    win.position.set(0, h*0.55, 1.72); g.add(win);
+    return g;
+  }
+  if(key.startsWith('CITY_')){
+    const g = group();
+    const h = Math.max(target, 3);
+    const b = box(3.0, h, 3.0, '#4a4360'); b.position.y = h/2; g.add(b);
+    const roof = box(3.2, 0.25, 3.2, '#332e46'); roof.position.y = h + 0.12; g.add(roof);
+    return g;
+  }
+  if(key.startsWith('CAR_')){
+    const police = key.indexOf('POLICE') >= 0;
+    if(police && EXT_BUILDERS.CAR_POLICE) return EXT_BUILDERS.CAR_POLICE();
+    return buildCar(key === 'CAR_TAXI' ? '#ffd23f' : '#5a5a68', 1.9, key === 'CAR_VAN' ? 0.6 : 0.45, key === 'CAR_VAN' || key === 'CAR_SUV');
+  }
+  if(key === 'CONE'){
+    const g = group();
+    const c = cyl(0.03, 0.16, 0.42, '#ff7a2f', 10); c.position.y = 0.21; g.add(c);
+    const base = box(0.34, 0.05, 0.34, '#2a2630'); base.position.y = 0.025; g.add(base);
+    return g;
+  }
+  if(key === 'AWNING'){
+    const a = box(1.8, 0.12, 0.9, '#ff2e88'); a.position.y = 2.2; a.rotation.x = -0.25;
+    return a;
+  }
+  if(key === 'PARASOL'){
+    const g = group();
+    const p = cyl(0.04, 0.04, 1.9, '#4a4460'); p.position.y = 0.95; g.add(p);
+    const top = cyl(0.02, 0.9, 0.35, '#2fd4c8', 10); top.position.y = 2.0; g.add(top);
+    return g;
+  }
+  const b = box(0.8, target, 0.8, '#5a5468'); b.position.y = target/2;
+  return b;
+}
+
 function placeExt(parentGroup, key, spec, x, z, rotY){
   let obj;
   if(MODEL_TEMPLATES[key]){
@@ -1282,12 +1326,15 @@ function placeExt(parentGroup, key, spec, x, z, rotY){
     if(spec.mode==='footprint') fitFootprint(obj, spec.target); else fitHeight(obj, spec.target);
   } else if(EXT_BUILDERS[key]){
     obj = EXT_BUILDERS[key]();
-  } else return null;
+  } else {
+    obj = placeholderFor(key, spec);
+  }
   const wrap = group(); wrap.add(obj);
   wrap.position.set(x,0,z); wrap.rotation.y = rotY||0;
   parentGroup.add(wrap);
   return wrap;
 }
+
 
 // static street dressing — built once, independent of the arcade's stage/size
 function buildExteriorStreet(maxSpan){
