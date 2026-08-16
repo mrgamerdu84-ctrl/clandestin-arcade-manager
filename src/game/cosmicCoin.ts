@@ -2401,6 +2401,7 @@ function updateDayNight(){
   const haloFactor = 0.25 + nightFactor*0.75;
   for(let i=0;i<nightHalos.length;i++){
     const h = nightHalos[i];
+    if(!h.parent) continue;
     h.material.opacity = (h.userData.maxOpacity ?? 1) * haloFactor;
     const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.3);
     h.scale.set(s,s,1);
