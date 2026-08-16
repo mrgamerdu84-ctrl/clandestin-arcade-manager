@@ -807,6 +807,101 @@ function buildRoom(stageIdx){
   floorPlane.rotation.x = -Math.PI/2;
   floorPlane.receiveShadow = true;
   roomGroup.add(floorPlane);
+
+  /* ---------- découpage en 3 espaces ---------- */
+  danceTiles = []; zoneLights = []; discoBall = null;
+  const {splitX, splitZ} = zoneSplit(cols, rows);
+  const halfW = cols*CELL/2, halfD = rows*CELL/2;
+  const danceX0 = -halfW + splitX*CELL, danceZ1 = -halfD + splitZ*CELL;
+
+  // piste de danse : dalles lumineuses (nord-est)
+  const danceW = cols-splitX, danceD = splitZ;
+  for(let x=0;x<danceW;x++){
+    for(let z=0;z<danceD;z++){
+      const tileMat = new THREE.MeshStandardMaterial({
+        color:0x120a20, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.25, roughness:0.35, metalness:0.3
+      });
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(CELL*0.94, 0.06, CELL*0.94), tileMat);
+      tile.position.set(danceX0 + (x+0.5)*CELL, 0.03, -halfD + (z+0.5)*CELL);
+      tile.receiveShadow = true;
+      tile.userData.phase = (x+z)*0.7 + Math.random();
+      roomGroup.add(tile);
+      danceTiles.push(tile);
+    }
+  }
+  // boule à facettes + spots colorés au-dessus de la piste
+  const danceCx = danceX0 + danceW*CELL/2, danceCz = -halfD + danceD*CELL/2;
+  discoBall = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.32, 1),
+    new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
+  );
+  discoBall.position.set(danceCx, wallHeightRef-0.35, danceCz);
+  roomGroup.add(discoBall);
+  const ballGlow = makeGlowSprite('#bcd0ff', 1.6);
+  ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
+  [[0xff2e88, -1], [0x20e6d0, 1]].forEach(([col, side], i)=>{
+    const spot = new THREE.PointLight(col, 1.6, 11, 2);
+    spot.position.set(danceCx + side*CELL*0.9, 2.3, danceCz + side*CELL*0.6);
+    spot.userData.kind = 'dance'; spot.userData.seed = i*2.1;
+    spot.userData.base = new THREE.Vector3().copy(spot.position);
+    roomGroup.add(spot); zoneLights.push(spot);
+  });
+  // podium DJ dans l'angle de la piste
+  const dj = group();
+  const deck = box(1.6,0.9,0.6, '#241338'); deck.position.y=0.45; dj.add(deck);
+  const front = box(1.62,0.28,0.62, PAL.pink); front.position.y=0.72; dj.add(front);
+  for(let i=0;i<2;i++){
+    const plate = cyl(0.18,0.18,0.05,'#0e0a16',16); plate.position.set(-0.35+i*0.7,0.93,0); dj.add(plate);
+  }
+  dj.position.set(danceCx + (danceW*CELL/2) - 1.1, 0, -halfD + 0.7);
+  dj.rotation.y = -0.5;
+  roomGroup.add(dj);
+  const djChar = buildCharacter('#20e6d0');
+  djChar.position.set(dj.position.x, 0, dj.position.z + 0.9);
+  djChar.rotation.y = Math.PI;
+  roomGroup.add(djChar);
+
+  // arrière-salle clandestine (sud-est) : moquette rouge sombre + lumière tamisée
+  const backW = cols-splitX, backD = rows-splitZ;
+  const backCx = danceX0 + backW*CELL/2, backCz = danceZ1 + backD*CELL/2;
+  const backFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(backW*CELL, backD*CELL),
+    new THREE.MeshStandardMaterial({color:0x2a0a14, roughness:0.95})
+  );
+  backFloor.rotation.x = -Math.PI/2; backFloor.position.set(backCx, 0.02, backCz);
+  backFloor.receiveShadow = true; roomGroup.add(backFloor);
+  const backLight = new THREE.PointLight(0xff5533, 1.5, 12, 2);
+  backLight.position.set(backCx, 2.1, backCz);
+  backLight.userData.kind = 'back';
+  roomGroup.add(backLight); zoneLights.push(backLight);
+  const backHalo = makeGlowSprite('#ff6a3c', 2.2);
+  backHalo.position.set(backCx, 2.0, backCz); roomGroup.add(backHalo);
+
+  // cloison courbe qui sépare l'arrière-salle (avec passage caché)
+  const partition = group();
+  const segCount = Math.max(3, backW*2);
+  for(let i=0;i<segCount;i++){
+    const t = i/(segCount-1);
+    const px = danceX0 + t*backW*CELL;
+    const bulge = Math.sin(t*Math.PI)*0.55; // courbure => moins carré
+    const seg = box(backW*CELL/segCount + 0.12, 2.3, 0.22, casino?'#2a1420':'#221630');
+    seg.position.set(px + (backW*CELL/segCount)/2, 1.15, danceZ1 - bulge);
+    seg.rotation.y = Math.cos(t*Math.PI)*0.18;
+    if(i === Math.floor(segCount/2)) continue; // passage
+    partition.add(seg);
+    const strip = box(backW*CELL/segCount + 0.1, 0.08, 0.24, '#ff2e88');
+    strip.material.emissive = new THREE.Color(0xff2e88); strip.material.emissiveIntensity = 0.8;
+    strip.position.set(seg.position.x, 1.9, seg.position.z);
+    strip.rotation.y = seg.rotation.y;
+    partition.add(strip);
+  }
+  roomGroup.add(partition);
+  // coin coupé : petit mur en biais pour casser l'angle sud-ouest
+  const cut = box(CELL*1.3, 2.3, 0.22, casino?'#2a1420':'#221630');
+  cut.position.set(-halfW + CELL*0.55, 1.15, halfD - CELL*0.55);
+  cut.rotation.y = Math.PI/4;
+  roomGroup.add(cut);
+
   // outer walls (skip a gap on west wall middle for the door)
   const wallH = 2.4;
   const doorRow = Math.floor(rows/2);
