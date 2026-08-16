@@ -24,7 +24,7 @@ const renderer = new THREE.WebGLRenderer({canvas, antialias:!isMobile, powerPref
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile?1.5:2));
 renderer.shadowMap.enabled = !isMobile;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 /* ---------- réglages de lumière du joueur ---------- */
 let lightMode = 'day';            // 'day' | 'night' | 'auto'
