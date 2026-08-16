@@ -1317,11 +1317,11 @@ function setExteriorMode(on){
     interiorCamSave.radius = orbit.radius; interiorCamSave.target.copy(orbit.target);
     interiorCamSave.bg = scene.background.clone(); interiorCamSave.fog = scene.fog.color.clone();
     const {cols,rows} = state.dims;
-    // look at the building itself (not a point out past it in the road),
-    // with the camera pulled due west so the street reads as foreground
-    orbit.target.set(0, 1.4, 0);
-    orbit.theta = -Math.PI/2; orbit.phi = 1.2;
-    orbit.radius = 15 + Math.max(cols,rows)*1.1;
+    // vue 3/4 depuis la rue : on voit la façade, le trottoir animé, la ruelle
+    // arrière et le parking dans le même cadre
+    orbit.target.set(-1.5, 1.2, 0);
+    orbit.theta = -Math.PI/2 - 0.45; orbit.phi = 0.95;
+    orbit.radius = 26 + Math.max(cols,rows)*1.2;
     // dusk sky so the streetlights and neon signs read clearly as a "living city at night"
     scene.background.set(0x0e1230);
     scene.fog.color.set(0x0e1230);
