@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* Cosmic Coin — salle d'arcade clandestine (moteur 3D, procédural, sans modèle externe) */
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export function startCosmicCoin(): () => void {
 /* ============================================================
