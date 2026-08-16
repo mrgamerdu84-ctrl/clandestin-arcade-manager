@@ -141,7 +141,10 @@ function GamePage() {
 
       <div id="sidebar">
         <div id="dragHandle">▲ BOUTIQUE ▲</div>
+        <h3>Mission</h3>
+        <div id="questBox" />
         <h3>Arrière-salle</h3>
+
         <div id="backroomList" />
         <h3>Boutique</h3>
         <div id="itemList" />

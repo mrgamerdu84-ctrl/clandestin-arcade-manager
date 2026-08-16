@@ -2098,6 +2098,7 @@ function freshState(){
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
     danger:0, doorTimer:0,
     unlocks:[], storyDone:[],
+    questIdx:0, questProgress:{}, questsDone:[],
     stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
            passed:0, refused:0, searched:0, timeMs:0},
     scored:false,
@@ -2243,6 +2244,7 @@ canvas.addEventListener('click', (e)=>{
     // les clients en route vers cette machine suivent le déménagement
     state.customers.forEach(c=>{ if(c.target===m){ c.targetPos.set(np.x,0,np.z); c.stuck=0; } });
     log(`${m.def.name} déplacé.`);
+    questEvent('move');
     endMoveMode();
     return;
   }
@@ -2291,6 +2293,7 @@ canvas.addEventListener('click', (e)=>{
   mesh.userData.machine = machine;
   state.grid[gz][gx]=machine;
   state.machines.push(machine);
+  if(def.illegal) questSet('illegal_built', illegalMachines().length);
   if(def.decor){
     state.rep = Math.min(30, state.rep + (def.repBoost||0));
     log(`Décoration ajoutée : ${def.name} (+${def.repBoost}★ réputation).`);
@@ -2526,7 +2529,9 @@ const BRIBE_COST = 220;
 function illegalMachines(){ return state.machines.filter(m=>m.def.illegal); }
 
 function setHidden(on){
+  const was = state.hidden;
   state.hidden = on;
+  if(on && !was) questEvent('hide');
   if(on && typeof doorVisitor!=='undefined' && doorVisitor) visitorLeaves();
   illegalMachines().forEach(m=>{
     m.mesh.visible = !on;
@@ -2553,6 +2558,7 @@ function renderBackroom(){
     box.appendChild(backAction("Rouvrir l'arrière-salle", "La porte cachée de Rosa. Machines clandestines, gains x2,3.", BACKROOM_COST, state.money>=BACKROOM_COST, ()=>{
       state.money -= BACKROOM_COST;
       state.backroom = true;
+      questEvent('backroom');
       log("Tu descelles la porte du fond. L'arrière-salle de Rosa rouvre ce soir.");
       showEvent("L'ARRIÈRE-SALLE", "Derrière le mur, la moquette rouge n'a pas bougé depuis 1985. Les machines clandestines rapportent bien plus — mais chaque mise fait monter la suspicion, et le commissariat de la 9e finit toujours par frapper à la porte. Planque tout avant la descente.");
       renderShop();
@@ -2664,6 +2670,7 @@ function doorSearch(){
   const v = doorVisitor; if(!v || v.searched || v.phase!=='wait') return;
   v.searched = true;
   state.stats.searched += 1;
+  questEvent('search');
   v.timer = Math.min(v.timer, 9000);
   const acc = 0.5 + (state.lookout?0.22:0) + (state.staff.security?0.18:0);
   if(Math.random() < acc){
@@ -2694,6 +2701,8 @@ function doorPass(){
     const [lo,hi] = v.kind.pay;
     const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
     state.money += gain; state.illegalEarned += gain; state.stats.earned += gain;
+    questEvent('pass_good');
+    questEvent('illegal_earn', gain);
     state.rep = Math.min(30, state.rep+0.2);
     addDanger(v.kind.danger);
     spawnFloatText(v.mesh.position, `+${gain}¢`);
@@ -2713,6 +2722,7 @@ function doorRefuse(){
   const v = doorVisitor; if(!v || v.phase!=='wait') return;
   state.stats.refused += 1;
   if(v.kind.danger>0){
+    questEvent('refuse_bad');
     addDanger(-Math.min(12, v.kind.danger*0.6));
     log(`Porte refermée au nez de « ${v.kind.name.toLowerCase()} ». Bien vu.`);
   } else {
@@ -2778,6 +2788,145 @@ function updateDoor(dt){
     if(Math.random() < 0.7) spawnVisitor();
   }
 }
+
+/* ============================================================
+   QUÊTES CLANDESTINES
+   ============================================================ */
+const QUESTS = [
+  {
+    id:'q_porte', title:"Chapitre 1 — La porte de Rosa",
+    intro:"Momo : « La porte du fond est encore scellée. Tant qu'elle est murée, on ne rembourse rien. »",
+    done:"Momo : « Voilà. La salle du fond respire à nouveau. Maintenant fais gaffe à qui tu fais entrer. »",
+    objectives:[
+      {id:'backroom', label:"Rouvrir l'arrière-salle", goal:1, track:'backroom'},
+      {id:'ill1', label:"Installer une machine clandestine", goal:1, track:'illegal_built'},
+    ],
+    reward:{money:120, log:"Momo glisse 120¢ « pour la peine »."},
+  },
+  {
+    id:'q_tri', title:"Chapitre 2 — Trier les visages",
+    intro:"Momo : « Un sur cinq qui frappe est un problème. Fouille, refuse, apprends les têtes. »",
+    done:"Momo : « T'as l'œil maintenant. Le quartier va se calmer un peu. »",
+    objectives:[
+      {id:'search', label:"Fouiller 3 visiteurs", goal:3, track:'search'},
+      {id:'refuse', label:"Refuser 2 indics ou flics", goal:2, track:'refuse_bad'},
+    ],
+    reward:{money:150, danger:-12, log:"Le bouche-à-oreille filtre déjà les curieux (-12 danger)."},
+  },
+  {
+    id:'q_planque', title:"Chapitre 3 — Planquer avant l'orage",
+    intro:"Momo : « Quand la banalisée se gare, t'as quelques secondes. Entraîne-toi à tout planquer. »",
+    done:"Momo : « Rien vu, rien saisi. C'est comme ça qu'on dure. »",
+    objectives:[
+      {id:'hide', label:"Planquer les machines 2 fois", goal:2, track:'hide'},
+      {id:'raid', label:"Survivre à une descente", goal:1, track:'raid_survived'},
+    ],
+    reward:{money:200, rep:1, log:"Les habitués reviennent : la maison sait se tenir (+1★)."},
+  },
+  {
+    id:'q_plan', title:"Chapitre 4 — Réagencer la salle du fond",
+    intro:"La Reine : « Vos tables sont mal posées. Déplace-moi ça, on joue à l'abri des regards. »",
+    done:"La Reine : « Mieux. On peut travailler ici. »",
+    objectives:[
+      {id:'move', label:"Déplacer 3 machines", goal:3, track:'move'},
+      {id:'ill3', label:"Avoir 3 machines clandestines", goal:3, track:'illegal_built'},
+    ],
+    reward:{money:250, log:"La Reine laisse une enveloppe de 250¢ sur le tapis."},
+  },
+  {
+    id:'q_nuit', title:"Chapitre 5 — La grande nuit",
+    intro:"La Reine : « Ce soir j'amène mes joueurs. Fais entrer les bons, et seulement les bons. »",
+    done:"La Reine : « Belle soirée. La caisse s'en souviendra. »",
+    objectives:[
+      {id:'pass', label:"Faire entrer 6 vrais joueurs", goal:6, track:'pass_good'},
+      {id:'earn', label:"Encaisser 400¢ au fond", goal:400, track:'illegal_earn'},
+    ],
+    reward:{money:400, rep:2, log:"La nuit de la Reine rapporte gros (+400¢, +2★)."},
+  },
+  {
+    id:'q_final', title:"Chapitre 6 — Payer Rosa",
+    intro:"Vasseur : « Je repasserai. Deux fois plutôt qu'une. »",
+    done:"Toi : « Deux descentes de plus, rien saisi. Rosa peut dormir. »",
+    objectives:[
+      {id:'raid2', label:"Survivre à 2 descentes de plus", goal:2, track:'raid_survived'},
+      {id:'days', label:"Tenir 5 nuits de plus", goal:5, track:'day'},
+    ],
+    reward:{money:600, rep:2, danger:-20, log:"Le quartier te laisse tranquille. 600¢ et la paix."},
+  },
+];
+
+function activeQuest(){
+  if(state.questIdx==null || state.questIdx>=QUESTS.length) return null;
+  return QUESTS[state.questIdx];
+}
+function questSet(track, value){
+  const q = activeQuest();
+  if(!q || state.gameOver) return;
+  for(const o of q.objectives){
+    if(o.track!==track) continue;
+    const cur = state.questProgress[o.id]||0;
+    const next = Math.min(o.goal, Math.max(cur, value));
+    if(next===cur) continue;
+    state.questProgress[o.id] = next;
+    if(next>=o.goal) log(`✅ Objectif : ${o.label}.`);
+  }
+  renderQuestPanel();
+  if(q.objectives.every(o=>(state.questProgress[o.id]||0)>=o.goal)) completeQuest();
+}
+function questEvent(track, n=1){
+
+  const q = activeQuest();
+  if(!q || state.gameOver) return;
+  let changed = false;
+  for(const o of q.objectives){
+    if(o.track!==track) continue;
+    const cur = state.questProgress[o.id]||0;
+    if(cur>=o.goal) continue;
+    state.questProgress[o.id] = Math.min(o.goal, cur+n);
+    changed = true;
+    if(state.questProgress[o.id]>=o.goal) log(`✅ Objectif : ${o.label}.`);
+  }
+  if(!changed) return;
+  renderQuestPanel();
+  if(q.objectives.every(o=>(state.questProgress[o.id]||0)>=o.goal)) completeQuest();
+}
+function completeQuest(){
+  const q = activeQuest(); if(!q) return;
+  const r = q.reward||{};
+  if(r.money){ state.money += r.money; state.stats.earned += r.money; }
+  if(r.rep) state.rep = Math.min(30, state.rep + r.rep);
+  if(r.danger) addDanger(r.danger);
+  state.questsDone.push(q.id);
+  log(`🎯 ${q.title} — terminé. ${r.log||''}`);
+  showEvent(`${q.title} · TERMINÉ`, `${q.done}\n\n${r.log||''}`);
+  state.questIdx += 1;
+  state.questProgress = {};
+  const next = activeQuest();
+  if(next) log(`🎯 Nouvelle mission : ${next.title}. ${next.intro}`);
+  renderQuestPanel();
+}
+function renderQuestPanel(){
+  const box = document.getElementById('questBox');
+  if(!box) return;
+  const q = activeQuest();
+  if(!q){
+    box.innerHTML = `<div class="qTitle">Toutes les missions accomplies</div>
+      <div class="qIntro">La dette de Rosa est derrière toi. Fais tourner la salle comme tu veux.</div>`;
+    return;
+  }
+  const rows = q.objectives.map(o=>{
+    const cur = Math.min(o.goal, state.questProgress[o.id]||0);
+    const ok = cur>=o.goal;
+    const pct = Math.round((cur/o.goal)*100);
+    return `<div class="qObj${ok?' ok':''}">
+      <span>${ok?'✔':'○'} ${o.label}</span><b>${cur}/${o.goal}</b>
+      <div class="qBar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div class="qTitle">${q.title}</div>
+    <div class="qIntro">${q.intro}</div>${rows}`;
+}
+
 
 /* ============================================================
    DIALOGUES & CINÉMATIQUES
@@ -2987,6 +3136,7 @@ function resolveRaid(){
   if(exposed.length===0){
     state.suspicion = Math.max(0, state.suspicion-35);
     state.raidsSurvived += 1;
+    questEvent('raid_survived');
     log("Contrôle terminé : rien à signaler. Les flics repartent bredouilles.");
     showEvent("RIEN À SIGNALER", "Deux agents traversent la salle, tapotent une borne, repartent. Derrière le faux mur, personne n'ose respirer. Suspicion en forte baisse.");
   } else {
@@ -3048,6 +3198,7 @@ function maybeTriggerEvent(){
 }
 function newDay(){
   state.day+=1;
+  questEvent('day');
   if(state.debt>0){
     const payment = Math.min(state.debt, 20+state.rep*3);
     if(state.money>=payment){ state.money-=payment; state.debt-=payment; log(`Jour ${state.day} — Remboursement banque : -${Math.round(payment)}¢.`); }
@@ -3100,6 +3251,7 @@ function updateHUD(){
   renderDoorPanel();
   renderExpandBox();
   renderBackroom();
+  renderQuestPanel();
 }
 
 /* ---------- events modal ---------- */
@@ -3176,6 +3328,7 @@ function serializeSave(){
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
     danger: state.danger, unlocks: state.unlocks, storyDone: state.storyDone,
+    questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
   };
@@ -3204,6 +3357,7 @@ function applySave(data){
     launderDay:data.launderDay??-1, bribeDay:data.bribeDay??-99, gameOver:!!data.gameOver,
     illegalEarned:data.illegalEarned||0, danger:data.danger||0,
     unlocks:data.unlocks||[], storyDone:data.storyDone||[],
+    questIdx:data.questIdx??0, questProgress:data.questProgress||{}, questsDone:data.questsDone||[],
     stats:{...state.stats, ...(data.stats||{})},
     logMsgs:data.logMsgs||[],
   });
@@ -3581,6 +3735,9 @@ preloadModels(()=>{
   else log("Bienvenue au Cosmic Coin. Achète ta première borne — la porte du fond attendra ce soir.");
   if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
   else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
+  renderQuestPanel();
+  { const q0 = activeQuest(); if(q0) log(`🎯 Mission : ${q0.title}. ${q0.intro}`); }
+
 
   _raf = requestAnimationFrame(animate);
 });
