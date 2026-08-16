@@ -2497,9 +2497,189 @@ function updateDoor(dt){
   }
 }
 
+/* ============================================================
+   DIALOGUES & CINÉMATIQUES
+   ============================================================ */
+const CAST = {
+  rosa:    {name:'Lettre de Rosa',      color:'#ffe600'},
+  momo:    {name:'Momo, le guetteur',   color:'#20e6d0'},
+  vasseur: {name:'Inspecteur Vasseur',  color:'#ff2e88'},
+  reine:   {name:'La Reine du quartier',color:'#e8b64a'},
+  toi:     {name:'Toi',                 color:'#ffffff'},
+};
+const STORY = [
+  {
+    id:'intro',
+    when: ()=> true,
+    cam: {exterior:true, theta:-Math.PI/2-0.9, phi:1.15, radius:30, target:[-4.5,1.8,0]},
+    lines: [
+      ['rosa', "« Si tu lis ça, c'est que je suis partie et que le Cosmic Coin est à toi. Les néons tiennent encore. La banque, elle, ne tiendra pas longtemps. »"],
+      ['rosa', "« Compte les jetons honnêtes le jour. Et pour le reste… derrière le mur du fond, il y a une porte. Ne l'ouvre que si tu n'as plus le choix. »"],
+      ['toi',  "400¢ à rembourser, une salle vide et un été devant moi. On rallume."],
+    ],
+  },
+  {
+    id:'momo',
+    when: ()=> state.rep >= 3,
+    cam: {exterior:false, theta:Math.PI*0.6, phi:0.85, radius:13, target:[0,1.1,0]},
+    lines: [
+      ['momo', "Hé, patron. Momo. Je traînais devant la salle du temps de Rosa. Je vois arriver les flics avant qu'ils sortent de bagnole."],
+      ['momo', "Je te laisse mon juke-box en gage de bonne foi. Mets-le dans la salle, les gens restent plus longtemps."],
+      ['toi',  "Marché conclu, Momo."],
+    ],
+    unlock: {key:'jukebox', label:"Juke-box de Momo (décoration)"},
+  },
+  {
+    id:'porte',
+    when: ()=> state.backroom,
+    cam: {exterior:false, theta:-Math.PI*0.35, phi:1.0, radius:11, target:[2.5,1.0,2.5]},
+    lines: [
+      ['toi',  "La moquette rouge de Rosa n'a pas bougé depuis 1985. Les tables non plus."],
+      ['momo', "Première règle de l'arrière-salle : l'argent ne dort jamais dans la caisse. Prends ce coffre, planque-le dans un coin."],
+      ['momo', "Chaque nuit, il fait baisser la pression. Les comptables du commissariat détestent ça."],
+    ],
+    unlock: {key:'safe', label:"Coffre planqué (-3 suspicion/jour)"},
+  },
+  {
+    id:'vasseur',
+    when: ()=> state.danger >= 45,
+    cam: {exterior:true, theta:-Math.PI/2-0.2, phi:1.25, radius:24, target:[-3,1.5,2]},
+    lines: [
+      ['vasseur', "Joli quartier. Beaucoup de passage pour une salle d'arcade, non ?"],
+      ['toi',     "Les gamins aiment les flippers, inspecteur."],
+      ['vasseur', "Bien sûr. Je repasserai. Sans prévenir."],
+      ['momo',    "Il te lâchera plus. Fais-toi monter un faux mur automatique : au premier signal, tout disparaît."],
+    ],
+    unlock: {key:'falsewall', label:"Faux mur automatique (planque auto en descente)"},
+  },
+  {
+    id:'reine',
+    when: ()=> state.illegalEarned >= 400,
+    cam: {exterior:false, theta:Math.PI*0.15, phi:0.9, radius:12, target:[-1,1.2,-1]},
+    lines: [
+      ['reine', "On parle de ta porte du fond jusqu'à la gare. C'est rare, une maison qui paie encore ses gagnants."],
+      ['reine', "Je t'installe ma table. Mes joueurs misent gros — et ils attirent l'œil. À toi de voir si tu tiens la pression."],
+      ['toi',   "Installe-la. Rosa n'a jamais reculé."],
+    ],
+    unlock: {key:'vip', label:"Table VIP de la Reine (arrière-salle)"},
+  },
+  {
+    id:'final',
+    when: ()=> state.debt <= 0,
+    cam: {exterior:true, theta:-Math.PI/2-0.7, phi:1.1, radius:28, target:[-4.5,2.0,0]},
+    lines: [
+      ['toi',   "Dernier versement. La banque n'a plus rien à me réclamer."],
+      ['momo',  "Et le quartier a de nouveau une salle. Rosa aurait aimé le bruit que ça fait ce soir."],
+      ['rosa',  "« Le Cosmic Coin n'appartient à personne, petit. Il appartient à ceux qui y jouent. »"],
+    ],
+  },
+];
+
+const cine = {
+  active:false, lines:[], idx:0, char:0, typing:false, typer:null,
+  from:null, to:null, t:0, dur:1100, wasPaused:false, wasExterior:false, restore:null,
+};
+function cineEl(id){ return document.getElementById(id); }
+
+function playCinematic(beat){
+  if(cine.active) return;
+  cine.active = true;
+  cine.lines = beat.lines; cine.idx = 0;
+  cine.wasPaused = state.paused;
+  cine.wasExterior = exteriorMode;
+  state.paused = true;
+  if(beat.cam && beat.cam.exterior !== exteriorMode) setExteriorMode(!!beat.cam.exterior);
+  cine.restore = {theta:orbit.theta, phi:orbit.phi, radius:orbit.radius, target:orbit.target.clone()};
+  if(beat.cam){
+    cine.from = {theta:orbit.theta, phi:orbit.phi, radius:orbit.radius, target:orbit.target.clone()};
+    cine.to = {
+      theta:beat.cam.theta, phi:beat.cam.phi, radius:beat.cam.radius,
+      target:new THREE.Vector3(...(beat.cam.target||[0,1,0])),
+    };
+    cine.t = 0;
+  } else { cine.from = cine.to = null; }
+  cine.beat = beat;
+  const box = cineEl('cinema');
+  if(box) box.classList.add('on');
+  showLine();
+}
+function showLine(){
+  const l = cine.lines[cine.idx];
+  if(!l) { endCinematic(); return; }
+  const who = CAST[l[0]] || CAST.toi;
+  const whoEl = cineEl('cineWho'), txtEl = cineEl('cineText');
+  if(whoEl){ whoEl.innerText = who.name; whoEl.style.color = who.color; }
+  if(!txtEl) return;
+  window.clearInterval(cine.typer);
+  txtEl.innerText = '';
+  cine.char = 0; cine.typing = true;
+  const full = l[1];
+  cine.typer = window.setInterval(()=>{
+    cine.char += 2;
+    txtEl.innerText = full.slice(0, cine.char);
+    if(cine.char >= full.length){ window.clearInterval(cine.typer); cine.typing = false; }
+  }, 18);
+}
+function cineAdvance(){
+  if(!cine.active) return;
+  if(cine.typing){
+    window.clearInterval(cine.typer); cine.typing = false;
+    const el = cineEl('cineText'); if(el) el.innerText = cine.lines[cine.idx][1];
+    return;
+  }
+  cine.idx += 1;
+  if(cine.idx >= cine.lines.length) endCinematic();
+  else showLine();
+}
+function endCinematic(){
+  if(!cine.active) return;
+  window.clearInterval(cine.typer);
+  cine.active = false; cine.typing = false;
+  const box = cineEl('cinema'); if(box) box.classList.remove('on');
+  const beat = cine.beat;
+  if(beat && beat.unlock && !state.unlocks.includes(beat.unlock.key)){
+    state.unlocks.push(beat.unlock.key);
+    log(`🔓 Débloqué : ${beat.unlock.label}`);
+    renderShop();
+    showEvent('NOUVEAU DANS LA SALLE', `${beat.unlock.label} est disponible dans la boutique.`);
+    return; // showEvent gère la pause
+  }
+  if(cine.wasExterior !== exteriorMode) setExteriorMode(cine.wasExterior);
+  else if(cine.restore){
+    orbit.theta = cine.restore.theta; orbit.phi = cine.restore.phi;
+    orbit.radius = cine.restore.radius; orbit.target.copy(cine.restore.target);
+    updateCamera();
+  }
+  state.paused = cine.wasPaused;
+}
+function updateCinematic(dt){
+  if(!cine.active || !cine.to) return;
+  cine.t = Math.min(1, cine.t + dt/cine.dur);
+  const e = cine.t<0.5 ? 2*cine.t*cine.t : 1-Math.pow(-2*cine.t+2,2)/2;
+  orbit.theta = cine.from.theta + (cine.to.theta-cine.from.theta)*e;
+  orbit.phi = cine.from.phi + (cine.to.phi-cine.from.phi)*e;
+  orbit.radius = cine.from.radius + (cine.to.radius-cine.from.radius)*e;
+  orbit.target.lerpVectors(cine.from.target, cine.to.target, e);
+  updateCamera();
+}
+function maybeStory(){
+  if(cine.active || state.gameOver) return;
+  if(document.getElementById('eventModal').style.display === 'flex') return;
+  for(const beat of STORY){
+    if(state.storyDone.includes(beat.id)) continue;
+    if(!beat.when()) continue;
+    state.storyDone.push(beat.id);
+    playCinematic(beat);
+    return;
+  }
+}
+
 document.getElementById('doorSearch').onclick = doorSearch;
 document.getElementById('doorPass').onclick   = doorPass;
 document.getElementById('doorRefuse').onclick = doorRefuse;
+document.getElementById('cineNext').onclick = cineAdvance;
+document.getElementById('cineSkip').onclick = ()=>{ cine.idx = cine.lines.length; endCinematic(); };
+document.getElementById('cinema').onclick = (e)=>{ if(e.target.id!=='cineSkip') cineAdvance(); };
 
 /* ---------- descentes de police ---------- */
 function startRaid(){
@@ -2639,8 +2819,20 @@ function showEvent(title,text){
   document.getElementById('eventText').innerText=text;
   document.getElementById('eventModal').style.display='flex';
 }
-document.getElementById('closeEventBtn').onclick=()=>{ document.getElementById('eventModal').style.display='none'; state.paused=!state.gameOver?false:true; };
-document.getElementById('closeStoryBtn').onclick=()=>{ document.getElementById('storyModal').style.display='none'; };
+document.getElementById('closeEventBtn').onclick=()=>{
+  document.getElementById('eventModal').style.display='none';
+  if(!cine.active && cine.restore){
+    if(cine.wasExterior !== exteriorMode) setExteriorMode(cine.wasExterior);
+    else {
+      orbit.theta = cine.restore.theta; orbit.phi = cine.restore.phi;
+      orbit.radius = cine.restore.radius; orbit.target.copy(cine.restore.target);
+      updateCamera();
+    }
+    cine.restore = null;
+  }
+  state.paused = !state.gameOver ? false : true;
+};
+document.getElementById('closeStoryBtn').onclick=()=>{ document.getElementById('storyModal').style.display='none'; maybeStory(); };
 
 /* ---------- mobile sidebar drawer ---------- */
 const sidebarEl = document.getElementById('sidebar');
@@ -2663,6 +2855,7 @@ document.getElementById('resetBtn').onclick=()=>{
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
   state.customers.forEach(c=>customersGroup.remove(c.mesh));
   removeVisitor();
+  endCinematic();
   floaters.forEach(f=>scene.remove(f.sp));
   floaters.length=0;
   closeMachineMenu();
@@ -2880,6 +3073,10 @@ function animate(ts){
     }
   }
 
+  updateCinematic(dt);
+  state.storyTick = (state.storyTick||0) + dt;
+  if(state.storyTick > 800){ state.storyTick = 0; maybeStory(); }
+
   renderer.render(scene,camera);
   _raf = requestAnimationFrame(animate);
 }
@@ -2889,6 +3086,7 @@ if(import.meta.env && import.meta.env.DEV){
   window.__cosmicCoin = {
     get state(){ return state; },
     startRaid, resolveRaid, setHidden, log, spawnVisitor, addDanger,
+    playCinematic, maybeStory, STORY,
     get doorVisitor(){ return doorVisitor; }, renderShop, updateHUD,
     get orbit(){ return orbit; },
     get camPos(){ return camera.position.toArray(); },
