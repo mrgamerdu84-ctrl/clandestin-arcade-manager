@@ -2732,7 +2732,7 @@ function resolveRaid(){
     log(`Descente ratée : -${Math.round(fine)}¢ d'amende, ${seized.def.name} saisie.`);
     if(state.busts>=3){
       state.gameOver = true;
-      recordRun('scellés');
+      recordRun('scellés'); clearSave();
       showEvent("SCELLÉS SUR LA PORTE", "Troisième descente ratée. Le juge ferme le Cosmic Coin et la dette de Rosa passe au liquidateur. Fin de l'histoire — appuie sur Reset pour retenter ta chance.");
     } else {
       showEvent("DESCENTE RATÉE", `Les agents trouvent ${exposed.length} machine(s) clandestine(s). Amende de ${Math.round(fine)}¢, "${seized.def.name}" part à la fourrière. Encore ${3-state.busts} avertissement(s) avant la fermeture.`);
@@ -2783,7 +2783,7 @@ function newDay(){
   }
   if(state.debt<=0 && !state.won){
     state.won=true;
-    recordRun('dette remboursée');
+    recordRun('dette remboursée'); clearSave();
     showEvent("DETTE REMBOURSÉE 🎉", state.illegalEarned>500
       ? "La banque est remboursée — avec l'argent de l'arrière-salle. Le Cosmic Coin est à toi, et la moitié du quartier sait déjà pour la porte du fond. Continue : empire clandestin ou blanchiment total, à toi de voir."
       : "La banque est remboursée, jeton par jeton, à la loyale. Rosa serait fière. Rien ne t'empêche maintenant de rouvrir la porte du fond… ou de la murer pour de bon.");
@@ -2871,6 +2871,7 @@ document.getElementById('pauseBtn').onclick=()=>{
 };
 document.getElementById('resetBtn').onclick=()=>{
   recordRun(state.gameOver ? 'scellés' : 'abandon');
+  clearSave();
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
   state.customers.forEach(c=>customersGroup.remove(c.mesh));
   removeVisitor();
@@ -2887,6 +2888,74 @@ document.getElementById('resetBtn').onclick=()=>{
   renderShop(); updateHUD();
   log("Nouvelle partie lancée. Bonne chance avec le Cosmic Coin !");
 };
+
+/* ============================================================
+   SAUVEGARDE AUTOMATIQUE
+   ============================================================ */
+const SAVE_KEY = 'cc_save_v1';
+const SAVE_VERSION = 1;
+let saveTimer = 0; // horodatage du dernier autosave
+function serializeSave(){
+  return {
+    v: SAVE_VERSION, ts: Date.now(),
+    money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
+    staff: state.staff, dayTimer: state.dayTimer, dayLength: state.dayLength, won: state.won,
+    backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
+    raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
+    bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
+    danger: state.danger, unlocks: state.unlocks, storyDone: state.storyDone,
+    stats: state.stats, logMsgs: state.logMsgs.slice(-14),
+    machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
+  };
+}
+function writeSave(){
+  if(state.gameOver || state.won) { clearSave(); return; }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave())); } catch(e){}
+}
+function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+function readSave(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(!data || data.v !== SAVE_VERSION) return null;
+    return data;
+  } catch(e){ return null; }
+}
+function applySave(data){
+  Object.assign(state, {
+    money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
+    staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
+    dayLength:data.dayLength||state.dayLength, won:!!data.won,
+    backroom:!!data.backroom, suspicion:data.suspicion||0, hidden:false,
+    busts:data.busts||0, raidsSurvived:data.raidsSurvived||0, lookout:!!data.lookout,
+    launderDay:data.launderDay??-1, bribeDay:data.bribeDay??-99, gameOver:!!data.gameOver,
+    illegalEarned:data.illegalEarned||0, danger:data.danger||0,
+    unlocks:data.unlocks||[], storyDone:data.storyDone||[],
+    stats:{...state.stats, ...(data.stats||{})},
+    logMsgs:data.logMsgs||[],
+  });
+  initGrid();
+  (data.machines||[]).forEach(sm=>{
+    const def = MACHINES.find(m=>m.id===sm.id) || DECOR.find(d=>d.id===sm.id);
+    if(!def) return;
+    const {cols,rows} = state.dims;
+    if(sm.x<0||sm.x>=cols||sm.z<0||sm.z>=rows||state.grid[sm.z][sm.x]) return;
+    const mesh = buildMachineMesh(def.id);
+    const p = cellToWorld(sm.x, sm.z, cols, rows);
+    mesh.position.set(p.x, 0, p.z);
+    mesh.rotation.y = sm.rot || 0;
+    machinesGroup.add(mesh);
+    const machine = {x:sm.x, z:sm.z, def, mesh, busy:false, broken:!!sm.broken};
+    mesh.userData.machine = machine;
+    state.grid[sm.z][sm.x] = machine;
+    state.machines.push(machine);
+  });
+  setHidden(false);
+  document.getElementById('log').innerHTML = state.logMsgs.map(m=>`<div>${m}</div>`).join('');
+}
+addWin('beforeunload', ()=>{ writeSave(); });
+addWin('visibilitychange', ()=>{ if(document.visibilityState==='hidden') writeSave(); });
 
 /* ============================================================
    SCORE, STATS & CLASSEMENT
@@ -3054,6 +3123,7 @@ function animate(ts){
   if(_disposed) return;
   if(lastTime===null) lastTime=ts;
   const dt = Math.min(80, ts-lastTime); lastTime=ts;
+  if(ts - saveTimer > 5000){ saveTimer = ts; writeSave(); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
 
   if(!state.paused){
@@ -3201,14 +3271,22 @@ if(import.meta.env && import.meta.env.DEV){
 /* ---------- init ---------- */
 preloadModels(()=>{
   document.getElementById('loadModal').style.display='none';
-  document.getElementById('storyModal').style.display='flex';
   resize();
-  initGrid();
+  const saved = readSave();
+  if(saved){
+    state.scored = false;
+    applySave(saved);
+  } else {
+    document.getElementById('storyModal').style.display='flex';
+    initGrid();
+  }
   buildExteriorStreet(16);
   updateCamera();
   renderShop();
   updateHUD();
-  log("Bienvenue au Cosmic Coin. Achète ta première borne — la porte du fond attendra ce soir.");
+  document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
+  if(saved) log(`Partie rechargée automatiquement : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+  else log("Bienvenue au Cosmic Coin. Achète ta première borne — la porte du fond attendra ce soir.");
   if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
   else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
 
