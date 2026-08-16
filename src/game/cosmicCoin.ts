@@ -2081,6 +2081,8 @@ if(import.meta.env && import.meta.env.DEV){
   window.__cosmicCoin = {
     get state(){ return state; },
     startRaid, resolveRaid, setHidden, log, renderShop, updateHUD,
+    get orbit(){ return orbit; },
+    get camPos(){ return camera.position.toArray(); },
   };
 }
 
