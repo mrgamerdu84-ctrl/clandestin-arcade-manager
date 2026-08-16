@@ -1406,7 +1406,50 @@ function placeExt(parentGroup, key, spec, x, z, rotY){
 }
 
 
+// Places a curved streetlight so the mast sits on the kerb and the arm always
+// overhangs the road. `roadDir` is the direction of the road from the mast.
+function placeStreetlight(x, z, roadDir, withPointLight){
+  const lightWrap = placeExt(exteriorStreetGroup, 'STREETLIGHT', {mode:'height',target:2.9}, x, z, 0);
+  if(!lightWrap) return null;
+  const obj = lightWrap.children[0];
+  const bb = new THREE.Box3().setFromObject(obj);
+  let headX = 0, headY = bb.max.y, headZ = 0, best = -Infinity;
+  obj.traverse(o=>{
+    if(!o.isMesh) return;
+    const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
+    if(c.y > best){ best = c.y; headX = c.x; headY = c.y; headZ = c.z; }
+  });
+  const armDir = Math.max(Math.abs(headX), Math.abs(headZ)) < 0.15
+    ? 'none'
+    : Math.abs(headX) > Math.abs(headZ)
+    ? (headX >= 0 ? 'x+' : 'x-')
+    : (headZ >= 0 ? 'z+' : 'z-');
+  // the mast sits on the side opposite the arm — slide it back onto the kerb
+  if(armDir === 'x+'){ obj.position.x -= bb.min.x; }
+  else if(armDir === 'x-'){ obj.position.x -= bb.max.x; }
+  else if(armDir === 'z+'){ obj.position.z -= bb.min.z; }
+  else if(armDir === 'z-'){ obj.position.z -= bb.max.z; }
+  // yaw that turns the model's arm toward -x, then re-aim at the actual road
+  const baseYaw = (armDir === 'x-' || armDir === 'none') ? 0 : armDir === 'x+' ? Math.PI : armDir === 'z+' ? Math.PI/2 : -Math.PI/2;
+  const aim = roadDir === 'x-' ? 0 : roadDir === 'x+' ? Math.PI : roadDir === 'z-' ? -Math.PI/2 : Math.PI/2;
+  const yaw = baseYaw + aim;
+  lightWrap.rotation.y = yaw;
+  const bulb = new THREE.Vector3(headX + obj.position.x, headY, headZ + obj.position.z)
+    .applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+  const bx = x + bulb.x, by = bulb.y, bz = z + bulb.z;
+  if(!isMobile && withPointLight){
+    const glow = new THREE.PointLight(0xffdd99, 0.9, 6, 2);
+    glow.position.set(bx, by, bz);
+    exteriorStreetGroup.add(glow);
+  }
+  const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
+  halo.position.set(bx, by - 0.05, bz);
+  exteriorStreetGroup.add(halo);
+  return lightWrap;
+}
+
 // static street dressing — built once, independent of the arcade's stage/size
+
 function buildExteriorStreet(maxSpan){
   while(exteriorStreetGroup.children.length) exteriorStreetGroup.remove(exteriorStreetGroup.children[0]);
   pedestrians.length = 0;
