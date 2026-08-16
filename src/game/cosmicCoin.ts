@@ -1521,8 +1521,8 @@ function buildExteriorStreet(maxSpan){
   // Tout le réseau routier est calé sur une grille stricte de dalles :
   // sans ça les avenues transversales tombaient entre deux dalles (routes coupées).
   const TILE = 2.3;
-  const kMin = Math.ceil(zMin / TILE);
-  const kMax = Math.floor(zMax / TILE);
+  const kMin = Math.floor(zMin / TILE);
+  const kMax = Math.ceil(zMax / TILE);
   const crossZ = (kMin + 1) * TILE;
   const crossZ2 = (kMax - 1) * TILE;
   const jWest = -7;          // dernière dalle ouest des avenues
@@ -1622,6 +1622,7 @@ function buildExteriorStreet(maxSpan){
   let slIndex = 0;
   const lampX = sidewalkX - 1.0; // mast on the road-side edge of the sidewalk
   for(let z=zMin; z<=zMax; z+=4.8){
+    if(Math.abs(z - crossZ) < 2.4 || Math.abs(z - crossZ2) < 2.4) continue;
     placeStreetlight(lampX, z, 'x-', slIndex%2===0);
     slIndex++;
   }
@@ -1631,7 +1632,7 @@ function buildExteriorStreet(maxSpan){
   const houseKeys = ['HOUSE_A','HOUSE_E','HOUSE_J'];
   let hi = 0;
   for(let z=zMin; z<=zMax; z+=3.4){
-    if(Math.abs(z - crossZ) < 2.8 || Math.abs(z - crossZ2) < 2.8) continue;
+    if(onRoad(houseX, z, 1.6)) continue;
     const key = houseKeys[hi % houseKeys.length]; hi++;
     const jitter = (Math.random()*0.6-0.3);
     placeExt(exteriorStreetGroup, key, {mode:'height',target:1.8}, houseX+jitter, z, Math.PI);
@@ -1643,6 +1644,7 @@ function buildExteriorStreet(maxSpan){
   }
   // planters near the building's sidewalk edge
   for(let z=zMin+1; z<=zMax; z+=5.6){
+    if(onRoad(sidewalkX+1.0, z, 0.4)) continue;
     placeExt(exteriorStreetGroup, 'PLANTER', {mode:'height',target:0.55}, sidewalkX+1.0, z, 0);
   }
 
