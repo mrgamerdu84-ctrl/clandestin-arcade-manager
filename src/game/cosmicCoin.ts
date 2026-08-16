@@ -1045,8 +1045,10 @@ function buildRoom(stageIdx){
   scene.background.set(casino?0x1a0812:0x0d0618);
 
   orbit.target.set(0,0.5,0);
-  orbit.radius = 12 + Math.max(cols,rows)*1.25;
-  orbit.phi = 0.95;
+  const portrait = window.innerHeight > window.innerWidth;
+  orbit.radius = (12 + Math.max(cols,rows)*1.25) * (portrait ? 1.45 : 1);
+  orbit.phi = portrait ? 1.05 : 0.95;
+
   updateCamera();
 
   return {cols,rows,doorRow};
