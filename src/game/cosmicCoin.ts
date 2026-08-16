@@ -538,7 +538,14 @@ const CITY_FILES = {
   CITY_SKY_A:'city/building-skyscraper-b.glb', CITY_SKY_B:'city/building-skyscraper-d.glb',
   CAR_SEDAN:'city/sedan.glb', CAR_TAXI:'city/taxi.glb', CAR_VAN:'city/van.glb',
   CAR_SUV:'city/suv.glb', CAR_POLICE_M:'city/police.glb',
+  CAR_HATCH:'city/hatchback-sports.glb', CAR_SPORT:'city/sedan-sports.glb',
+  CAR_DELIVERY:'city/delivery.glb', CAR_GARBAGE:'city/garbage-truck.glb',
   AWNING:'city/detail-awning.glb', PARASOL:'city/detail-parasol-a.glb', CONE:'city/cone.glb',
+  // city-kit-roads 2 — real asphalt tiles, sidewalks and lamps
+  ROAD_STRAIGHT:'roads/road-straight.glb', ROAD_CROSS:'roads/road-crossing.glb',
+  ROAD_BEND:'roads/road-bend.glb', ROAD_SIDE:'roads/road-side.glb',
+  STREETLIGHT:'roads/light-curved.glb',
+  BARRIER:'roads/construction-barrier.glb', CONE_WORK:'roads/construction-cone.glb',
 };
 const GLB_KEY_MAP = {
   arcade:'ARCADE', pinball:'PINBALL', claw:'CLAW', vending:'VENDING', ticket:'TICKET',
