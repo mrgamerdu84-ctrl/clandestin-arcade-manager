@@ -1443,13 +1443,14 @@ function buildExteriorStreet(maxSpan){
     w.receiveShadow = true;
     exteriorStreetGroup.add(w);
   });
-  // lampadaires de l'avenue
+  // lampadaires de l'avenue (bras tourné vers la chaussée)
   for(let x=roadX-3.5; x>=roadX-15; x-=5.2){
-    placeExt(exteriorStreetGroup, 'STREETLIGHT', {mode:'height',target:2.9}, x, crossZ + 1.6, Math.PI/2);
-    const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
-    halo.position.set(x, 2.7, crossZ + 0.9);
-    exteriorStreetGroup.add(halo);
+    placeStreetlight(x, crossZ + 1.6, 'z-', true);
   }
+  for(let x=roadX-6; x>=roadX-14; x-=5.2){
+    placeStreetlight(x, crossZ - 1.6, 'z+', false);
+  }
+
   // pâté d'immeubles derrière les maisons + gratte-ciels en fond de décor
   const blockKeys = ['CITY_A','CITY_B','CITY_C','CITY_D','CITY_E','CITY_F','CITY_G'];
   let bi = 0;
