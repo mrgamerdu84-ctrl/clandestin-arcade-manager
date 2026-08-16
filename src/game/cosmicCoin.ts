@@ -1812,6 +1812,14 @@ function animate(ts){
   _raf = requestAnimationFrame(animate);
 }
 
+/* ---------- hook de debug (dev uniquement) ---------- */
+if(import.meta.env && import.meta.env.DEV){
+  window.__cosmicCoin = {
+    get state(){ return state; },
+    startRaid, resolveRaid, setHidden, log, renderShop, updateHUD,
+  };
+}
+
 /* ---------- init ---------- */
 preloadModels(()=>{
   document.getElementById('loadModal').style.display='none';
