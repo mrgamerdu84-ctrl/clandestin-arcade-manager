@@ -832,6 +832,9 @@ const exteriorStreetGroup = group(); exteriorGroup.add(exteriorStreetGroup);
 const exteriorBuildingGroup = group(); exteriorGroup.add(exteriorBuildingGroup);
 const pedestrians = [];
 const cars = [];
+const extMovers = [];   // pigeons, chat de ruelle, badauds qui piétinent
+const extFlickers = []; // néons des commerces qui clignotent
+let patrolCar = null;   // voiture de police qui rôde quand la suspicion grimpe
 
 function buildHouse(wallColor, roofColor, wallH){
   const g = group();
@@ -1014,6 +1017,9 @@ function buildExteriorStreet(maxSpan){
   while(exteriorStreetGroup.children.length) exteriorStreetGroup.remove(exteriorStreetGroup.children[0]);
   pedestrians.length = 0;
   cars.length = 0;
+  extMovers.length = 0;
+  extFlickers.length = 0;
+  patrolCar = null;
 
   const sidewalkX = -8;
   const roadX = -10.6;
