@@ -68,7 +68,7 @@ function makeGlowSprite(hexColor, size){
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d0618);
-scene.fog = new THREE.Fog(0x0d0618, isMobile?16:22, isMobile?34:46);
+scene.fog = new THREE.Fog(0x0d0618, isMobile?28:34, isMobile?85:110);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
 
@@ -1327,9 +1327,9 @@ function setExteriorMode(on){
     scene.background.set(0x0e1230);
     scene.fog.color.set(0x0e1230);
     // brume repoussée : le quartier entier reste lisible depuis la rue
-    scene.fog.near = 30; scene.fog.far = isMobile?70:95;
+    scene.fog.near = 55; scene.fog.far = isMobile?150:190;
     // le quartier de nuit doit rester lisible sans écraser les néons
-    ambientLight.intensity = 1.35;
+    ambientLight.intensity = 1.9;
     btn.innerText = '🏠 INTÉRIEUR';
     closeMachineMenu();
   } else {
