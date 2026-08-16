@@ -1328,6 +1328,8 @@ function setExteriorMode(on){
     scene.fog.color.set(0x0e1230);
     // brume repoussée : le quartier entier reste lisible depuis la rue
     scene.fog.near = 30; scene.fog.far = isMobile?70:95;
+    // le quartier de nuit doit rester lisible sans écraser les néons
+    ambientLight.intensity = 1.35;
     btn.innerText = '🏠 INTÉRIEUR';
     closeMachineMenu();
   } else {
@@ -1336,6 +1338,7 @@ function setExteriorMode(on){
     if(interiorCamSave.bg) scene.background.copy(interiorCamSave.bg);
     if(interiorCamSave.fog) scene.fog.color.copy(interiorCamSave.fog);
     if(interiorCamSave.fogFar){ scene.fog.near = interiorCamSave.fogNear; scene.fog.far = interiorCamSave.fogFar; }
+    ambientLight.intensity = 0.9;
     btn.innerText = '🏙️ EXTÉRIEUR';
   }
   updateCamera();
