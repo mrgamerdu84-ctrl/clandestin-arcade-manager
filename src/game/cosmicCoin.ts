@@ -1411,7 +1411,7 @@ function buildExteriorStreet(maxSpan){
   // néon "SORTIE" au-dessus de la porte de service + fumée d'égout
   const alleyNeon = placeExt(exteriorStreetGroup, 'NEON_TUBE', {mode:'height',target:0.14}, alleyX-1.4, 0.2, 0);
   if(alleyNeon){ alleyNeon.position.y = 2.3; extFlickers.push({obj:alleyNeon, phase:Math.random()*6.28, speed:5.5}); }
-  const alleyLight = makeGlowSprite('#2fd4c8', 1.6);
+  const alleyLight = registerNightHalo(makeGlowSprite('#2fd4c8', 1.2), 0.8);
   alleyLight.position.set(alleyX-1.4, 2.3, 0.2);
   exteriorStreetGroup.add(alleyLight);
   // chat de ruelle qui rôde
@@ -1464,7 +1464,7 @@ function buildExteriorStreet(maxSpan){
       tube.traverse(o=>{ if(o.isMesh && o.material){ o.material = o.material.clone(); o.material.color.set(shopColors[i]); if(o.material.emissive) o.material.emissive.set(shopColors[i]); } });
       extFlickers.push({obj:tube, phase:i*1.7, speed:3+Math.random()*4});
     }
-    const halo = makeGlowSprite(shopColors[i], 1.8);
+    const halo = registerNightHalo(makeGlowSprite(shopColors[i], 1.3), 0.85);
     halo.position.set(-12.0, 2.0, z);
     exteriorStreetGroup.add(halo);
   }
@@ -2396,6 +2396,15 @@ function updateDayNight(){
   moonHalo.material.opacity = moonOpacity*0.7;
 
   if(starField) starField.material.opacity = nightFactor*0.85;
+
+  // les halos néon s'estompent en plein jour (sinon grosses taches blanches)
+  const haloFactor = 0.25 + nightFactor*0.75;
+  for(let i=0;i<nightHalos.length;i++){
+    const h = nightHalos[i];
+    h.material.opacity = (h.userData.maxOpacity ?? 1) * haloFactor;
+    const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.3);
+    h.scale.set(s,s,1);
+  }
 }
 
 function animate(ts){
