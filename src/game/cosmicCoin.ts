@@ -191,6 +191,8 @@ scene.add(moonHalo);
 
 /* ---------- projecteurs de nuit : deux faisceaux qui balaient le quartier ---------- */
 const searchlights = [];
+let nightAmount = 0;   // 0 = plein jour, 1 = nuit noire (piloté par updateDayNight)
+
 if(!isMobile){
   const beamDefs = [
     { x:-14, z:-9,  color:0xff2e88, speed:0.32, phase:0 },
