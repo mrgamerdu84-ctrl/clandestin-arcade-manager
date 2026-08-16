@@ -1538,6 +1538,37 @@ function setExteriorMode(on){
 }
 document.getElementById('exteriorBtn').onclick = ()=> setExteriorMode(!exteriorMode);
 
+/* ---------- panneau lumière (jour / nuit / auto + luminosité) ---------- */
+function refreshLightUI(){
+  ['day','night','auto'].forEach(m=>{
+    const b = document.getElementById('light-'+m);
+    if(b) b.classList.toggle('on', lightMode===m);
+  });
+  const val = document.getElementById('brightVal');
+  if(val) val.innerText = Math.round(brightness*100)+'%';
+}
+function setLightMode(m){
+  lightMode = m;
+  try { localStorage.setItem('cc_lightmode', m); } catch(e) {}
+  refreshLightUI();
+  updateDayNight();
+}
+['day','night','auto'].forEach(m=>{
+  const b = document.getElementById('light-'+m);
+  if(b) b.onclick = ()=> setLightMode(m);
+});
+const brightSlider = document.getElementById('brightness');
+if(brightSlider){
+  brightSlider.value = String(Math.round(brightness*100));
+  brightSlider.oninput = ()=>{
+    brightness = Number(brightSlider.value)/100;
+    renderer.toneMappingExposure = brightness;
+    try { localStorage.setItem('cc_brightness', String(brightness)); } catch(e) {}
+    refreshLightUI();
+  };
+}
+refreshLightUI();
+
 /* ============================================================
    MACHINE DEFS
    ============================================================ */
