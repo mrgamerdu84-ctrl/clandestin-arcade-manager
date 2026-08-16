@@ -1771,6 +1771,9 @@ document.getElementById('expandBtn').onclick = ()=>{
 /* ---------- placing machines & selecting existing ones: raycast ---------- */
 const raycaster = new THREE.Raycaster();
 const mouseNDC = new THREE.Vector2();
+let movingMachine = null;
+function endMoveMode(){ movingMachine = null; }
+
 
 function findMachineFromObject(obj){
   let o = obj;
