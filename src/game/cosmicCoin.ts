@@ -1518,83 +1518,93 @@ function buildExteriorStreet(maxSpan){
   const houseX = -15.5;
   const zMin = -maxSpan, zMax = maxSpan;
 
-  // avenues transversales : le quartier n'est plus une seule rue
-  const crossZ = zMin + 2.3;
-  const crossZ2 = zMax - 2.3;
-  // road strip (crosswalk tile right in front of the arcade entrance)
-  for(let z=zMin; z<=zMax; z+=2.3){
-    if(Math.abs(z - crossZ) < 0.5 || Math.abs(z - crossZ2) < 0.5) continue; // laissé aux carrefours
-    const key = Math.abs(z) < 1.2 ? 'ROAD_CROSS' : 'ROAD_STRAIGHT';
-    placeExt(exteriorStreetGroup, key, {mode:'footprint',target:2.3}, roadX, z, Math.PI/2);
+  // Tout le réseau routier est calé sur une grille stricte de dalles :
+  // sans ça les avenues transversales tombaient entre deux dalles (routes coupées).
+  const TILE = 2.3;
+  const kMin = Math.ceil(zMin / TILE);
+  const kMax = Math.floor(zMax / TILE);
+  const crossZ = (kMin + 1) * TILE;
+  const crossZ2 = (kMax - 1) * TILE;
+  const jWest = -7;          // dernière dalle ouest des avenues
+  const jEast = 3;           // dernière dalle est des avenues
+  const avenueXMin = roadX + jWest * TILE;
+  const avenueXMax = roadX + jEast * TILE;
+
+  // artère principale (nord-sud)
+  for(let k=kMin; k<=kMax; k++){
+    const z = k * TILE;
+    if(k === kMin+1 || k === kMax-1) continue; // dalles laissées aux carrefours
+    const key = Math.abs(z) < TILE*0.6 ? 'ROAD_CROSS' : 'ROAD_STRAIGHT';
+    placeExt(exteriorStreetGroup, key, {mode:'footprint',target:TILE}, roadX, z, Math.PI/2);
   }
-  placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:2.3}, roadX, crossZ, 0);
-  placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:2.3}, roadX, crossZ2, 0);
-  // deuxième avenue (sud) + trottoirs + lampadaires tournés vers la chaussée
-  for(let x=roadX-2.3; x>=roadX-16; x-=2.3){
-    placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, x, crossZ2, 0);
-  }
-  [-1.55, 1.55].forEach(off=>{
-    const w = box(20, 0.08, 1.1, '#5c5568');
-    w.position.set(roadX - 6.5, 0.04, crossZ2 + off);
-    w.receiveShadow = true;
-    exteriorStreetGroup.add(w);
+  placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:TILE}, roadX, crossZ, 0);
+  placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:TILE}, roadX, crossZ2, 0);
+
+  // avenues transversales (est-ouest), même grille => raccord parfait aux carrefours
+  [crossZ, crossZ2].forEach(cz=>{
+    for(let j=jWest; j<=jEast; j++){
+      if(j === 0) continue; // carrefour déjà posé
+      placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:TILE}, roadX + j*TILE, cz, 0);
+    }
   });
-  for(let x=roadX-3.5; x>=roadX-15; x-=5.2){
+
+  // trottoirs bordant chaque avenue, exactement sur la longueur de la chaussée
+  const avenueLen = (jEast - jWest + 1) * TILE;
+  const avenueMidX = (avenueXMin + avenueXMax) / 2;
+  [crossZ, crossZ2].forEach(cz=>{
+    [-1.55, 1.55].forEach(off=>{
+      const w = box(avenueLen, 0.08, 1.1, '#5c5568');
+      w.position.set(avenueMidX, 0.04, cz + off);
+      w.receiveShadow = true;
+      exteriorStreetGroup.add(w);
+    });
+  });
+
+  // lampadaires des avenues (bras tourné vers la chaussée)
+  for(let x=avenueXMin+1.6; x<=avenueXMax-1.6; x+=5.2){
     placeStreetlight(x, crossZ2 - 1.6, 'z+', true);
-  }
-  for(let x=roadX-6; x>=roadX-14; x-=5.2){
-    placeStreetlight(x, crossZ2 + 1.6, 'z-', false);
+    placeStreetlight(x + 2.6, crossZ2 + 1.6, 'z-', false);
+    placeStreetlight(x, crossZ + 1.6, 'z-', true);
+    placeStreetlight(x + 2.6, crossZ - 1.6, 'z+', false);
   }
 
-  for(let x=roadX-2.3; x>=roadX-16; x-=2.3){
-    placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, x, crossZ, 0);
-  }
-  for(let x=roadX+2.3; x<=roadX+7; x+=2.3){
-    placeExt(exteriorStreetGroup, 'ROAD_STRAIGHT', {mode:'footprint',target:2.3}, x, crossZ, 0);
-  }
-  // trottoirs de l'avenue
-  [-1.55, 1.55].forEach(off=>{
-    const w = box(24, 0.08, 1.1, '#5c5568');
-    w.position.set(roadX - 4.5, 0.04, crossZ + off);
-    w.receiveShadow = true;
-    exteriorStreetGroup.add(w);
-  });
-  // lampadaires de l'avenue (bras tourné vers la chaussée)
-  for(let x=roadX-3.5; x>=roadX-15; x-=5.2){
-    placeStreetlight(x, crossZ + 1.6, 'z-', true);
-  }
-  for(let x=roadX-6; x>=roadX-14; x-=5.2){
-    placeStreetlight(x, crossZ - 1.6, 'z+', false);
-  }
+  // helper : rien ne doit être posé sur une chaussée
+  const ROAD_HALF = TILE/2 + 1.0;
+  const onRoad = (x, z, radius)=>{
+    const r = radius + ROAD_HALF;
+    if(Math.abs(x - roadX) < r) return true;                       // artère principale
+    if(x > avenueXMin - r && x < avenueXMax + r &&
+       (Math.abs(z - crossZ) < r || Math.abs(z - crossZ2) < r)) return true; // avenues
+    return false;
+  };
 
   // pâté d'immeubles derrière les maisons + gratte-ciels en fond de décor.
   // On cale les immeubles sur leur EMPRISE (pas leur hauteur) : sinon le modèle
   // est agrandi uniformément et devient une caisse géante hors d'échelle.
   const blockKeys = ['CITY_A','CITY_B','CITY_C','CITY_D','CITY_E','CITY_F','CITY_G'];
   let bi = 0;
+  const placeBlock = (x, z, target, rot)=>{
+    if(onRoad(x, z, target/2)) return;
+    placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length], {mode:'footprint', target}, x, z, rot);
+  };
   for(let z=zMin+1; z<=zMax; z+=4.2){
-    if(Math.abs(z - crossZ) < 2.8 || Math.abs(z - crossZ2) < 2.8) continue;
-    placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'footprint', target: 3.4 + Math.random()*0.8}, -21.5 + Math.random()*0.8, z + Math.random()*0.5, Math.PI/2 + (Math.random()*0.16-0.08));
+    placeBlock(-21.5 + Math.random()*0.8, z + Math.random()*0.5, 3.4 + Math.random()*0.8, Math.PI/2 + (Math.random()*0.16-0.08));
   }
   for(let z=zMin+2; z<=zMax; z+=5.0){
-    if(Math.abs(z - crossZ) < 2.8 || Math.abs(z - crossZ2) < 2.8) continue;
-    placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'footprint', target: 3.8 + Math.random()*1.0}, -26.5 + Math.random()*1.0, z, Math.PI/2);
+    placeBlock(-26.5 + Math.random()*1.0, z, 3.8 + Math.random()*1.0, Math.PI/2);
   }
   const skyKeys = ['CITY_SKY_A','CITY_SKY_B','CITY_SKY_C','CITY_SKY_D'];
   skyKeys.forEach((k,i)=>{
     placeExt(exteriorStreetGroup, k, {mode:'footprint', target: 4.5 + (i%2)*1.2}, -33 - (i%2)*4.5, zMin + 4 + i*8, Math.PI/2);
   });
-  // immeubles bordant l'avenue transversale (côté nord)
-  for(let x=roadX-3.5; x>=roadX-15; x-=4.0){
-    placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'footprint', target: 3.2 + Math.random()*0.8}, x, crossZ - 4.0 - Math.random()*0.6, Math.PI);
+  // immeubles bordant les avenues transversales, en retrait des chaussées
+  for(let x=avenueXMin+1.5; x<=avenueXMax-3.5; x+=4.0){
+    placeBlock(x, crossZ - 4.2 - Math.random()*0.6, 3.2 + Math.random()*0.8, Math.PI);
+    placeBlock(x + 2.0, crossZ2 + 4.2 + Math.random()*0.6, 3.2 + Math.random()*0.8, 0);
   }
   // quelques immeubles côté est, bien en retrait derrière la ruelle
   for(let z=zMin+3; z<=zMax-2; z+=4.8){
-    placeExt(exteriorStreetGroup, blockKeys[bi++ % blockKeys.length],
-      {mode:'footprint', target: 3.2 + Math.random()*0.9}, 18.5 + Math.random()*1.2, z, -Math.PI/2);
+    placeBlock(18.5 + Math.random()*1.2, z, 3.2 + Math.random()*0.9, -Math.PI/2);
   }
 
 
