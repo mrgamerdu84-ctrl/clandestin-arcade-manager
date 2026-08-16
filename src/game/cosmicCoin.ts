@@ -909,7 +909,90 @@ const EXT_BUILDERS = {
   CAR_TAXI: ()=> buildCar('#ffd23f', 1.9, 0.4, false),
   CAR_HATCH: ()=> buildCar('#3fa25c', 1.7, 0.4, false),
   CAR_SUV: ()=> buildCar('#5a5a68', 2.0, 0.55, true),
+  CAR_POLICE: ()=>{
+    const g = buildCar('#1d2436', 1.95, 0.42, false);
+    const bar = box(0.5,0.09,0.16,'#101010'); bar.position.set(0,0.98,-0.1); g.add(bar);
+    const bl = box(0.2,0.09,0.14,'#3f6fae',{emissive:0x2f6fff,emissiveIntensity:1.4}); bl.position.set(-0.14,0.98,-0.1); g.add(bl);
+    const br = box(0.2,0.09,0.14,'#c92a2a',{emissive:0xff2020,emissiveIntensity:1.4}); br.position.set(0.14,0.98,-0.1); g.add(br);
+    g.userData.beacons = [bl, br];
+    return g;
+  },
+  DUMPSTER: ()=>{
+    const g = group();
+    const body = box(1.1,0.7,0.7,'#2f6b4a'); body.position.y=0.42; g.add(body);
+    const lid = box(1.16,0.08,0.76,'#24523a'); lid.position.set(0,0.82,-0.04); lid.rotation.x=-0.14; g.add(lid);
+    [-0.45,0.45].forEach(x=>{ const w=cyl(0.09,0.09,0.07,'#141414',10); w.rotation.z=Math.PI/2; w.position.set(x,0.09,0.26); g.add(w); });
+    return g;
+  },
+  TRASHBAG: ()=>{ const g=group(); const b=sphere(0.22,'#22202a'); b.scale.set(1,0.85,1); b.position.y=0.19; g.add(b); const k=cyl(0.05,0.09,0.12,'#22202a',8); k.position.y=0.4; g.add(k); return g; },
+  CRATE: ()=>{ const g=group(); const c=box(0.5,0.45,0.5,'#8a5f38'); c.position.y=0.23; g.add(c); const t=box(0.52,0.05,0.52,'#6d4a2a'); t.position.y=0.47; g.add(t); return g; },
+  BARREL: ()=>{ const g=group(); const b=cyl(0.24,0.24,0.7,'#b5462f',14); b.position.y=0.35; g.add(b); const r=cyl(0.25,0.25,0.06,'#2a2a30',14); r.position.y=0.5; g.add(r); return g; },
+  HYDRANT: ()=>{ const g=group(); const b=cyl(0.09,0.11,0.42,'#c92a2a',10); b.position.y=0.21; g.add(b); const cap=sphere(0.1,'#c92a2a'); cap.position.y=0.44; g.add(cap); [-0.13,0.13].forEach(x=>{ const n=cyl(0.04,0.04,0.1,'#8f1f1f',8); n.rotation.z=Math.PI/2; n.position.set(x,0.28,0); g.add(n); }); return g; },
+  BENCH_EXT: ()=>{
+    const g = group();
+    const seat = box(1.2,0.07,0.38,'#8a5f38'); seat.position.y=0.42; g.add(seat);
+    const back = box(1.2,0.32,0.06,'#8a5f38'); back.position.set(0,0.62,-0.16); g.add(back);
+    [-0.5,0.5].forEach(x=>{ const l=box(0.07,0.42,0.34,'#3a3a44'); l.position.set(x,0.21,0); g.add(l); });
+    return g;
+  },
+  PHONE_BOOTH: ()=>{
+    const g = group();
+    const shell = box(0.7,1.9,0.7,'#c92a2a'); shell.position.y=0.95; g.add(shell);
+    const glass = box(0.58,1.2,0.72,'#9fd4e8',{transparent:true,opacity:0.35,emissive:0x66aacc,emissiveIntensity:0.35});
+    glass.position.y=1.15; g.add(glass);
+    const roof = box(0.8,0.12,0.8,'#8f1f1f'); roof.position.y=1.96; g.add(roof);
+    const lamp = box(0.5,0.06,0.5,'#ffe9a8',{emissive:0xffdd88,emissiveIntensity:0.9}); lamp.position.y=1.82; g.add(lamp);
+    return g;
+  },
+  MAILBOX: ()=>{ const g=group(); const p=cyl(0.05,0.05,0.5,'#3a3a44'); p.position.y=0.25; g.add(p); const b=box(0.34,0.4,0.28,'#3f6fae'); b.position.y=0.7; g.add(b); return g; },
+  BUS_STOP: ()=>{
+    const g = group();
+    const roof = box(2.4,0.08,1.0,'#2a2a34'); roof.position.y=1.95; g.add(roof);
+    [-1.1,1.1].forEach(x=>{ const p=cyl(0.05,0.05,1.95,'#3a3a44'); p.position.set(x,0.97,0.4); g.add(p); });
+    const back = box(2.4,1.5,0.06,'#9fd4e8',{transparent:true,opacity:0.28}); back.position.set(0,0.95,-0.45); g.add(back);
+    const bench = box(2.0,0.08,0.34,'#8a5f38'); bench.position.set(0,0.42,-0.25); g.add(bench);
+    const panel = box(0.55,0.9,0.05,'#f4a13c',{emissive:0xf4a13c,emissiveIntensity:0.55}); panel.position.set(1.0,1.1,-0.42); g.add(panel);
+    return g;
+  },
+  HOTDOG_STAND: ()=>{
+    const g = group();
+    const cart = box(1.1,0.6,0.7,'#e8e2d0'); cart.position.y=0.55; g.add(cart);
+    const stripe = box(1.12,0.14,0.72,'#c92a2a'); stripe.position.y=0.72; g.add(stripe);
+    const umbrella = cyl(0.02,1.0,0.28,'#c92a2a',10); umbrella.position.y=1.55; g.add(umbrella);
+    const pole = cyl(0.03,0.03,0.9,'#8a8a94'); pole.position.y=1.05; g.add(pole);
+    [-0.45,0.45].forEach(x=>{ const w=cyl(0.13,0.13,0.06,'#1a1a1a',10); w.rotation.z=Math.PI/2; w.position.set(x,0.13,0.24); g.add(w); });
+    const warm = box(0.5,0.05,0.4,'#ffcf7a',{emissive:0xffb95c,emissiveIntensity:0.8}); warm.position.y=0.86; g.add(warm);
+    return g;
+  },
+  SHOPFRONT: ()=>{
+    const g = group();
+    const body = box(2.6,2.6,1.6,'#3a3348'); body.position.y=1.3; g.add(body);
+    const awning = box(2.7,0.1,0.7,'#c92a2a'); awning.position.set(0,1.5,0.95); awning.rotation.x=0.18; g.add(awning);
+    const glass = box(2.1,1.1,0.06,'#152436',{transparent:true,opacity:0.7,emissive:0x2f6fae,emissiveIntensity:0.5});
+    glass.position.set(0,0.85,0.82); g.add(glass);
+    const door = box(0.5,1.1,0.06,'#1a1024'); door.position.set(0.9,0.55,0.83); g.add(door);
+    return g;
+  },
+  BIKE: ()=>{
+    const g = group();
+    [-0.32,0.32].forEach(z=>{ const w=new THREE.Mesh(new THREE.TorusGeometry(0.19,0.025,6,14), mat('#1a1a1a')); w.position.set(0,0.19,z); w.rotation.y=Math.PI/2; g.add(w); });
+    const frame = box(0.04,0.04,0.62,'#3fa25c'); frame.position.set(0,0.34,0); g.add(frame);
+    const seat = box(0.08,0.05,0.16,'#22202a'); seat.position.set(0,0.5,-0.2); g.add(seat);
+    const bar = box(0.3,0.03,0.03,'#8a8a94'); bar.position.set(0,0.52,0.28); g.add(bar);
+    return g;
+  },
+  PIGEON: ()=>{ const g=group(); const b=sphere(0.07,'#7a7f8c'); b.scale.set(1.4,1,1); g.add(b); const h=sphere(0.045,'#5f6673'); h.position.set(0.09,0.05,0); g.add(h); const t=box(0.09,0.015,0.05,'#5f6673'); t.position.set(-0.11,0.01,0); g.add(t); return g; },
+  CAT: ()=>{ const g=group(); const b=sphere(0.09,'#2a2630'); b.scale.set(1.6,0.9,0.9); g.add(b); const h=sphere(0.06,'#2a2630'); h.position.set(0.13,0.05,0); g.add(h); const t=cyl(0.015,0.02,0.2,'#2a2630',6); t.rotation.z=Math.PI/2.6; t.position.set(-0.16,0.08,0); g.add(t); return g; },
+  BILLBOARD: ()=>{
+    const g = group();
+    [-0.7,0.7].forEach(x=>{ const p=cyl(0.06,0.06,2.2,'#3a3a44'); p.position.set(x,1.1,0); g.add(p); });
+    const panel = box(2.2,1.2,0.1,'#1a1024'); panel.position.y=2.7; g.add(panel);
+    const artwork = box(2.0,1.0,0.04,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:0.7}); artwork.position.set(0,2.7,0.08); g.add(artwork);
+    return g;
+  },
+  NEON_TUBE: ()=> box(1.6,0.12,0.08,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:1.2}),
 };
+
 
 function placeExt(parentGroup, key, spec, x, z, rotY){
   let obj;
