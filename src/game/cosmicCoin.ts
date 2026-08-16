@@ -1799,6 +1799,7 @@ function freshState(){
     // ---- couche clandestine ----
     backroom:false, suspicion:0, hidden:false, busts:0, raid:null, raidsSurvived:0,
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
+    danger:0, doorTimer:0,
   };
 }
 let state = freshState();
@@ -2110,7 +2111,7 @@ function updateCustomers(dt){
         if(c.target.def.illegal){
           gain = Math.round(gain * 2.3);
           state.illegalEarned += gain;
-          state.suspicion = Math.min(100, state.suspicion + (state.lookout?0.45:0.75));
+          state.suspicion = Math.min(100, state.suspicion + (state.lookout?0.45:0.75)*(1+state.danger/120));
           state.rep = Math.min(30, state.rep + 0.05);
         } else {
           state.rep = Math.min(30,state.rep+0.15);
@@ -2198,6 +2199,7 @@ function illegalMachines(){ return state.machines.filter(m=>m.def.illegal); }
 
 function setHidden(on){
   state.hidden = on;
+  if(on && typeof doorVisitor!=='undefined' && doorVisitor) visitorLeaves();
   illegalMachines().forEach(m=>{
     m.mesh.visible = !on;
     if(on){ m.busy = false; }
@@ -2448,7 +2450,8 @@ function updateDoor(dt){
 
 /* ---------- descentes de police ---------- */
 function startRaid(){
-  const warn = state.lookout ? 22000 : 13000;
+  const warn = Math.round((state.lookout ? 22000 : 13000) * (1 - Math.min(0.35, state.danger/300)));
+  if(doorVisitor) visitorLeaves();
   state.raid = {timer:warn, total:warn};
   const banner = document.getElementById('raidBanner');
   banner.classList.add('on');
@@ -2540,7 +2543,7 @@ function newDay(){
   }
   // rumeurs et descentes
   if(state.backroom && !state.raid && !state.gameOver && state.day>2){
-    const chance = state.suspicion/210 + (illegalMachines().length && !state.hidden ? 0.04 : 0);
+    const chance = state.suspicion/210 + state.danger/320 + (illegalMachines().length && !state.hidden ? 0.04 : 0);
     if(Math.random() < chance) startRaid();
     else if(state.suspicion>60 && Math.random()<0.4) log("Un habitué murmure que des questions ont été posées au comptoir du café d'en face.");
   }
@@ -2564,6 +2567,8 @@ function updateHUD(){
   suspStat.classList.toggle('hot', state.suspicion>=55);
   const bar = document.getElementById('suspFill');
   if(bar) bar.style.width = Math.min(100,state.suspicion)+'%';
+  updateDangerHUD();
+  renderDoorPanel();
   renderExpandBox();
   renderBackroom();
 }
@@ -2598,6 +2603,7 @@ document.getElementById('pauseBtn').onclick=()=>{
 document.getElementById('resetBtn').onclick=()=>{
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
   state.customers.forEach(c=>customersGroup.remove(c.mesh));
+  removeVisitor();
   floaters.forEach(f=>scene.remove(f.sp));
   floaters.length=0;
   closeMachineMenu();
@@ -2705,6 +2711,7 @@ function animate(ts){
     }
     updateParticles(dt);
     updateRaid(dt);
+    updateDoor(dt);
     state.dayTimer+=dt;
     updateDayNight();
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
@@ -2798,7 +2805,7 @@ function animate(ts){
     });
     if(patrolCar){
       // la patrouille sort dès que la suspicion dépasse 35, ou pendant une descente
-      const active = state.suspicion > 35 || !!state.raid;
+      const active = state.suspicion > 35 || state.danger > 55 || !!state.raid;
       patrolCar.wrap.visible = active;
       if(active){
         patrolCar.z += patrolCar.dir*patrolCar.speed*dt/1000;
@@ -2822,7 +2829,8 @@ function animate(ts){
 if(import.meta.env && import.meta.env.DEV){
   window.__cosmicCoin = {
     get state(){ return state; },
-    startRaid, resolveRaid, setHidden, log, renderShop, updateHUD,
+    startRaid, resolveRaid, setHidden, log, spawnVisitor, addDanger,
+    get doorVisitor(){ return doorVisitor; }, renderShop, updateHUD,
     get orbit(){ return orbit; },
     get camPos(){ return camera.position.toArray(); },
   };
