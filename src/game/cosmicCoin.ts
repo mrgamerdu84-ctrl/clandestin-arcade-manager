@@ -3548,13 +3548,18 @@ function updateDayNight(){
   const nightFactor = Math.max(0, -sunHeight);
 
   // plancher de lumière : même en pleine nuit la salle et la rue restent lisibles
-  sun.intensity = 0.6 + dayFactor*0.9;
-  ambientLight.intensity = (exteriorMode ? 1.9 : 1.35) + dayFactor*1.2;
-  streetMoon.intensity = 0.9 + nightFactor*0.7;
+  // (contraste plus marqué : soleil franc le jour, bleu nuit dramatique le soir)
+  sun.intensity = 0.35 + dayFactor*1.6;
+  sun.color.setHSL(0.09 + dayFactor*0.05, 0.55 - dayFactor*0.35, 0.55 + dayFactor*0.12);
+  ambientLight.intensity = (exteriorMode ? 1.15 : 0.95) + dayFactor*1.5;
+  ambientLight.color.setHex(nightFactor>0.35 ? 0x6f7bcc : 0xb9a8dd);
+  streetMoon.visible = nightFactor > 0.05;
+  streetMoon.intensity = 0.35 + nightFactor*1.15;
   if(scene.fog){
-    scene.fog.near = exteriorMode ? 60 : (isMobile?34:42);
+    scene.fog.near = exteriorMode ? (60 - nightFactor*14) : (isMobile?34:42);
     scene.fog.far = exteriorMode ? (isMobile?170:210) : (isMobile?95:125);
   }
+
 
   cycleLerp(SKY_KEYFRAMES.top, phase, _topOut);
   cycleLerp(SKY_KEYFRAMES.bottom, phase, _botOut);
