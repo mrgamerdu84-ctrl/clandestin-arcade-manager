@@ -1899,6 +1899,14 @@ document.getElementById('mmRotate').onclick = ()=>{
   if(!menuMachine) return;
   menuMachine.mesh.rotation.y += Math.PI/2;
 };
+document.getElementById('mmMove').onclick = ()=>{
+  if(!menuMachine) return;
+  movingMachine = menuMachine;
+  state.selected = null;
+  renderShop();
+  log(`Déplacement de ${movingMachine.def.name} : clique une case libre.`);
+  closeMachineMenu();
+};
 document.getElementById('mmSell').onclick = ()=>{
   if(!menuMachine || menuMachine.busy) return;
   const m = menuMachine;
@@ -1908,10 +1916,17 @@ document.getElementById('mmSell').onclick = ()=>{
   state.grid[m.z][m.x] = null;
   const idx = state.machines.indexOf(m);
   if(idx>-1) state.machines.splice(idx,1);
+  // pas de client fantôme qui marche vers une machine disparue
+  for(let i=state.customers.length-1;i>=0;i--){
+    const c = state.customers[i];
+    if(c.target===m){ c.phase='out'; c.target=null; }
+  }
+  if(movingMachine===m) endMoveMode();
   log(`Machine vendue : ${m.def.name} (+${refund}¢).`);
   closeMachineMenu();
   renderShop();
 };
+
 
 /* ---------- customers ---------- */
 const SHIRT_COLORS=[0xffb4a2,0xe5989b,0xb5838d,0x6d6875,0xffcdb2,0x83c5be,0xf4a261];
