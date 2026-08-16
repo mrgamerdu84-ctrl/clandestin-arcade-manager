@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* Cosmic Coin — salle d'arcade clandestine (moteur 3D, procédural, sans modèle externe) */
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export function startCosmicCoin(): () => void {
 /* ============================================================
@@ -23,6 +24,16 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile?1.5:2));
 renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+/* ---------- réglages de lumière du joueur ---------- */
+let lightMode = 'day';            // 'day' | 'night' | 'auto'
+let brightness = 1.25;
+try {
+  lightMode = localStorage.getItem('cc_lightmode') || 'day';
+  brightness = parseFloat(localStorage.getItem('cc_brightness') || '1.25');
+  if(!isFinite(brightness)) brightness = 1.25;
+} catch(e) {}
+renderer.toneMappingExposure = brightness;
 
 function makeSprite(text, color){
   const cvs = document.createElement('canvas'); cvs.width=128; cvs.height=48;
@@ -73,7 +84,7 @@ scene.fog = new THREE.Fog(0x0d0618, isMobile?28:34, isMobile?85:110);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
 
 // ambient + directional light
-const ambientLight = new THREE.AmbientLight(0x8877aa, 0.9);
+const ambientLight = new THREE.AmbientLight(0xb9a8dd, 1.15);
 // clair de lune : éclaire le quartier quand on est dehors
 const streetMoon = new THREE.DirectionalLight(0xaebbff, 1.1);
 streetMoon.position.set(-25, 30, 12);
@@ -470,7 +481,38 @@ const BUILDERS = {
    scripts from cdnjs.cloudflare.com, and a real .glb model loader isn't
    available from there.
    ============================================================ */
-const MODEL_TEMPLATES = {}; // always empty now — kept only so old lookups (MODEL_TEMPLATES[x]) fail safely
+const MODEL_TEMPLATES = {}; // rempli par preloadModels() avec les GLB Kenney
+const CUSTOMER_TEMPLATES = [];
+// fichiers Kenney livrés dans public/models (aucun modèle d'aide médicale n'est embarqué)
+const GLB_FILES = {
+  ARCADE:'mini-arcade/arcade-machine.glb',
+  PINBALL:'mini-arcade/pinball.glb',
+  CLAW:'mini-arcade/claw-machine.glb',
+  VENDING:'mini-arcade/vending-machine.glb',
+  TICKET:'mini-arcade/ticket-machine.glb',
+  AIRHOCKEY:'mini-arcade/air-hockey.glb',
+  BASKET:'mini-arcade/basketball-game.glb',
+  DANCE:'mini-arcade/dance-machine.glb',
+  GAMBLING:'mini-arcade/gambling-machine.glb',
+  WHEEL:'mini-arcade/prize-wheel.glb',
+  PRIZES:'mini-arcade/prizes.glb',
+  CASHREGISTER:'mini-arcade/cash-register.glb',
+  COLUMN:'mini-arcade/column.glb',
+  EMPLOYEE:'mini-arcade/character-employee.glb',
+  GAMER:'mini-arcade/character-gamer.glb',
+};
+const CUSTOMER_FILES = ['a','b','c','d','e','f'].flatMap(s=>[
+  `mini-characters/character-female-${s}.glb`,
+  `mini-characters/character-male-${s}.glb`,
+]);
+const CITY_FILES = {
+  CITY_A:'city/building-a.glb', CITY_B:'city/building-c.glb', CITY_C:'city/building-f.glb',
+  CITY_D:'city/building-j.glb', CITY_E:'city/building-m.glb',
+  CITY_SKY_A:'city/building-skyscraper-b.glb', CITY_SKY_B:'city/building-skyscraper-d.glb',
+  CAR_SEDAN:'city/sedan.glb', CAR_TAXI:'city/taxi.glb', CAR_VAN:'city/van.glb',
+  CAR_SUV:'city/suv.glb', CAR_POLICE_M:'city/police.glb',
+  AWNING:'city/detail-awning.glb', PARASOL:'city/detail-parasol-a.glb', CONE:'city/cone.glb',
+};
 const GLB_KEY_MAP = {
   arcade:'ARCADE', pinball:'PINBALL', claw:'CLAW', vending:'VENDING', ticket:'TICKET',
   airhockey:'AIRHOCKEY', basket:'BASKET', dance:'DANCE', gambling:'GAMBLING', wheel:'WHEEL',
@@ -537,10 +579,36 @@ function fitSmart(obj, spec){
 }
 
 function preloadModels(onDone){
-  // Fully procedural now — no external model files to fetch, so nothing can
-  // ever fail to load. Kept as a function (with a tiny cosmetic delay) so the
-  // loading screen still reads naturally.
-  setTimeout(onDone, 300);
+  const loader = new GLTFLoader();
+  const entries = [
+    ...Object.entries(GLB_FILES),
+    ...Object.entries(CITY_FILES),
+    ...CUSTOMER_FILES.map((f,i)=>['__CUST'+i, f]),
+  ];
+  let done = 0;
+  const total = entries.length;
+  const loadText = document.getElementById('loadText');
+  const finish = ()=>{
+    done++;
+    if(loadText) loadText.innerText = `On rallume les néons… ${Math.round(done/total*100)}%`;
+    if(done>=total) onDone();
+  };
+  entries.forEach(([key, file])=>{
+    loader.load('/models/'+file, (gltf)=>{
+      const root = gltf.scene;
+      root.traverse(o=>{
+        if(o.isMesh){
+          o.castShadow = true; o.receiveShadow = true;
+          // les matériaux Kenney sont un peu sombres dans notre ambiance néon
+          if(o.material && o.material.color) o.material = o.material.clone();
+        }
+      });
+      if(key.startsWith('__CUST')) CUSTOMER_TEMPLATES.push(root);
+      else MODEL_TEMPLATES[key] = root;
+      finish();
+    }, undefined, ()=>finish());
+  });
+  if(total===0) onDone();
 }
 
 function buildMachineMesh(defId){
@@ -563,12 +631,13 @@ function buildMachineMesh(defId){
 
 /* ---------- character (real model, with procedural fallback) ---------- */
 function buildCharacter(shirtColor){
-  if(MODEL_TEMPLATES.CUSTOMER){
+  if(CUSTOMER_TEMPLATES.length){
     const wrapper = group();
-    const clone = MODEL_TEMPLATES.CUSTOMER.clone(true);
+    const tpl = CUSTOMER_TEMPLATES[Math.floor(Math.random()*CUSTOMER_TEMPLATES.length)];
+    const clone = tpl.clone(true);
     clone.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
     wrapper.add(clone);
-    fitHeight(clone, 1.3);
+    fitHeight(clone, 1.25 + Math.random()*0.18);
     return wrapper;
   }
   const g = group();
@@ -611,9 +680,9 @@ function makeCarpetTexture(casino){
   const size = 256;
   const cvs = document.createElement('canvas'); cvs.width=size; cvs.height=size;
   const c = cvs.getContext('2d');
-  const base1 = casino ? '#3a1020' : '#241238';
-  const base2 = casino ? '#4a1830' : '#2c1548';
-  const accent = casino ? '#c9a04a' : '#6b4e9e';
+  const base1 = casino ? '#6b2038' : '#463069';
+  const base2 = casino ? '#83294a' : '#573c82';
+  const accent = casino ? '#f0cd7c' : '#b39ae8';
   c.fillStyle = base1; c.fillRect(0,0,size,size);
   c.fillStyle = base2;
   const step = size/4;
@@ -703,6 +772,28 @@ function buildDoorway(casino, height){
   return g;
 }
 
+/* ---------- zones : arcade / piste de danse / arrière-salle ---------- */
+let danceTiles = [];
+let zoneLights = [];
+let discoBall = null;
+function zoneSplit(cols, rows){
+  return { splitX: Math.max(2, Math.round(cols*0.58)), splitZ: Math.max(2, Math.round(rows*0.5)) };
+}
+function zoneAt(x, z){
+  if(!state || !state.dims) return 'arcade';
+  const {cols, rows} = state.dims;
+  const {splitX, splitZ} = zoneSplit(cols, rows);
+  if(x < splitX) return 'arcade';
+  return z < splitZ ? 'dance' : 'back';
+}
+const ZONE_LABEL = {arcade:"zone arcade", dance:"piste de danse", back:"arrière-salle"};
+function zoneAllows(def, zone){
+  if(def.decor) return true;
+  if(def.illegal) return zone === 'back';
+  if(def.id === 'dance') return zone === 'dance';
+  return zone !== 'back';
+}
+
 function buildRoom(stageIdx){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]);
   const st = STAGES[stageIdx];
@@ -726,6 +817,101 @@ function buildRoom(stageIdx){
   floorPlane.rotation.x = -Math.PI/2;
   floorPlane.receiveShadow = true;
   roomGroup.add(floorPlane);
+
+  /* ---------- découpage en 3 espaces ---------- */
+  danceTiles = []; zoneLights = []; discoBall = null;
+  const {splitX, splitZ} = zoneSplit(cols, rows);
+  const halfW = cols*CELL/2, halfD = rows*CELL/2;
+  const danceX0 = -halfW + splitX*CELL, danceZ1 = -halfD + splitZ*CELL;
+
+  // piste de danse : dalles lumineuses (nord-est)
+  const danceW = cols-splitX, danceD = splitZ;
+  for(let x=0;x<danceW;x++){
+    for(let z=0;z<danceD;z++){
+      const tileMat = new THREE.MeshStandardMaterial({
+        color:0x120a20, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.25, roughness:0.35, metalness:0.3
+      });
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(CELL*0.94, 0.06, CELL*0.94), tileMat);
+      tile.position.set(danceX0 + (x+0.5)*CELL, 0.03, -halfD + (z+0.5)*CELL);
+      tile.receiveShadow = true;
+      tile.userData.phase = (x+z)*0.7 + Math.random();
+      roomGroup.add(tile);
+      danceTiles.push(tile);
+    }
+  }
+  // boule à facettes + spots colorés au-dessus de la piste
+  const danceCx = danceX0 + danceW*CELL/2, danceCz = -halfD + danceD*CELL/2;
+  discoBall = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.32, 1),
+    new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
+  );
+  discoBall.position.set(danceCx, 2.4-0.35, danceCz);
+  roomGroup.add(discoBall);
+  const ballGlow = makeGlowSprite('#bcd0ff', 1.6);
+  ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
+  [[0xff2e88, -1], [0x20e6d0, 1]].forEach(([col, side], i)=>{
+    const spot = new THREE.PointLight(col, 1.6, 11, 2);
+    spot.position.set(danceCx + side*CELL*0.9, 2.3, danceCz + side*CELL*0.6);
+    spot.userData.kind = 'dance'; spot.userData.seed = i*2.1;
+    spot.userData.base = new THREE.Vector3().copy(spot.position);
+    roomGroup.add(spot); zoneLights.push(spot);
+  });
+  // podium DJ dans l'angle de la piste
+  const dj = group();
+  const deck = box(1.6,0.9,0.6, '#241338'); deck.position.y=0.45; dj.add(deck);
+  const front = box(1.62,0.28,0.62, PAL.pink); front.position.y=0.72; dj.add(front);
+  for(let i=0;i<2;i++){
+    const plate = cyl(0.18,0.18,0.05,'#0e0a16',16); plate.position.set(-0.35+i*0.7,0.93,0); dj.add(plate);
+  }
+  dj.position.set(danceCx + (danceW*CELL/2) - 1.1, 0, -halfD + 0.7);
+  dj.rotation.y = -0.5;
+  roomGroup.add(dj);
+  const djChar = buildCharacter('#20e6d0');
+  djChar.position.set(dj.position.x, 0, dj.position.z + 0.9);
+  djChar.rotation.y = Math.PI;
+  roomGroup.add(djChar);
+
+  // arrière-salle clandestine (sud-est) : moquette rouge sombre + lumière tamisée
+  const backW = cols-splitX, backD = rows-splitZ;
+  const backCx = danceX0 + backW*CELL/2, backCz = danceZ1 + backD*CELL/2;
+  const backFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(backW*CELL, backD*CELL),
+    new THREE.MeshStandardMaterial({color:0x2a0a14, roughness:0.95})
+  );
+  backFloor.rotation.x = -Math.PI/2; backFloor.position.set(backCx, 0.02, backCz);
+  backFloor.receiveShadow = true; roomGroup.add(backFloor);
+  const backLight = new THREE.PointLight(0xff5533, 1.5, 12, 2);
+  backLight.position.set(backCx, 2.1, backCz);
+  backLight.userData.kind = 'back';
+  roomGroup.add(backLight); zoneLights.push(backLight);
+  const backHalo = makeGlowSprite('#ff6a3c', 2.2);
+  backHalo.position.set(backCx, 2.0, backCz); roomGroup.add(backHalo);
+
+  // cloison courbe qui sépare l'arrière-salle (avec passage caché)
+  const partition = group();
+  const segCount = Math.max(3, backW*2);
+  for(let i=0;i<segCount;i++){
+    const t = i/(segCount-1);
+    const px = danceX0 + t*backW*CELL;
+    const bulge = Math.sin(t*Math.PI)*0.55; // courbure => moins carré
+    const seg = box(backW*CELL/segCount + 0.12, 2.3, 0.22, casino?'#2a1420':'#221630');
+    seg.position.set(px + (backW*CELL/segCount)/2, 1.15, danceZ1 - bulge);
+    seg.rotation.y = Math.cos(t*Math.PI)*0.18;
+    if(i === Math.floor(segCount/2)) continue; // passage
+    partition.add(seg);
+    const strip = box(backW*CELL/segCount + 0.1, 0.08, 0.24, '#ff2e88');
+    strip.material.emissive = new THREE.Color(0xff2e88); strip.material.emissiveIntensity = 0.8;
+    strip.position.set(seg.position.x, 1.9, seg.position.z);
+    strip.rotation.y = seg.rotation.y;
+    partition.add(strip);
+  }
+  roomGroup.add(partition);
+  // coin coupé : petit mur en biais pour casser l'angle sud-ouest
+  const cut = box(CELL*1.3, 2.3, 0.22, casino?'#2a1420':'#221630');
+  cut.position.set(-halfW + CELL*0.55, 1.15, halfD - CELL*0.55);
+  cut.rotation.y = Math.PI/4;
+  roomGroup.add(cut);
+
   // outer walls (skip a gap on west wall middle for the door)
   const wallH = 2.4;
   const doorRow = Math.floor(rows/2);
@@ -820,7 +1006,8 @@ function buildRoom(stageIdx){
   scene.background.set(casino?0x1a0812:0x0d0618);
 
   orbit.target.set(0,0.5,0);
-  orbit.radius = 7 + Math.max(cols,rows)*0.9;
+  orbit.radius = 12 + Math.max(cols,rows)*1.25;
+  orbit.phi = 0.95;
   updateCamera();
 
   return {cols,rows,doorRow};
@@ -1352,6 +1539,37 @@ function setExteriorMode(on){
 }
 document.getElementById('exteriorBtn').onclick = ()=> setExteriorMode(!exteriorMode);
 
+/* ---------- panneau lumière (jour / nuit / auto + luminosité) ---------- */
+function refreshLightUI(){
+  ['day','night','auto'].forEach(m=>{
+    const b = document.getElementById('light-'+m);
+    if(b) b.classList.toggle('on', lightMode===m);
+  });
+  const val = document.getElementById('brightVal');
+  if(val) val.innerText = Math.round(brightness*100)+'%';
+}
+function setLightMode(m){
+  lightMode = m;
+  try { localStorage.setItem('cc_lightmode', m); } catch(e) {}
+  refreshLightUI();
+  updateDayNight();
+}
+['day','night','auto'].forEach(m=>{
+  const b = document.getElementById('light-'+m);
+  if(b) b.onclick = ()=> setLightMode(m);
+});
+const brightSlider = document.getElementById('brightness');
+if(brightSlider){
+  brightSlider.value = String(Math.round(brightness*100));
+  brightSlider.oninput = ()=>{
+    brightness = Number(brightSlider.value)/100;
+    renderer.toneMappingExposure = brightness;
+    try { localStorage.setItem('cc_brightness', String(brightness)); } catch(e) {}
+    refreshLightUI();
+  };
+}
+refreshLightUI();
+
 /* ============================================================
    MACHINE DEFS
    ============================================================ */
@@ -1534,6 +1752,13 @@ canvas.addEventListener('click', (e)=>{
   if(state.grid[gz][gx]){ log("Cette case est déjà occupée."); return; }
   const def = MACHINES.find(m=>m.id===state.selected) || DECOR.find(d=>d.id===state.selected);
   if(!def) return;
+  const zone = zoneAt(gx, gz);
+  if(!zoneAllows(def, zone)){
+    const wanted = def.illegal ? "l'arrière-salle" : (def.id==='dance' ? "la piste de danse" : "la zone arcade ou la piste");
+    log(`${def.name} : ça se pose dans ${wanted}, pas dans ${ZONE_LABEL[zone]}.`);
+    return;
+  }
+  if(zone === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
   if(state.money < def.price){ log("Pas assez de jetons pour cet achat."); return; }
   state.money -= def.price;
   const mesh = buildMachineMesh(def.id);
@@ -1964,14 +2189,24 @@ function cycleLerp(hexArr, phase, out){
   return out;
 }
 function updateDayNight(){
-  const phase = state.dayTimer/state.dayLength;
+  // le mode choisi par le joueur fige la lumière (jour clair / nuit néon) —
+  // 'auto' garde le cycle jour/nuit lié à la journée de jeu
+  const phase = lightMode==='day' ? 0.5
+    : lightMode==='night' ? 0.02
+    : state.dayTimer/state.dayLength;
   const angle = phase*Math.PI*2 - Math.PI/2;
   const sunHeight = Math.sin(angle);
   const dayFactor = Math.max(0, sunHeight);
   const nightFactor = Math.max(0, -sunHeight);
 
-  sun.intensity = 0.35 + dayFactor*0.85;
-  ambientLight.intensity = 0.5 + dayFactor*0.55;
+  // plancher de lumière : même en pleine nuit la salle et la rue restent lisibles
+  sun.intensity = 0.6 + dayFactor*0.9;
+  ambientLight.intensity = (exteriorMode ? 1.9 : 1.35) + dayFactor*1.2;
+  streetMoon.intensity = 0.9 + nightFactor*0.7;
+  if(scene.fog){
+    scene.fog.near = exteriorMode ? 60 : (isMobile?34:42);
+    scene.fog.far = exteriorMode ? (isMobile?170:210) : (isMobile?95:125);
+  }
 
   cycleLerp(SKY_KEYFRAMES.top, phase, _topOut);
   cycleLerp(SKY_KEYFRAMES.bottom, phase, _botOut);
@@ -2023,6 +2258,27 @@ function animate(ts){
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
     updateHUD();
   }
+  // vie de la piste de danse : dalles qui pulsent, boule à facettes, spots mobiles
+  if(!exteriorMode){
+    const t = ts*0.001;
+    for(let i=0;i<danceTiles.length;i++){
+      const tile = danceTiles[i];
+      const pulse = 0.25 + 0.75*Math.abs(Math.sin(t*2.2 + tile.userData.phase));
+      tile.material.emissiveIntensity = pulse;
+      tile.material.emissive.setHSL(((t*0.12 + tile.userData.phase*0.09) % 1), 0.85, 0.55);
+    }
+    if(discoBall) discoBall.rotation.y = t*0.8;
+    zoneLights.forEach((l,i)=>{
+      if(l.userData.kind==='dance'){
+        const b = l.userData.base;
+        l.position.set(b.x + Math.sin(t*1.4 + l.userData.seed)*1.4, b.y, b.z + Math.cos(t*1.1 + l.userData.seed)*1.2);
+        l.intensity = 1.2 + Math.abs(Math.sin(t*3 + i))*1.2;
+      } else if(l.userData.kind==='back'){
+        l.intensity = 1.2 + Math.sin(t*1.2)*0.25 + (state.hidden ? -0.6 : 0);
+      }
+    });
+  }
+
   if(exteriorMode){
     pedestrians.forEach(p=>{
       p.z += p.dir*p.speed*dt/1000;

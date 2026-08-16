@@ -179,3 +179,24 @@
 }
 
 .sr-only-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+/* ---------- réglages de lumière ---------- */
+#lightBar{
+  position:absolute; top:78px; left:50%; transform:translateX(-50%); z-index:6;
+  display:flex; align-items:center; gap:6px;
+  background:var(--panel); backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:5px 10px;
+  font-family:'Courier New',monospace; font-size:11px; color:var(--dim);
+}
+#lightBar button{
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:var(--text);
+  border-radius:14px; padding:4px 9px; font-size:12px; cursor:pointer; font-family:inherit;
+}
+#lightBar button.on{border-color:var(--neon3); color:var(--neon3); box-shadow:0 0 10px rgba(255,230,0,0.35);}
+#lightBar input[type=range]{width:90px; accent-color:var(--neon2);}
+#brightVal{min-width:38px; text-align:right;}
+@media (max-width:820px){
+  #lightBar{top:66px; padding:4px 8px; gap:4px;}
+  #lightBar input[type=range]{width:64px;}
+  #brightVal{display:none;}
+}

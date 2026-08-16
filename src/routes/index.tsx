@@ -72,6 +72,19 @@ function GamePage() {
         <div id="suspWrap">
           <div id="suspFill" />
         </div>
+        <div id="lightBar">
+          <button id="light-day" type="button" title="Plein jour">
+            ☀️
+          </button>
+          <button id="light-night" type="button" title="Nuit néon">
+            🌙
+          </button>
+          <button id="light-auto" type="button" title="Cycle automatique">
+            AUTO
+          </button>
+          <input id="brightness" type="range" min="60" max="220" step="5" aria-label="Luminosité" />
+          <span id="brightVal">125%</span>
+        </div>
         <canvas id="three" />
         <div id="raidBanner">
           <div id="raidText">DESCENTE !</div>
