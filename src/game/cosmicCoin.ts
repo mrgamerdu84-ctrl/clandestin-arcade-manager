@@ -71,6 +71,15 @@ function registerNightHalo(sp, maxOpacity){
   nightHalos.push(sp);
   return sp;
 }
+// lampes qui ne s'allument qu'à la tombée du jour (lampadaires, néons de façade)
+const nightLamps = [];
+function registerNightLamp(light, maxIntensity){
+  light.userData.maxIntensity = maxIntensity ?? light.intensity;
+  light.intensity = 0;
+  nightLamps.push(light);
+  return light;
+}
+
 
 
 // "fake bloom": a soft radial-gradient sprite with additive blending, placed
