@@ -470,7 +470,38 @@ const BUILDERS = {
    scripts from cdnjs.cloudflare.com, and a real .glb model loader isn't
    available from there.
    ============================================================ */
-const MODEL_TEMPLATES = {}; // always empty now — kept only so old lookups (MODEL_TEMPLATES[x]) fail safely
+const MODEL_TEMPLATES = {}; // rempli par preloadModels() avec les GLB Kenney
+const CUSTOMER_TEMPLATES = [];
+// fichiers Kenney livrés dans public/models (aucun modèle d'aide médicale n'est embarqué)
+const GLB_FILES = {
+  ARCADE:'mini-arcade/arcade-machine.glb',
+  PINBALL:'mini-arcade/pinball.glb',
+  CLAW:'mini-arcade/claw-machine.glb',
+  VENDING:'mini-arcade/vending-machine.glb',
+  TICKET:'mini-arcade/ticket-machine.glb',
+  AIRHOCKEY:'mini-arcade/air-hockey.glb',
+  BASKET:'mini-arcade/basketball-game.glb',
+  DANCE:'mini-arcade/dance-machine.glb',
+  GAMBLING:'mini-arcade/gambling-machine.glb',
+  WHEEL:'mini-arcade/prize-wheel.glb',
+  PRIZES:'mini-arcade/prizes.glb',
+  CASHREGISTER:'mini-arcade/cash-register.glb',
+  COLUMN:'mini-arcade/column.glb',
+  EMPLOYEE:'mini-arcade/character-employee.glb',
+  GAMER:'mini-arcade/character-gamer.glb',
+};
+const CUSTOMER_FILES = ['a','b','c','d','e','f'].flatMap(s=>[
+  `mini-characters/character-female-${s}.glb`,
+  `mini-characters/character-male-${s}.glb`,
+]);
+const CITY_FILES = {
+  CITY_A:'city/building-a.glb', CITY_B:'city/building-c.glb', CITY_C:'city/building-f.glb',
+  CITY_D:'city/building-j.glb', CITY_E:'city/building-m.glb',
+  CITY_SKY_A:'city/building-skyscraper-b.glb', CITY_SKY_B:'city/building-skyscraper-d.glb',
+  CAR_SEDAN:'city/sedan.glb', CAR_TAXI:'city/taxi.glb', CAR_VAN:'city/van.glb',
+  CAR_SUV:'city/suv.glb', CAR_POLICE_M:'city/police.glb',
+  AWNING:'city/detail-awning.glb', PARASOL:'city/detail-parasol-a.glb', CONE:'city/cone.glb',
+};
 const GLB_KEY_MAP = {
   arcade:'ARCADE', pinball:'PINBALL', claw:'CLAW', vending:'VENDING', ticket:'TICKET',
   airhockey:'AIRHOCKEY', basket:'BASKET', dance:'DANCE', gambling:'GAMBLING', wheel:'WHEEL',
