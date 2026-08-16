@@ -1885,7 +1885,7 @@ function openMachineMenu(m, clientX, clientY){
   sellBtn.title = m.busy ? "Un client l'utilise en ce moment" : "";
   rotateBtn.disabled = false;
 
-  const menuW = 190, menuH = 130;
+  const menuW = 190, menuH = 170;
   let left = clientX + 10, top = clientY + 10;
   if(left + menuW > window.innerWidth) left = clientX - menuW - 10;
   if(top + menuH > window.innerHeight) top = clientY - menuH - 10;
@@ -1951,7 +1951,7 @@ function updateCustomers(dt){
   for(let i=state.customers.length-1;i>=0;i--){
     const c = state.customers[i];
     // machine disparue (vendue, saisie, planquée) : le client repart au lieu de rester figé
-    if(c.phase!=='out' && (!c.target || state.machines.indexOf(c.target)===-1)){
+    if(c.phase!=='out' && (!c.target || state.machines.indexOf(c.target)===-1 || (c.target.def.illegal && state.hidden))){
       if(c.target) c.target.busy = false;
       c.target = null; c.phase = 'out';
     }
