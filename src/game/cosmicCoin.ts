@@ -195,8 +195,8 @@ let nightAmount = 0;   // 0 = plein jour, 1 = nuit noire (piloté par updateDayN
 
 if(!isMobile){
   const beamDefs = [
-    { x:-14, z:-9,  color:0xff2e88, speed:0.32, phase:0 },
-    { x: 12, z: 11, color:0x20e6d0, speed:-0.24, phase:1.9 },
+    { x:-26, z:-20, color:0xff2e88, speed:0.32, phase:0 },
+    { x: 24, z: 22, color:0x20e6d0, speed:-0.24, phase:1.9 },
   ];
   for(const d of beamDefs){
     const grp = new THREE.Group();
@@ -206,7 +206,7 @@ if(!isMobile){
     spot.target.position.set(0, 16, 0);
     grp.add(spot); grp.add(spot.target);
     const beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.22, 3.2, 34, 16, 1, true),
+      new THREE.CylinderGeometry(0.16, 2.0, 34, 16, 1, true),
       new THREE.MeshBasicMaterial({color:d.color, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide})
     );
     beam.position.set(0, 17, 0);
@@ -3655,7 +3655,7 @@ function animate(ts){
     sl.grp.rotation.y = t2*sl.speed + sl.phase;
     sl.grp.rotation.z = Math.sin(t2*0.45 + sl.phase)*0.42;
     sl.spot.intensity = on * (state.raid ? 26 : 14);
-    sl.beam.material.opacity = on * 0.09;
+    sl.beam.material.opacity = on * 0.035;
   }
   // enseignes néon + marquise de l'entrée
   if(exteriorMode){
