@@ -29,12 +29,17 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 /* ---------- réglages de lumière du joueur ---------- */
 let lightMode = 'day';            // 'day' | 'night' | 'auto'
 let brightness = 1.25;
+// mode de rendu "léger" : aucun GLB n'est chargé, la scène est bâtie
+// uniquement avec des placeholders procéduraux (démarrage instantané)
+let lightRender = false;
 try {
   lightMode = localStorage.getItem('cc_lightmode') || 'day';
   brightness = parseFloat(localStorage.getItem('cc_brightness') || '1.25');
   if(!isFinite(brightness)) brightness = 1.25;
+  lightRender = localStorage.getItem('cc_lightrender') === '1';
 } catch(e) {}
 renderer.toneMappingExposure = brightness;
+
 
 function makeTextTexture(text, color){
   const cvs = document.createElement('canvas'); cvs.width=512; cvs.height=128;
