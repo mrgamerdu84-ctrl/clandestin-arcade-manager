@@ -1710,6 +1710,13 @@ canvas.addEventListener('click', (e)=>{
   if(state.grid[gz][gx]){ log("Cette case est déjà occupée."); return; }
   const def = MACHINES.find(m=>m.id===state.selected) || DECOR.find(d=>d.id===state.selected);
   if(!def) return;
+  const zone = zoneAt(gx, gz);
+  if(!zoneAllows(def, zone)){
+    const wanted = def.illegal ? "l'arrière-salle" : (def.id==='dance' ? "la piste de danse" : "la zone arcade ou la piste");
+    log(`${def.name} : ça se pose dans ${wanted}, pas dans ${ZONE_LABEL[zone]}.`);
+    return;
+  }
+  if(zone === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
   if(state.money < def.price){ log("Pas assez de jetons pour cet achat."); return; }
   state.money -= def.price;
   const mesh = buildMachineMesh(def.id);
