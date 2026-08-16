@@ -568,10 +568,36 @@ function fitSmart(obj, spec){
 }
 
 function preloadModels(onDone){
-  // Fully procedural now — no external model files to fetch, so nothing can
-  // ever fail to load. Kept as a function (with a tiny cosmetic delay) so the
-  // loading screen still reads naturally.
-  setTimeout(onDone, 300);
+  const loader = new GLTFLoader();
+  const entries = [
+    ...Object.entries(GLB_FILES),
+    ...Object.entries(CITY_FILES),
+    ...CUSTOMER_FILES.map((f,i)=>['__CUST'+i, f]),
+  ];
+  let done = 0;
+  const total = entries.length;
+  const loadText = document.getElementById('loadText');
+  const finish = ()=>{
+    done++;
+    if(loadText) loadText.innerText = `On rallume les néons… ${Math.round(done/total*100)}%`;
+    if(done>=total) onDone();
+  };
+  entries.forEach(([key, file])=>{
+    loader.load('/models/'+file, (gltf)=>{
+      const root = gltf.scene;
+      root.traverse(o=>{
+        if(o.isMesh){
+          o.castShadow = true; o.receiveShadow = true;
+          // les matériaux Kenney sont un peu sombres dans notre ambiance néon
+          if(o.material && o.material.color) o.material = o.material.clone();
+        }
+      });
+      if(key.startsWith('__CUST')) CUSTOMER_TEMPLATES.push(root);
+      else MODEL_TEMPLATES[key] = root;
+      finish();
+    }, undefined, ()=>finish());
+  });
+  if(total===0) onDone();
 }
 
 function buildMachineMesh(defId){
@@ -594,12 +620,13 @@ function buildMachineMesh(defId){
 
 /* ---------- character (real model, with procedural fallback) ---------- */
 function buildCharacter(shirtColor){
-  if(MODEL_TEMPLATES.CUSTOMER){
+  if(CUSTOMER_TEMPLATES.length){
     const wrapper = group();
-    const clone = MODEL_TEMPLATES.CUSTOMER.clone(true);
+    const tpl = CUSTOMER_TEMPLATES[Math.floor(Math.random()*CUSTOMER_TEMPLATES.length)];
+    const clone = tpl.clone(true);
     clone.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
     wrapper.add(clone);
-    fitHeight(clone, 1.3);
+    fitHeight(clone, 1.25 + Math.random()*0.18);
     return wrapper;
   }
   const g = group();
