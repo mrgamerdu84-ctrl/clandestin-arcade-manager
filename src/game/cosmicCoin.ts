@@ -74,6 +74,11 @@ const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
 
 // ambient + directional light
 const ambientLight = new THREE.AmbientLight(0x8877aa, 0.9);
+// clair de lune : éclaire le quartier quand on est dehors
+const streetMoon = new THREE.DirectionalLight(0xaebbff, 1.1);
+streetMoon.position.set(-25, 30, 12);
+streetMoon.visible = false;
+scene.add(streetMoon);
 scene.add(ambientLight);
 const sun = new THREE.DirectionalLight(0xfff2d0, 1.0);
 sun.position.set(10, 16, 8);
@@ -1320,16 +1325,17 @@ function setExteriorMode(on){
     const {cols,rows} = state.dims;
     // vue 3/4 depuis la rue : on voit la façade, le trottoir animé, la ruelle
     // arrière et le parking dans le même cadre
-    orbit.target.set(-3.0, 0.8, 0);
-    orbit.theta = -Math.PI/2 - 0.55; orbit.phi = 0.82;
-    orbit.radius = 30 + Math.max(cols,rows)*1.1;
+    orbit.target.set(-4.5, 1.6, 0);
+    orbit.theta = -Math.PI/2 - 0.6; orbit.phi = 1.2;
+    orbit.radius = 26 + Math.max(cols,rows)*0.9;
     // dusk sky so the streetlights and neon signs read clearly as a "living city at night"
     scene.background.set(0x0e1230);
     scene.fog.color.set(0x0e1230);
     // brume repoussée : le quartier entier reste lisible depuis la rue
     scene.fog.near = 55; scene.fog.far = isMobile?150:190;
     // le quartier de nuit doit rester lisible sans écraser les néons
-    ambientLight.intensity = 1.9;
+    ambientLight.intensity = 2.6;
+    streetMoon.visible = true;
     btn.innerText = '🏠 INTÉRIEUR';
     closeMachineMenu();
   } else {
@@ -1339,6 +1345,7 @@ function setExteriorMode(on){
     if(interiorCamSave.fog) scene.fog.color.copy(interiorCamSave.fog);
     if(interiorCamSave.fogFar){ scene.fog.near = interiorCamSave.fogNear; scene.fog.far = interiorCamSave.fogFar; }
     ambientLight.intensity = 0.9;
+    streetMoon.visible = false;
     btn.innerText = '🏙️ EXTÉRIEUR';
   }
   updateCamera();
