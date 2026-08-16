@@ -2169,8 +2169,19 @@ function spawnCustomer(){
   const doorP = cellToWorld(0,doorRow,cols,rows);
   mesh.position.set(doorP.x-CELL, 0, doorP.z);
   customersGroup.add(mesh);
-  const targetP = target.mesh.position.clone();
+  const targetP = standSpotFor(target);
   state.customers.push({mesh,target,targetPos:targetP,doorPos:new THREE.Vector3(doorP.x-CELL,0,doorP.z),phase:'in',playTimer:0});
+}
+
+// position "devant" la machine : le client se place face à l'écran, jamais dedans
+function standSpotFor(m){
+  const ry = m.mesh.rotation.y || 0;
+  const off = 1.05;
+  return new THREE.Vector3(
+    m.mesh.position.x + Math.sin(ry)*off,
+    0,
+    m.mesh.position.z + Math.cos(ry)*off
+  );
 }
 
 function updateCustomers(dt){
@@ -2182,11 +2193,14 @@ function updateCustomers(dt){
       c.target = null; c.phase = 'out';
     }
     if(c.phase==='in'){
+      // la machine a pu être déplacée/pivotée : on resynchronise la cible
+      if(c.target) c.targetPos.copy(standSpotFor(c.target));
       const dir = new THREE.Vector3().subVectors(c.targetPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
-      // la machine a pu être déplacée/pivotée : on resynchronise la cible
-      if(c.target) c.targetPos.set(c.target.mesh.position.x, 0, c.target.mesh.position.z);
-      if(dist<0.35){ c.phase='playing'; c.playTimer=0; c.stuck=0; }
+      if(dist<0.25){
+        c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
+        c.phase='playing'; c.playTimer=0; c.stuck=0;
+      }
       else{
         dir.normalize();
         c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
@@ -2201,8 +2215,13 @@ function updateCustomers(dt){
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
-      c.mesh.position.y = Math.sin(performance.now()/150)*0.03+0.0;
+      // face à la machine + petite animation de jeu bien visible
+      if(c.target) c.mesh.lookAt(c.target.mesh.position.x, c.mesh.position.y, c.target.mesh.position.z);
+      const t = performance.now();
+      c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
+      c.mesh.rotation.z = Math.sin(t/120)*0.06;
       c.playTimer += dt;
+
       if(c.playTimer >= c.target.def.time){
         const [lo,hi]=c.target.def.earn;
         const ticketCounters = state.machines.filter(m=>m.def.id==='ticket').length;
