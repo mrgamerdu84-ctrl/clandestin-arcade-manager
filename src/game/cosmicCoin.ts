@@ -658,6 +658,48 @@ function preloadModels(onDone){
 
 
 
+/* --- objets débloqués par l'histoire --- */
+Object.assign(BUILDERS, {
+  'jukebox': ()=>{
+    const g = group();
+    const body = box(0.9,1.3,0.6, PAL.purple); body.position.y=0.65; g.add(body);
+    const dome = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.55,16,1,false,0,Math.PI),
+      new THREE.MeshStandardMaterial({color:0xff2e88, emissive:0xff2e88, emissiveIntensity:0.7}));
+    dome.rotation.z = Math.PI/2; dome.rotation.y = Math.PI/2; dome.position.y=1.3; g.add(dome);
+    const glass = box(0.6,0.4,0.05, PAL.black); glass.position.set(0,0.95,0.32); g.add(glass);
+    const base = box(0.95,0.12,0.65, PAL.purpleDark); base.position.y=0.06; g.add(base);
+    return g;
+  },
+  'safe': ()=>{
+    const g = group();
+    const body = box(0.75,0.8,0.7, PAL.chrome); body.position.y=0.4; g.add(body);
+    const door = box(0.62,0.62,0.06, '#2b2b3a'); door.position.set(0,0.42,0.36); g.add(door);
+    const dial = cyl(0.12,0.12,0.08, PAL.yellow,12); dial.rotation.x=Math.PI/2; dial.position.set(0,0.42,0.42); g.add(dial);
+    return g;
+  },
+  'falsewall': ()=>{
+    const g = group();
+    const panel = box(1.5,2.0,0.18, PAL.purpleDark); panel.position.y=1.0; g.add(panel);
+    const seam = box(0.05,1.9,0.2, PAL.pink); seam.position.set(0.3,1.0,0.01); g.add(seam);
+    const led = cyl(0.06,0.06,0.06, PAL.teal,10); led.rotation.x=Math.PI/2; led.position.set(-0.5,1.7,0.12); g.add(led);
+    return g;
+  },
+  'vip': ()=>{
+    const g = group();
+    const table = cyl(0.85,0.85,0.16, '#1f5b3a', 20); table.position.y=0.78; g.add(table);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.86,0.06,10,26),
+      new THREE.MeshStandardMaterial({color:0xe8b64a, emissive:0xe8b64a, emissiveIntensity:0.45, metalness:0.6, roughness:0.3}));
+    rim.rotation.x = Math.PI/2; rim.position.y=0.86; g.add(rim);
+    const foot = cyl(0.18,0.3,0.75, '#3a2a1a', 12); foot.position.y=0.37; g.add(foot);
+    for(let i=0;i<4;i++){
+      const a = i*Math.PI/2 + 0.4;
+      const chair = box(0.35,0.5,0.35, '#5b1f2e');
+      chair.position.set(Math.cos(a)*1.25, 0.25, Math.sin(a)*1.25); g.add(chair);
+    }
+    return g;
+  },
+});
+
 function buildMachineMesh(defId){
   const glbKey = GLB_KEY_MAP[defId];
   if(glbKey && MODEL_TEMPLATES[glbKey]){
