@@ -2448,6 +2448,10 @@ function updateDoor(dt){
   }
 }
 
+document.getElementById('doorSearch').onclick = doorSearch;
+document.getElementById('doorPass').onclick   = doorPass;
+document.getElementById('doorRefuse').onclick = doorRefuse;
+
 /* ---------- descentes de police ---------- */
 function startRaid(){
   const warn = Math.round((state.lookout ? 22000 : 13000) * (1 - Math.min(0.35, state.danger/300)));

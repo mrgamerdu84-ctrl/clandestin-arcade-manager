@@ -65,6 +65,9 @@ function GamePage() {
           <div className="stat">
             🎯 Dette <b id="debt">400</b>¢
           </div>
+          <div className="stat" id="dangerStat">
+            ☠️ <b id="danger">0% CALME</b>
+          </div>
           <div className="stat" id="suspStat">
             🚨 <b id="susp">0</b>%
           </div>
@@ -96,6 +99,18 @@ function GamePage() {
         <canvas id="three" />
         <div id="raidBanner">
           <div id="raidText">DESCENTE !</div>
+        </div>
+        <div id="doorPanel">
+          <div id="doorWho">Quelqu'un frappe à la porte du fond</div>
+          <div id="doorTell" />
+          <div id="doorTimerWrap">
+            <div id="doorFill" />
+          </div>
+          <div id="doorBtns">
+            <button id="doorSearch" type="button">🔦 Fouiller</button>
+            <button id="doorPass" type="button">🚪 Laisser passer</button>
+            <button id="doorRefuse" type="button">✋ Refuser</button>
+          </div>
         </div>
         <div id="hint">
           🖱️ glisser: tourner &nbsp; molette: zoom &nbsp; clic sur une case: poser &nbsp; clic sur une

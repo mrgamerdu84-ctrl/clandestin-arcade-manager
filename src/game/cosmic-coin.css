@@ -208,3 +208,29 @@
 
 #musicBtn{font-size:13px;}
 #musicBtn.on{border-color:var(--neon1); color:var(--neon1); box-shadow:0 0 10px rgba(255,0,127,0.45);}
+
+  #doorPanel{
+    position:absolute; left:50%; bottom:78px; transform:translateX(-50%) translateY(12px);
+    width:min(380px, calc(100vw - 24px));
+    background:rgba(12,6,20,0.92); border:1px solid rgba(255,46,136,0.55);
+    border-radius:14px; padding:12px 14px; z-index:26;
+    box-shadow:0 0 26px rgba(255,46,136,0.35);
+    display:none; opacity:0; transition:opacity .18s ease, transform .18s ease;
+  }
+  #doorPanel.on{display:block; opacity:1; transform:translateX(-50%) translateY(0);}
+  #doorWho{font-size:13px; font-weight:800; color:var(--neon3); letter-spacing:.5px;}
+  #doorTell{font-size:11px; color:var(--dim); margin:4px 0 8px; line-height:1.35;}
+  #doorTimerWrap{height:4px; border-radius:4px; background:rgba(255,255,255,0.12); overflow:hidden;}
+  #doorFill{height:100%; width:100%; background:linear-gradient(90deg,#ffe600,#ff2e88);}
+  #doorBtns{display:flex; gap:6px; margin-top:10px;}
+  #doorBtns button{
+    flex:1; padding:9px 4px; font:inherit; font-size:10.5px; cursor:pointer;
+    background:rgba(255,255,255,0.06); color:#fff; border:1px solid rgba(255,255,255,0.2);
+    border-radius:9px;
+  }
+  #doorBtns button:hover:not(:disabled){background:rgba(255,255,255,0.14); border-color:var(--neon2);}
+  #doorBtns button:disabled{opacity:.45; cursor:not-allowed;}
+  #doorPass{border-color:rgba(32,230,208,0.6)!important; color:#9ff5ea;}
+  #doorRefuse{border-color:rgba(255,68,68,0.6)!important; color:#ffb0b0;}
+  #dangerStat.hot{color:#ff2e88; animation:pulse 1s infinite;}
+  @media (max-width:820px){ #doorPanel{bottom:66px;} }
