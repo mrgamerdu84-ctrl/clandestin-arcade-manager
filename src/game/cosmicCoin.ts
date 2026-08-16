@@ -547,6 +547,7 @@ const CITY_FILES = {
   // city-kit-roads 2 — real asphalt tiles, sidewalks and lamps
   ROAD_STRAIGHT:'roads/road-straight.glb', ROAD_CROSS:'roads/road-crossing.glb',
   ROAD_BEND:'roads/road-bend.glb', ROAD_SIDE:'roads/road-side.glb',
+  ROAD_INTERSECTION:'roads/road-intersection-line.glb',
   STREETLIGHT:'roads/light-curved.glb',
   BARRIER:'roads/construction-barrier.glb', CONE_WORK:'roads/construction-cone.glb',
 };
@@ -1575,7 +1576,7 @@ function buildExteriorStreet(maxSpan){
 
   /* ---------- sol du quartier ---------- */
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(70, (zMax-zMin)+30),
+    new THREE.PlaneGeometry(130, (zMax-zMin)+40),
     new THREE.MeshStandardMaterial({color:'#4c4660', roughness:0.95})
   );
   ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true;
