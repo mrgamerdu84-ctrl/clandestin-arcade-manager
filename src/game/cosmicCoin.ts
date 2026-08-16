@@ -84,7 +84,7 @@ scene.fog = new THREE.Fog(0x0d0618, isMobile?28:34, isMobile?85:110);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
 
 // ambient + directional light
-const ambientLight = new THREE.AmbientLight(0x8877aa, 0.9);
+const ambientLight = new THREE.AmbientLight(0xb9a8dd, 1.15);
 // clair de lune : éclaire le quartier quand on est dehors
 const streetMoon = new THREE.DirectionalLight(0xaebbff, 1.1);
 streetMoon.position.set(-25, 30, 12);
@@ -2201,7 +2201,7 @@ function updateDayNight(){
 
   // plancher de lumière : même en pleine nuit la salle et la rue restent lisibles
   sun.intensity = 0.6 + dayFactor*0.9;
-  ambientLight.intensity = (exteriorMode ? 1.9 : 0.95) + dayFactor*1.1;
+  ambientLight.intensity = (exteriorMode ? 1.9 : 1.35) + dayFactor*1.2;
   streetMoon.intensity = 0.9 + nightFactor*0.7;
   if(scene.fog){
     scene.fog.near = exteriorMode ? 60 : (isMobile?34:42);
