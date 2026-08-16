@@ -24,7 +24,7 @@ const renderer = new THREE.WebGLRenderer({canvas, antialias:!isMobile, powerPref
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile?1.5:2));
 renderer.shadowMap.enabled = !isMobile;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 /* ---------- réglages de lumière du joueur ---------- */
 let lightMode = 'day';            // 'day' | 'night' | 'auto'
@@ -587,12 +587,16 @@ function preloadModels(onDone){
     ...CUSTOMER_FILES.map((f,i)=>['__CUST'+i, f]),
   ];
   let done = 0;
+  let started = false;
   const total = entries.length;
   const loadText = document.getElementById('loadText');
+  const go = ()=>{ if(started) return; started = true; onDone(); };
+  // filet de sécurité : si un modèle ne répond pas, on démarre quand même
+  const safety = window.setTimeout(go, 9000);
   const finish = ()=>{
     done++;
     if(loadText) loadText.innerText = `On rallume les néons… ${Math.round(done/total*100)}%`;
-    if(done>=total) onDone();
+    if(done>=total){ window.clearTimeout(safety); go(); }
   };
   entries.forEach(([key, file])=>{
     loader.load('/models/'+file, (gltf)=>{
@@ -609,8 +613,9 @@ function preloadModels(onDone){
       finish();
     }, undefined, ()=>finish());
   });
-  if(total===0) onDone();
+  if(total===0){ window.clearTimeout(safety); go(); }
 }
+
 
 function buildMachineMesh(defId){
   const glbKey = GLB_KEY_MAP[defId];
