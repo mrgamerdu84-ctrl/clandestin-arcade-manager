@@ -2849,7 +2849,22 @@ function activeQuest(){
   if(state.questIdx==null || state.questIdx>=QUESTS.length) return null;
   return QUESTS[state.questIdx];
 }
+function questSet(track, value){
+  const q = activeQuest();
+  if(!q || state.gameOver) return;
+  for(const o of q.objectives){
+    if(o.track!==track) continue;
+    const cur = state.questProgress[o.id]||0;
+    const next = Math.min(o.goal, Math.max(cur, value));
+    if(next===cur) continue;
+    state.questProgress[o.id] = next;
+    if(next>=o.goal) log(`✅ Objectif : ${o.label}.`);
+  }
+  renderQuestPanel();
+  if(q.objectives.every(o=>(state.questProgress[o.id]||0)>=o.goal)) completeQuest();
+}
 function questEvent(track, n=1){
+
   const q = activeQuest();
   if(!q || state.gameOver) return;
   let changed = false;
