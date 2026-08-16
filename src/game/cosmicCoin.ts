@@ -36,16 +36,37 @@ try {
 } catch(e) {}
 renderer.toneMappingExposure = brightness;
 
-function makeSprite(text, color){
-  const cvs = document.createElement('canvas'); cvs.width=128; cvs.height=48;
+function makeTextTexture(text, color){
+  const cvs = document.createElement('canvas'); cvs.width=512; cvs.height=128;
   const c = cvs.getContext('2d');
-  c.font='bold 28px monospace'; c.fillStyle=color; c.textAlign='center';
-  c.fillText(text,64,34);
-  const tex = new THREE.CanvasTexture(cvs);
+  c.font='bold 76px monospace'; c.fillStyle=color; c.textAlign='center'; c.textBaseline='middle';
+  c.shadowColor = color; c.shadowBlur = 24;
+  c.fillText(text,256,68);
+  return new THREE.CanvasTexture(cvs);
+}
+function makeSprite(text, color){
+  const tex = makeTextTexture(text, color);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
   sp.scale.set(1.6,0.6,1);
   return sp;
 }
+// panneau plat (ne traverse pas les murs comme un sprite billboard)
+function makeSignPanel(text, color, width, height){
+  const tex = makeTextTexture(text, color);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, height),
+    new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide, depthWrite:false})
+  );
+  return m;
+}
+// halos néon qui s'estompent en plein jour
+const nightHalos = [];
+function registerNightHalo(sp, maxOpacity){
+  sp.userData.maxOpacity = maxOpacity ?? 1;
+  nightHalos.push(sp);
+  return sp;
+}
+
 
 // "fake bloom": a soft radial-gradient sprite with additive blending, placed
 // behind/around a light source. Real post-processing (UnrealBloomPass) needs
@@ -1292,7 +1313,7 @@ function buildExteriorStreet(maxSpan){
         glow.position.set(sidewalkX-1.1, 2.15, z);
         exteriorStreetGroup.add(glow);
       }
-      const halo = makeGlowSprite('#ffdd99', 0.9);
+      const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
       halo.position.set(sidewalkX-1.1, 2.15, z);
       exteriorStreetGroup.add(halo);
     }
@@ -1342,7 +1363,7 @@ function buildExteriorStreet(maxSpan){
   /* ---------- sol du quartier ---------- */
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(70, (zMax-zMin)+30),
-    new THREE.MeshStandardMaterial({color:'#221d2e', roughness:0.95})
+    new THREE.MeshStandardMaterial({color:'#4c4660', roughness:0.95})
   );
   ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true;
   exteriorStreetGroup.add(ground);
@@ -1390,7 +1411,7 @@ function buildExteriorStreet(maxSpan){
   // néon "SORTIE" au-dessus de la porte de service + fumée d'égout
   const alleyNeon = placeExt(exteriorStreetGroup, 'NEON_TUBE', {mode:'height',target:0.14}, alleyX-1.4, 0.2, 0);
   if(alleyNeon){ alleyNeon.position.y = 2.3; extFlickers.push({obj:alleyNeon, phase:Math.random()*6.28, speed:5.5}); }
-  const alleyLight = makeGlowSprite('#2fd4c8', 1.6);
+  const alleyLight = registerNightHalo(makeGlowSprite('#2fd4c8', 1.2), 0.8);
   alleyLight.position.set(alleyX-1.4, 2.3, 0.2);
   exteriorStreetGroup.add(alleyLight);
   // chat de ruelle qui rôde
@@ -1443,7 +1464,7 @@ function buildExteriorStreet(maxSpan){
       tube.traverse(o=>{ if(o.isMesh && o.material){ o.material = o.material.clone(); o.material.color.set(shopColors[i]); if(o.material.emissive) o.material.emissive.set(shopColors[i]); } });
       extFlickers.push({obj:tube, phase:i*1.7, speed:3+Math.random()*4});
     }
-    const halo = makeGlowSprite(shopColors[i], 1.8);
+    const halo = registerNightHalo(makeGlowSprite(shopColors[i], 1.3), 0.85);
     halo.position.set(-12.0, 2.0, z);
     exteriorStreetGroup.add(halo);
   }
@@ -1523,17 +1544,22 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
   const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
 
-  // big neon sign, visible from the street
+  // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
+  // qui traverse le mur comme le faisait le sprite billboard)
   const signText = casino ? "CASINO" : (stageIdx===1 ? "ARCADE" : "COSMIC COIN");
-  const sign = makeSprite(signText, casino?'#ffd23f':'#ff2e88');
-  sign.position.set(-w/2-0.6, bodyH*0.75+0.2, 0);
-  sign.scale.set(3.6,1.3,1);
-  exteriorBuildingGroup.add(sign);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.4, 10, 2);
+  const signColor = casino?'#ffd23f':'#ff2e88';
+  const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
+  signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
+  signPanel.rotation.y = -Math.PI/2;
+  exteriorBuildingGroup.add(signPanel);
+  const signBack = box(0.08, 1.15, 4.3, '#150a1e');
+  signBack.position.set(-w/2-0.06, bodyH*0.75+0.2, 0);
+  exteriorBuildingGroup.add(signBack);
+  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.2, 10, 2);
   signGlow.position.set(-w/2-0.8, bodyH*0.75+0.2, 0);
   exteriorBuildingGroup.add(signGlow);
-  const signHalo = makeGlowSprite(casino?'#ffd23f':'#ff2e88', 4.2);
-  signHalo.position.copy(sign.position);
+  const signHalo = registerNightHalo(makeGlowSprite(signColor, 2.6), 0.8);
+  signHalo.position.set(-w/2-0.5, bodyH*0.75+0.2, 0);
   exteriorBuildingGroup.add(signHalo);
   exteriorBuildingGroup.userData.signHalo = signHalo;
 
@@ -1541,9 +1567,10 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const doorGlow = new THREE.PointLight(0xffd9a0, 0.8, 4, 2);
   doorGlow.position.set(-w/2-0.4, 2.0, doorZ);
   exteriorBuildingGroup.add(doorGlow);
-  const doorHalo = makeGlowSprite('#ffd9a0', 1.4);
+  const doorHalo = registerNightHalo(makeGlowSprite('#ffd9a0', 1.0), 0.8);
   doorHalo.position.copy(doorGlow.position);
   exteriorBuildingGroup.add(doorHalo);
+
 }
 
 let exteriorMode = false;
@@ -2369,6 +2396,16 @@ function updateDayNight(){
   moonHalo.material.opacity = moonOpacity*0.7;
 
   if(starField) starField.material.opacity = nightFactor*0.85;
+
+  // les halos néon s'estompent en plein jour (sinon grosses taches blanches)
+  const haloFactor = 0.25 + nightFactor*0.75;
+  for(let i=0;i<nightHalos.length;i++){
+    const h = nightHalos[i];
+    if(!h.parent) continue;
+    h.material.opacity = (h.userData.maxOpacity ?? 1) * haloFactor;
+    const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.3);
+    h.scale.set(s,s,1);
+  }
 }
 
 function animate(ts){
