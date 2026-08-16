@@ -27,13 +27,13 @@ renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 /* ---------- réglages de lumière du joueur ---------- */
-let lightMode = 'day';            // 'day' | 'night' | 'auto'
+let lightMode = 'auto';            // 'day' | 'night' | 'auto'
 let brightness = 1.25;
 // mode de rendu "léger" : aucun GLB n'est chargé, la scène est bâtie
 // uniquement avec des placeholders procéduraux (démarrage instantané)
 let lightRender = false;
 try {
-  lightMode = localStorage.getItem('cc_lightmode') || 'day';
+  lightMode = localStorage.getItem('cc_lightmode') || 'auto';
   brightness = parseFloat(localStorage.getItem('cc_brightness') || '1.25');
   if(!isFinite(brightness)) brightness = 1.25;
   lightRender = localStorage.getItem('cc_lightrender') === '1';
@@ -71,6 +71,18 @@ function registerNightHalo(sp, maxOpacity){
   nightHalos.push(sp);
   return sp;
 }
+// lampes qui ne s'allument qu'à la tombée du jour (lampadaires, néons de façade)
+const nightLamps = [];
+// cônes de lumière volumétriques sous les lampadaires
+const lightCones = [];
+function registerNightLamp(light, maxIntensity){
+  light.userData.maxIntensity = maxIntensity ?? light.intensity;
+  light.intensity = 0;
+  nightLamps.push(light);
+  return light;
+}
+
+
 
 
 // "fake bloom": a soft radial-gradient sprite with additive blending, placed
@@ -176,6 +188,35 @@ moonSprite.scale.set(5.5,5.5,1);
 scene.add(moonSprite);
 const moonHalo = makeGlowSprite('#c9d4ff', 9);
 scene.add(moonHalo);
+
+/* ---------- projecteurs de nuit : deux faisceaux qui balaient le quartier ---------- */
+const searchlights = [];
+let nightAmount = 0;   // 0 = plein jour, 1 = nuit noire (piloté par updateDayNight)
+
+if(!isMobile){
+  const beamDefs = [
+    { x:-26, z:-20, color:0xff2e88, speed:0.32, phase:0 },
+    { x: 24, z: 22, color:0x20e6d0, speed:-0.24, phase:1.9 },
+  ];
+  for(const d of beamDefs){
+    const grp = new THREE.Group();
+    grp.position.set(d.x, 0.2, d.z);
+    const spot = new THREE.SpotLight(d.color, 0, 46, 0.22, 0.6, 1.2);
+    spot.position.set(0, 0.6, 0);
+    spot.target.position.set(0, 16, 0);
+    grp.add(spot); grp.add(spot.target);
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 2.0, 34, 16, 1, true),
+      new THREE.MeshBasicMaterial({color:d.color, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide})
+    );
+    beam.position.set(0, 17, 0);
+    grp.add(beam);
+    scene.add(grp);
+    searchlights.push({ grp, spot, beam, speed:d.speed, phase:d.phase });
+  }
+}
+
+
 
 // starfield, fades in at night
 let starField = null;
@@ -1438,10 +1479,20 @@ function placeStreetlight(x, z, roadDir, withPointLight){
     .applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
   const bx = x + bulb.x, by = bulb.y, bz = z + bulb.z;
   if(!isMobile && withPointLight){
-    const glow = new THREE.PointLight(0xffdd99, 0.9, 6, 2);
+    const glow = registerNightLamp(new THREE.PointLight(0xffdd99, 0, 9, 2), 2.2);
     glow.position.set(bx, by, bz);
     exteriorStreetGroup.add(glow);
+    // cône de lumière visible sous le lampadaire (rendu plus dramatique la nuit)
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(1.7, Math.max(0.8, by), 14, 1, true),
+      new THREE.MeshBasicMaterial({color:0xffdd99, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending})
+    );
+    cone.position.set(bx, by/2, bz);
+    cone.userData.maxOpacity = 0.13;
+    lightCones.push(cone);
+    exteriorStreetGroup.add(cone);
   }
+
   const halo = registerNightHalo(makeGlowSprite('#ffdd99', 0.7), 0.85);
   halo.position.set(bx, by - 0.05, bz);
   exteriorStreetGroup.add(halo);
@@ -1456,6 +1507,9 @@ function buildExteriorStreet(maxSpan){
   cars.length = 0;
   extMovers.length = 0;
   extFlickers.length = 0;
+  for(let i=lightCones.length-1;i>=0;i--) if(!lightCones[i].parent) lightCones.splice(i,1);
+  for(let i=nightLamps.length-1;i>=0;i--) if(!nightLamps[i].parent) nightLamps.splice(i,1);
+  for(let i=nightHalos.length-1;i>=0;i--) if(!nightHalos[i].parent) nightHalos.splice(i,1);
   patrolCar = null;
 
   const sidewalkX = -8;
@@ -3499,13 +3553,18 @@ function updateDayNight(){
   const nightFactor = Math.max(0, -sunHeight);
 
   // plancher de lumière : même en pleine nuit la salle et la rue restent lisibles
-  sun.intensity = 0.6 + dayFactor*0.9;
-  ambientLight.intensity = (exteriorMode ? 1.9 : 1.35) + dayFactor*1.2;
-  streetMoon.intensity = 0.9 + nightFactor*0.7;
+  // (contraste plus marqué : soleil franc le jour, bleu nuit dramatique le soir)
+  sun.intensity = 0.35 + dayFactor*1.6;
+  sun.color.setHSL(0.09 + dayFactor*0.05, 0.55 - dayFactor*0.35, 0.55 + dayFactor*0.12);
+  ambientLight.intensity = (exteriorMode ? 1.15 : 0.95) + dayFactor*1.5;
+  ambientLight.color.setHex(nightFactor>0.35 ? 0x6f7bcc : 0xb9a8dd);
+  streetMoon.visible = nightFactor > 0.05;
+  streetMoon.intensity = 0.35 + nightFactor*1.15;
   if(scene.fog){
-    scene.fog.near = exteriorMode ? 60 : (isMobile?34:42);
+    scene.fog.near = exteriorMode ? (60 - nightFactor*14) : (isMobile?34:42);
     scene.fog.far = exteriorMode ? (isMobile?170:210) : (isMobile?95:125);
   }
+
 
   cycleLerp(SKY_KEYFRAMES.top, phase, _topOut);
   cycleLerp(SKY_KEYFRAMES.bottom, phase, _botOut);
@@ -3535,15 +3594,31 @@ function updateDayNight(){
   if(starField) starField.material.opacity = nightFactor*0.85;
 
   // les halos néon s'estompent en plein jour (sinon grosses taches blanches)
-  const haloFactor = 0.25 + nightFactor*0.75;
+  const haloFactor = 0.18 + nightFactor*0.9;
   for(let i=0;i<nightHalos.length;i++){
     const h = nightHalos[i];
     if(!h.parent) continue;
-    h.material.opacity = (h.userData.maxOpacity ?? 1) * haloFactor;
-    const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.3);
+    h.material.opacity = (h.userData.maxOpacity ?? 1) * Math.min(1, haloFactor);
+    const s = (h.userData.baseSize ?? 1) * (0.7 + haloFactor*0.35);
     h.scale.set(s,s,1);
   }
+
+  // lampadaires : éteints en plein jour, allumés au crépuscule
+  const lampFactor = Math.min(1, Math.max(0, (nightFactor + 0.12) * 1.35));
+  for(let i=0;i<nightLamps.length;i++){
+    const l = nightLamps[i];
+    if(!l.parent) continue;
+    l.intensity = (l.userData.maxIntensity ?? 1) * lampFactor;
+  }
+  for(let i=0;i<lightCones.length;i++){
+    const c = lightCones[i];
+    if(!c.parent) continue;
+    c.visible = lampFactor > 0.08;
+    c.material.opacity = (c.userData.maxOpacity ?? 0.12) * lampFactor;
+  }
+  nightAmount = lampFactor;
 }
+
 
 function animate(ts){
   if(_disposed) return;
@@ -3570,10 +3645,23 @@ function animate(ts){
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
     updateHUD();
   }
+  // projecteurs qui balaient le ciel dès la tombée de la nuit
+  for(let i=0;i<searchlights.length;i++){
+    const sl = searchlights[i];
+    const on = exteriorMode ? nightAmount : 0;
+    sl.grp.visible = on > 0.06;
+    if(!sl.grp.visible) continue;
+    const t2 = ts*0.001;
+    sl.grp.rotation.y = t2*sl.speed + sl.phase;
+    sl.grp.rotation.z = Math.sin(t2*0.45 + sl.phase)*0.42;
+    sl.spot.intensity = on * (state.raid ? 26 : 14);
+    sl.beam.material.opacity = on * 0.035;
+  }
   // enseignes néon + marquise de l'entrée
   if(exteriorMode){
     const tn = ts*0.001;
     const signs = exteriorBuildingGroup.userData.neonSigns || [];
+
     for(const s of signs){
       const flick = Math.random() < 0.012 ? 0.25 : 0.65 + 0.35*Math.abs(Math.sin(tn*s.freq + s.phase));
       s.panel.material.opacity = flick;
