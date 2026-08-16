@@ -2022,7 +2022,56 @@ function animate(ts){
       if(c.dir<0 && c.z<c.zMin) c.z = c.zMax;
       c.wrap.position.z = c.z;
     });
+    const now = performance.now()/1000;
+    extMovers.forEach(m=>{
+      if(m.type==='queue'){
+        // badauds qui piétinent en attendant d'entrer
+        m.wrap.position.y = (m.base||0) + Math.abs(Math.sin(now*2 + m.phase))*0.045;
+        m.wrap.rotation.y += Math.sin(now*0.7 + m.phase)*0.004;
+      } else if(m.type==='cat'){
+        m.z += m.dir*m.speed*dt/1000;
+        if(m.z>m.zMax){ m.z=m.zMax; m.dir=-1; m.wrap.rotation.y=Math.PI; }
+        if(m.z<m.zMin){ m.z=m.zMin; m.dir=1; m.wrap.rotation.y=0; }
+        m.wrap.position.z = m.z;
+      } else if(m.type==='pigeon'){
+        m.t += dt/1000;
+        if(m.t>m.nextHop){
+          m.t = 0; m.nextHop = 1+Math.random()*2.5;
+          m.x += (Math.random()-0.5)*0.6;
+          m.z += (Math.random()-0.5)*0.9;
+          m.wrap.rotation.y = Math.random()*6.28;
+          m.wrap.position.x = m.x; m.wrap.position.z = m.z;
+        }
+        // petit picorage
+        m.wrap.position.y = Math.max(0, Math.sin(now*6 + m.z)*0.02);
+      }
+    });
+    extFlickers.forEach(f=>{
+      const on = Math.sin(now*f.speed + f.phase) > -0.75;
+      f.obj.traverse(o=>{
+        if(o.isMesh && o.material && o.material.emissiveIntensity !== undefined){
+          o.material.emissiveIntensity = on ? 1.2 : 0.15;
+        }
+      });
+    });
+    if(patrolCar){
+      // la patrouille sort dès que la suspicion dépasse 35, ou pendant une descente
+      const active = state.suspicion > 35 || !!state.raid;
+      patrolCar.wrap.visible = active;
+      if(active){
+        patrolCar.z += patrolCar.dir*patrolCar.speed*dt/1000;
+        if(patrolCar.z < patrolCar.zMin) patrolCar.z = patrolCar.zMax;
+        patrolCar.wrap.position.z = patrolCar.z;
+        const beacons = patrolCar.wrap.children[0]?.userData?.beacons;
+        if(beacons){
+          const blink = Math.sin(now*8) > 0;
+          beacons[0].material.emissiveIntensity = blink ? 2.2 : 0.1;
+          beacons[1].material.emissiveIntensity = blink ? 0.1 : 2.2;
+        }
+      }
+    }
   }
+
   renderer.render(scene,camera);
   _raf = requestAnimationFrame(animate);
 }
