@@ -2259,6 +2259,193 @@ function renderBackroom(){
   }
 }
 
+/* ============================================================
+   TRI DES CLANDESTINS À LA PORTE DU FOND
+   ============================================================ */
+const VISITOR_KINDS = [
+  {id:'habitue', name:'Un habitué de Rosa', weight:34, danger:-2, pay:[35,70],
+   tells:["Il connaît le mot de passe de 85.","Il salue Momo par son prénom.","Manteau élimé, poches vides."]},
+  {id:'joueur',  name:'Gros joueur nerveux', weight:26, danger:6, pay:[90,170],
+   tells:["Liasse trop épaisse pour un honnête homme.","Il regarde deux fois derrière lui.","Il parle vite, très vite."]},
+  {id:'indic',   name:'Visage qui pose des questions', weight:22, danger:18, pay:[20,40],
+   tells:["Il demande qui tient la caisse.","Il veut savoir combien de tables tournent.","Il n'a rien parié mais tout observé."]},
+  {id:'flic',    name:'Costume trop propre', weight:18, danger:34, pay:[0,0],
+   tells:["Chaussures cirées, semelle réglementaire.","Il refuse un verre offert.","Une bosse sous la veste, côté ceinture."]},
+];
+const VISIT_WAIT = 20000;
+let doorVisitor = null;
+
+function pickVisitorKind(){
+  const heat = 1 + state.danger/90;
+  const pool = VISITOR_KINDS.map(k=>({k, w: k.danger>0 ? k.weight*heat : k.weight}));
+  const total = pool.reduce((s,p)=>s+p.w,0);
+  let r = Math.random()*total;
+  for(const p of pool){ r -= p.w; if(r<=0) return p.k; }
+  return pool[0].k;
+}
+function addDanger(n, why){
+  state.danger = Math.max(0, Math.min(100, state.danger + n));
+  if(why) log(why);
+  updateDangerHUD();
+}
+function dangerLabel(){
+  const d = state.danger;
+  return d<20?'CALME':d<45?'TENDU':d<70?'CHAUD':'BRÛLANT';
+}
+function updateDangerHUD(){
+  const v = document.getElementById('danger');
+  if(v) v.innerText = `${Math.round(state.danger)}% ${dangerLabel()}`;
+  const st = document.getElementById('dangerStat');
+  if(st) st.classList.toggle('hot', state.danger>=60);
+}
+
+function doorWorld(){
+  const {cols,rows,doorRow} = state.dims;
+  return cellToWorld(0,doorRow,cols,rows);
+}
+function spawnVisitor(){
+  const kind = pickVisitorKind();
+  const mesh = buildCharacter(0x2b2b3a);
+  const d = doorWorld();
+  mesh.position.set(d.x-CELL*3, 0, d.z-CELL*0.4);
+  customersGroup.add(mesh);
+  doorVisitor = {
+    kind, mesh, phase:'walk',
+    stand: new THREE.Vector3(d.x-CELL*1.1, 0, d.z),
+    exit: new THREE.Vector3(d.x-CELL*4, 0, d.z-CELL*0.6),
+    timer: VISIT_WAIT, searched:false, revealed:false,
+    tell: kind.tells[Math.floor(Math.random()*kind.tells.length)],
+  };
+}
+function removeVisitor(){
+  if(!doorVisitor) return;
+  if(doorVisitor.mesh.parent) customersGroup.remove(doorVisitor.mesh);
+  doorVisitor = null;
+  renderDoorPanel();
+}
+function visitorLeaves(){
+  if(!doorVisitor) return;
+  doorVisitor.phase = 'leave';
+  renderDoorPanel();
+}
+
+/* --- décisions du joueur --- */
+function doorSearch(){
+  const v = doorVisitor; if(!v || v.searched || v.phase!=='wait') return;
+  v.searched = true;
+  v.timer = Math.min(v.timer, 9000);
+  const acc = 0.5 + (state.lookout?0.22:0) + (state.staff.security?0.18:0);
+  if(Math.random() < acc){
+    v.revealed = true;
+    log(`Fouille : ${v.kind.id==='flic'?"badge planqué dans la doublure. C'est un flic.":v.kind.id==='indic'?"carnet de notes plein de noms. C'est un indic.":"rien que des billets. Client réglo."}`);
+    if(v.kind.danger<=0) { state.rep = Math.max(0, state.rep-0.3); addDanger(2); }
+    else addDanger(-3);
+  } else {
+    log("Fouille bâclée : impossible de dire qui c'est. Momo hausse les épaules.");
+    addDanger(2);
+  }
+  renderDoorPanel();
+}
+function doorPass(){
+  const v = doorVisitor; if(!v || v.phase!=='wait') return;
+  const free = state.machines.filter(m=>m.def.illegal && !m.busy && !m.broken && !state.hidden);
+  if(v.kind.id==='flic'){
+    addDanger(v.kind.danger);
+    state.suspicion = Math.min(100, state.suspicion+18);
+    log("🚨 Tu laisses entrer le costume propre. Il traverse la salle sans jouer et ressort en téléphonant.");
+    if(!state.raid && !state.gameOver) startRaid();
+  } else if(v.kind.id==='indic'){
+    addDanger(v.kind.danger);
+    state.suspicion = Math.min(100, state.suspicion+8);
+    log("Le curieux entre, compte les tables et repart. Ça se saura.");
+  } else {
+    const [lo,hi] = v.kind.pay;
+    const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
+    state.money += gain; state.illegalEarned += gain;
+    state.rep = Math.min(30, state.rep+0.2);
+    addDanger(v.kind.danger);
+    spawnFloatText(v.mesh.position, `+${gain}¢`);
+    log(`${v.kind.name} passe la porte du fond : +${gain}¢ de mise.`);
+    if(free.length){
+      const target = free[Math.floor(Math.random()*free.length)];
+      target.busy = true;
+      const d = doorWorld();
+      state.customers.push({mesh:v.mesh, target, targetPos:target.mesh.position.clone(),
+        doorPos:new THREE.Vector3(d.x-CELL,0,d.z), phase:'in', playTimer:0});
+      doorVisitor = null; renderDoorPanel(); return;
+    }
+  }
+  visitorLeaves();
+}
+function doorRefuse(){
+  const v = doorVisitor; if(!v || v.phase!=='wait') return;
+  if(v.kind.danger>0){
+    addDanger(-Math.min(12, v.kind.danger*0.6));
+    log(`Porte refermée au nez de « ${v.kind.name.toLowerCase()} ». Bien vu.`);
+  } else {
+    state.rep = Math.max(0, state.rep-0.5);
+    addDanger(4);
+    log("Un fidèle de Rosa se fait refouler. Il ira raconter ça ailleurs.");
+  }
+  visitorLeaves();
+}
+
+function renderDoorPanel(){
+  const panel = document.getElementById('doorPanel');
+  if(!panel) return;
+  const v = doorVisitor;
+  const active = !!v && v.phase==='wait' && !state.paused;
+  panel.classList.toggle('on', active);
+  if(!active) return;
+  const who = v.revealed ? v.kind.name : 'Quelqu\'un frappe à la porte du fond';
+  document.getElementById('doorWho').innerText = who;
+  document.getElementById('doorTell').innerText = v.tell;
+  const sBtn = document.getElementById('doorSearch');
+  sBtn.disabled = v.searched;
+  sBtn.innerText = v.searched ? (v.revealed?'✅ Fouillé':'🤷 Fouillé') : '🔦 Fouiller';
+  const fill = document.getElementById('doorFill');
+  if(fill) fill.style.width = Math.max(0, (v.timer/VISIT_WAIT)*100)+'%';
+}
+
+function updateDoor(dt){
+  // décrue naturelle du danger
+  state.danger = Math.max(0, state.danger - dt*0.00035*(state.hidden?2:1));
+
+  if(doorVisitor){
+    const v = doorVisitor;
+    const goal = v.phase==='leave' ? v.exit : v.stand;
+    const dir = new THREE.Vector3().subVectors(goal, v.mesh.position); dir.y=0;
+    const dist = dir.length();
+    if(dist > 0.15){
+      dir.normalize();
+      v.mesh.position.addScaledVector(dir, 1.5*dt/1000);
+      v.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      v.mesh.lookAt(goal.x, v.mesh.position.y, goal.z);
+    } else if(v.phase==='walk'){
+      v.phase='wait'; renderDoorPanel();
+    } else if(v.phase==='leave'){
+      removeVisitor(); return;
+    }
+    if(v.phase==='wait'){
+      v.timer -= dt;
+      renderDoorPanel();
+      if(v.timer<=0){
+        addDanger(6, "Personne n'a répondu à la porte du fond. Le type repart en maugréant.");
+        visitorLeaves();
+      }
+    }
+    return;
+  }
+
+  if(!state.backroom || state.gameOver || state.raid || state.hidden) return;
+  state.doorTimer = (state.doorTimer||0) + dt;
+  const every = 11000 + Math.random()*3000;
+  if(state.doorTimer > every){
+    state.doorTimer = 0;
+    if(Math.random() < 0.7) spawnVisitor();
+  }
+}
+
 /* ---------- descentes de police ---------- */
 function startRaid(){
   const warn = state.lookout ? 22000 : 13000;
