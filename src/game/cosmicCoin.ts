@@ -73,12 +73,15 @@ function registerNightHalo(sp, maxOpacity){
 }
 // lampes qui ne s'allument qu'à la tombée du jour (lampadaires, néons de façade)
 const nightLamps = [];
+// cônes de lumière volumétriques sous les lampadaires
+const lightCones = [];
 function registerNightLamp(light, maxIntensity){
   light.userData.maxIntensity = maxIntensity ?? light.intensity;
   light.intensity = 0;
   nightLamps.push(light);
   return light;
 }
+
 
 
 
