@@ -87,6 +87,10 @@ function GamePage() {
           <button id="musicBtn" type="button" title="Musique disco">
             🔈
           </button>
+          <button id="lightRenderBtn" type="button" title="Rendu léger (placeholders)">
+            ⚡
+          </button>
+
 
         </div>
         <canvas id="three" />
