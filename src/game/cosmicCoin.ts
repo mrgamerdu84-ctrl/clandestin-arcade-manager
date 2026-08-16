@@ -26,10 +26,10 @@ renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 /* ---------- réglages de lumière du joueur ---------- */
-let lightMode = 'auto';           // 'day' | 'night' | 'auto'
+let lightMode = 'day';            // 'day' | 'night' | 'auto'
 let brightness = 1.25;
 try {
-  lightMode = localStorage.getItem('cc_lightmode') || 'auto';
+  lightMode = localStorage.getItem('cc_lightmode') || 'day';
   brightness = parseFloat(localStorage.getItem('cc_brightness') || '1.25');
   if(!isFinite(brightness)) brightness = 1.25;
 } catch(e) {}
@@ -1006,7 +1006,8 @@ function buildRoom(stageIdx){
   scene.background.set(casino?0x1a0812:0x0d0618);
 
   orbit.target.set(0,0.5,0);
-  orbit.radius = 7 + Math.max(cols,rows)*0.9;
+  orbit.radius = 12 + Math.max(cols,rows)*1.25;
+  orbit.phi = 0.95;
   updateCamera();
 
   return {cols,rows,doorRow};
