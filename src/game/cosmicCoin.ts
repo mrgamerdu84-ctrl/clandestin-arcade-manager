@@ -2257,6 +2257,27 @@ function animate(ts){
     if(state.dayTimer>=state.dayLength){ state.dayTimer=0; newDay(); }
     updateHUD();
   }
+  // vie de la piste de danse : dalles qui pulsent, boule à facettes, spots mobiles
+  if(!exteriorMode){
+    const t = ts*0.001;
+    for(let i=0;i<danceTiles.length;i++){
+      const tile = danceTiles[i];
+      const pulse = 0.25 + 0.75*Math.abs(Math.sin(t*2.2 + tile.userData.phase));
+      tile.material.emissiveIntensity = pulse;
+      tile.material.emissive.setHSL(((t*0.12 + tile.userData.phase*0.09) % 1), 0.85, 0.55);
+    }
+    if(discoBall) discoBall.rotation.y = t*0.8;
+    zoneLights.forEach((l,i)=>{
+      if(l.userData.kind==='dance'){
+        const b = l.userData.base;
+        l.position.set(b.x + Math.sin(t*1.4 + l.userData.seed)*1.4, b.y, b.z + Math.cos(t*1.1 + l.userData.seed)*1.2);
+        l.intensity = 1.2 + Math.abs(Math.sin(t*3 + i))*1.2;
+      } else if(l.userData.kind==='back'){
+        l.intensity = 1.2 + Math.sin(t*1.2)*0.25 + (state.hidden ? -0.6 : 0);
+      }
+    });
+  }
+
   if(exteriorMode){
     pedestrians.forEach(p=>{
       p.z += p.dir*p.speed*dt/1000;
