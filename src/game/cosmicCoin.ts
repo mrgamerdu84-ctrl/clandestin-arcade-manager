@@ -1771,6 +1771,9 @@ document.getElementById('expandBtn').onclick = ()=>{
 /* ---------- placing machines & selecting existing ones: raycast ---------- */
 const raycaster = new THREE.Raycaster();
 const mouseNDC = new THREE.Vector2();
+let movingMachine = null;
+function endMoveMode(){ movingMachine = null; }
+
 
 function findMachineFromObject(obj){
   let o = obj;
@@ -1789,6 +1792,32 @@ canvas.addEventListener('click', (e)=>{
   mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouseNDC, camera);
 
+  // mode déplacement : on repose la machine sélectionnée sur une case libre
+  if(movingMachine){
+    const hitsF = raycaster.intersectObjects(roomGroup.children, true);
+    if(!hitsF.length) return;
+    const p0 = hitsF[0].point;
+    const {cols:c0, rows:r0} = state.dims;
+    const nx = Math.floor(p0.x/CELL + c0/2);
+    const nz = Math.floor(p0.z/CELL + r0/2);
+    if(nx<0||nx>=c0||nz<0||nz>=r0) return;
+    if(state.grid[nz][nx] && state.grid[nz][nx]!==movingMachine){ log("Cette case est déjà occupée."); return; }
+    const zoneN = zoneAt(nx, nz);
+    if(!zoneAllows(movingMachine.def, zoneN)){ log(`${movingMachine.def.name} ne peut pas aller dans ${ZONE_LABEL[zoneN]}.`); return; }
+    if(zoneN === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
+    const m = movingMachine;
+    state.grid[m.z][m.x] = null;
+    m.x = nx; m.z = nz;
+    state.grid[nz][nx] = m;
+    const np = cellToWorld(nx,nz,c0,r0);
+    m.mesh.position.set(np.x, m.mesh.position.y, np.z);
+    // les clients en route vers cette machine suivent le déménagement
+    state.customers.forEach(c=>{ if(c.target===m){ c.targetPos.set(np.x,0,np.z); c.stuck=0; } });
+    log(`${m.def.name} déplacé.`);
+    endMoveMode();
+    return;
+  }
+
   // tapping an existing machine (when nothing is selected in the shop) opens its menu
   if(!state.selected){
     const hitsM = raycaster.intersectObjects(machinesGroup.children, true);
@@ -1799,6 +1828,7 @@ canvas.addEventListener('click', (e)=>{
     closeMachineMenu();
     return;
   }
+
 
   closeMachineMenu();
   const hits = raycaster.intersectObjects(roomGroup.children, true);
@@ -1855,7 +1885,7 @@ function openMachineMenu(m, clientX, clientY){
   sellBtn.title = m.busy ? "Un client l'utilise en ce moment" : "";
   rotateBtn.disabled = false;
 
-  const menuW = 190, menuH = 130;
+  const menuW = 190, menuH = 170;
   let left = clientX + 10, top = clientY + 10;
   if(left + menuW > window.innerWidth) left = clientX - menuW - 10;
   if(top + menuH > window.innerHeight) top = clientY - menuH - 10;
@@ -1872,6 +1902,14 @@ document.getElementById('mmRotate').onclick = ()=>{
   if(!menuMachine) return;
   menuMachine.mesh.rotation.y += Math.PI/2;
 };
+document.getElementById('mmMove').onclick = ()=>{
+  if(!menuMachine) return;
+  movingMachine = menuMachine;
+  state.selected = null;
+  renderShop();
+  log(`Déplacement de ${movingMachine.def.name} : clique une case libre.`);
+  closeMachineMenu();
+};
 document.getElementById('mmSell').onclick = ()=>{
   if(!menuMachine || menuMachine.busy) return;
   const m = menuMachine;
@@ -1881,10 +1919,17 @@ document.getElementById('mmSell').onclick = ()=>{
   state.grid[m.z][m.x] = null;
   const idx = state.machines.indexOf(m);
   if(idx>-1) state.machines.splice(idx,1);
+  // pas de client fantôme qui marche vers une machine disparue
+  for(let i=state.customers.length-1;i>=0;i--){
+    const c = state.customers[i];
+    if(c.target===m){ c.phase='out'; c.target=null; }
+  }
+  if(movingMachine===m) endMoveMode();
   log(`Machine vendue : ${m.def.name} (+${refund}¢).`);
   closeMachineMenu();
   renderShop();
 };
+
 
 /* ---------- customers ---------- */
 const SHIRT_COLORS=[0xffb4a2,0xe5989b,0xb5838d,0x6d6875,0xffcdb2,0x83c5be,0xf4a261];
@@ -1905,11 +1950,30 @@ function spawnCustomer(){
 function updateCustomers(dt){
   for(let i=state.customers.length-1;i>=0;i--){
     const c = state.customers[i];
+    // machine disparue (vendue, saisie, planquée) : le client repart au lieu de rester figé
+    if(c.phase!=='out' && (!c.target || state.machines.indexOf(c.target)===-1 || (c.target.def.illegal && state.hidden))){
+      if(c.target) c.target.busy = false;
+      c.target = null; c.phase = 'out';
+    }
     if(c.phase==='in'){
       const dir = new THREE.Vector3().subVectors(c.targetPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
-      if(dist<0.15){ c.phase='playing'; c.playTimer=0; }
-      else{ dir.normalize(); c.mesh.position.addScaledVector(dir, (1.6*dt/1000)); c.mesh.lookAt(c.targetPos.x,0,c.targetPos.z); }
+      // la machine a pu être déplacée/pivotée : on resynchronise la cible
+      if(c.target) c.targetPos.set(c.target.mesh.position.x, 0, c.target.mesh.position.z);
+      if(dist<0.35){ c.phase='playing'; c.playTimer=0; c.stuck=0; }
+      else{
+        dir.normalize();
+        c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
+        c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+        c.mesh.lookAt(c.targetPos.x, c.mesh.position.y, c.targetPos.z);
+        // anti-blocage : si on n'avance plus, on rejoint directement la machine
+        c.stuck = (c.prevDist!==undefined && dist > c.prevDist-0.002) ? (c.stuck||0)+dt : 0;
+        if(c.stuck > 4000){
+          c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
+          c.phase='playing'; c.playTimer=0; c.stuck=0;
+        }
+      }
+      c.prevDist = dist;
     } else if(c.phase==='playing'){
       c.mesh.position.y = Math.sin(performance.now()/150)*0.03+0.0;
       c.playTimer += dt;
@@ -1929,18 +1993,25 @@ function updateCustomers(dt){
         state.money += gain;
         spawnFloatText(c.mesh.position, `+${gain}¢`);
         c.target.busy=false;
+        c.target=null;
         c.phase='out';
       }
     } else if(c.phase==='out'){
-      c.mesh.position.y = 0;
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
       if(dist<0.2){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
-      dir.normalize(); c.mesh.position.addScaledVector(dir,(1.8*dt/1000)); c.mesh.lookAt(c.doorPos.x,0,c.doorPos.z);
+      dir.normalize();
+      c.mesh.position.addScaledVector(dir,(1.8*dt/1000));
+      c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      c.mesh.lookAt(c.doorPos.x, c.mesh.position.y, c.doorPos.z);
+      // filet : un client qui traîne trop longtemps dehors est retiré
+      c.outTimer = (c.outTimer||0) + dt;
+      if(c.outTimer > 20000){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
     }
   }
   if(state.staff.host && Math.random()<0.0025) spawnCustomer();
 }
+
 
 const floaters=[];
 function spawnFloatText(pos,text){
