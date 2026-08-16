@@ -535,7 +535,10 @@ const CUSTOMER_FILES = ['a','b','c','d','e','f'].flatMap(s=>[
 const CITY_FILES = {
   CITY_A:'city/building-a.glb', CITY_B:'city/building-c.glb', CITY_C:'city/building-f.glb',
   CITY_D:'city/building-j.glb', CITY_E:'city/building-m.glb',
+  CITY_F:'city/building-b.glb', CITY_G:'city/building-h.glb',
   CITY_SKY_A:'city/building-skyscraper-b.glb', CITY_SKY_B:'city/building-skyscraper-d.glb',
+  CITY_SKY_C:'city/building-skyscraper-a.glb', CITY_SKY_D:'city/building-skyscraper-e.glb',
+
   CAR_SEDAN:'city/sedan.glb', CAR_TAXI:'city/taxi.glb', CAR_VAN:'city/van.glb',
   CAR_SUV:'city/suv.glb', CAR_POLICE_M:'city/police.glb',
   CAR_HATCH:'city/hatchback-sports.glb', CAR_SPORT:'city/sedan-sports.glb',
