@@ -1316,15 +1316,18 @@ function setExteriorMode(on){
     interiorCamSave.theta = orbit.theta; interiorCamSave.phi = orbit.phi;
     interiorCamSave.radius = orbit.radius; interiorCamSave.target.copy(orbit.target);
     interiorCamSave.bg = scene.background.clone(); interiorCamSave.fog = scene.fog.color.clone();
+    interiorCamSave.fogNear = scene.fog.near; interiorCamSave.fogFar = scene.fog.far;
     const {cols,rows} = state.dims;
     // vue 3/4 depuis la rue : on voit la façade, le trottoir animé, la ruelle
     // arrière et le parking dans le même cadre
-    orbit.target.set(-1.5, 1.2, 0);
-    orbit.theta = -Math.PI/2 - 0.45; orbit.phi = 0.95;
-    orbit.radius = 40 + Math.max(cols,rows)*1.2;
+    orbit.target.set(-1.5, 1.4, 0);
+    orbit.theta = -Math.PI/2 - 0.4; orbit.phi = 1.05;
+    orbit.radius = 24 + Math.max(cols,rows)*1.1;
     // dusk sky so the streetlights and neon signs read clearly as a "living city at night"
     scene.background.set(0x0e1230);
     scene.fog.color.set(0x0e1230);
+    // brume repoussée : le quartier entier reste lisible depuis la rue
+    scene.fog.near = 30; scene.fog.far = isMobile?70:95;
     btn.innerText = '🏠 INTÉRIEUR';
     closeMachineMenu();
   } else {
@@ -1332,6 +1335,7 @@ function setExteriorMode(on){
     orbit.radius = interiorCamSave.radius; orbit.target.copy(interiorCamSave.target);
     if(interiorCamSave.bg) scene.background.copy(interiorCamSave.bg);
     if(interiorCamSave.fog) scene.fog.color.copy(interiorCamSave.fog);
+    if(interiorCamSave.fogFar){ scene.fog.near = interiorCamSave.fogNear; scene.fog.far = interiorCamSave.fogFar; }
     btn.innerText = '🏙️ EXTÉRIEUR';
   }
   updateCamera();
