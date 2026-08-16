@@ -27,13 +27,13 @@ renderer.shadowMap.enabled = !isMobile;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 /* ---------- réglages de lumière du joueur ---------- */
-let lightMode = 'day';            // 'day' | 'night' | 'auto'
+let lightMode = 'auto';            // 'day' | 'night' | 'auto'
 let brightness = 1.25;
 // mode de rendu "léger" : aucun GLB n'est chargé, la scène est bâtie
 // uniquement avec des placeholders procéduraux (démarrage instantané)
 let lightRender = false;
 try {
-  lightMode = localStorage.getItem('cc_lightmode') || 'day';
+  lightMode = localStorage.getItem('cc_lightmode') || 'auto';
   brightness = parseFloat(localStorage.getItem('cc_brightness') || '1.25');
   if(!isFinite(brightness)) brightness = 1.25;
   lightRender = localStorage.getItem('cc_lightrender') === '1';
