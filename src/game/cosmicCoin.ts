@@ -847,9 +847,9 @@ function buildRoom(stageIdx){
     new THREE.IcosahedronGeometry(0.32, 1),
     new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
   );
-  discoBall.position.set(danceCx, 2.4-0.35, danceCz);
+  discoBall.position.set(danceCx, 2.15, danceCz);
   roomGroup.add(discoBall);
-  const ballGlow = makeGlowSprite('#bcd0ff', 1.6);
+  const ballGlow = makeGlowSprite('#bcd0ff', 0.7);
   ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
   [[0xff2e88, -1], [0x20e6d0, 1]].forEach(([col, side], i)=>{
     const spot = new THREE.PointLight(col, 1.6, 11, 2);
@@ -875,7 +875,7 @@ function buildRoom(stageIdx){
   dancers.push({wrap:djChar, base:0, phase:0, style:'dj', x:djChar.position.x, z:djChar.position.z});
 
   // anneau néon arrondi autour de la piste : casse l'aspect carré
-  const ringR = Math.max(danceW, danceD)*CELL*0.52;
+  const ringR = Math.min(danceW, danceD)*CELL*0.46;
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(ringR, 0.06, 8, 64),
     new THREE.MeshStandardMaterial({color:0x20e6d0, emissive:new THREE.Color(0x20e6d0), emissiveIntensity:1.4, roughness:0.4})
@@ -885,11 +885,12 @@ function buildRoom(stageIdx){
   // arche lumineuse au-dessus de la piste (structure de club, pas un cube)
   for(let a=0;a<2;a++){
     const arch = new THREE.Mesh(
-      new THREE.TorusGeometry(ringR*0.92, 0.05, 6, 40, Math.PI),
+      new THREE.TorusGeometry(ringR*0.8, 0.05, 6, 40, Math.PI),
       new THREE.MeshStandardMaterial({color:0xff2e88, emissive:new THREE.Color(0xff2e88), emissiveIntensity:1.1, roughness:0.4})
     );
     arch.position.set(danceCx, 0.05, danceCz);
     arch.rotation.y = a*Math.PI/2;
+    arch.scale.y = 1.35;
     roomGroup.add(arch);
   }
 
