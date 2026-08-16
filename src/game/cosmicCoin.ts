@@ -728,7 +728,16 @@ function buildMachineMesh(defId){
     // tiny per-instance scale variance so a row of the same machine doesn't look copy-pasted
     const variance = 0.94 + Math.random()*0.12;
     clone.scale.multiplyScalar(variance);
+    if(MODEL_TINT[defId]){
+      clone.traverse(o=>{
+        if(o.isMesh && o.material && o.material.color){
+          o.material = o.material.clone();
+          o.material.color.lerp(new THREE.Color(MODEL_TINT[defId]), 0.65);
+        }
+      });
+    }
     return wrapper;
+
   }
   const fn = BUILDERS[defId] || BUILDERS['arcade'];
   return fn();
