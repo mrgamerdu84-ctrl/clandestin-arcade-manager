@@ -3735,6 +3735,9 @@ preloadModels(()=>{
   else log("Bienvenue au Cosmic Coin. Achète ta première borne — la porte du fond attendra ce soir.");
   if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
   else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
+  renderQuestPanel();
+  { const q0 = activeQuest(); if(q0) log(`🎯 Mission : ${q0.title}. ${q0.intro}`); }
+
 
   _raf = requestAnimationFrame(animate);
 });
