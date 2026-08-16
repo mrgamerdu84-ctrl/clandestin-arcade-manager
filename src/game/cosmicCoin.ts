@@ -1507,6 +1507,9 @@ function buildExteriorStreet(maxSpan){
   cars.length = 0;
   extMovers.length = 0;
   extFlickers.length = 0;
+  for(let i=lightCones.length-1;i>=0;i--) if(!lightCones[i].parent) lightCones.splice(i,1);
+  for(let i=nightLamps.length-1;i>=0;i--) if(!nightLamps[i].parent) nightLamps.splice(i,1);
+  for(let i=nightHalos.length-1;i>=0;i--) if(!nightHalos[i].parent) nightHalos.splice(i,1);
   patrolCar = null;
 
   const sidewalkX = -8;
