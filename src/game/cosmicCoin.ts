@@ -1721,6 +1721,27 @@ function refreshMusicUI(){
 if(musicBtn){ musicBtn.onclick = ()=>{ disco.toggle(); refreshMusicUI(); }; }
 refreshMusicUI();
 
+/* ---------- rendu léger (placeholders si les GLB ne chargent pas) ---------- */
+const lightRenderBtn = document.getElementById('lightRenderBtn');
+function refreshRenderUI(){
+  if(!lightRenderBtn) return;
+  lightRenderBtn.classList.toggle('on', lightRender);
+  lightRenderBtn.innerText = lightRender ? '⚡' : '💠';
+  lightRenderBtn.title = lightRender
+    ? 'Rendu léger actif (placeholders) — cliquer pour les modèles 3D'
+    : 'Passer en rendu léger (placeholders, démarrage instantané)';
+}
+if(lightRenderBtn){
+  lightRenderBtn.onclick = ()=>{
+    lightRender = !lightRender;
+    try { localStorage.setItem('cc_lightrender', lightRender ? '1' : '0'); } catch(e) {}
+    refreshRenderUI();
+    window.location.reload();
+  };
+}
+refreshRenderUI();
+
+
 /* ============================================================
    MACHINE DEFS
    ============================================================ */
