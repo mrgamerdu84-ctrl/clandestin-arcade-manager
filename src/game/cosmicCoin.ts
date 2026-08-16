@@ -927,8 +927,10 @@ function buildRoom(stageIdx){
   backLight.position.set(backCx, 2.1, backCz);
   backLight.userData.kind = 'back';
   roomGroup.add(backLight); zoneLights.push(backLight);
-  const backHalo = makeGlowSprite('#ff6a3c', 2.2);
+  const backHalo = makeGlowSprite('#ff6a3c', 1.0);
+  backHalo.material.opacity = 0.45;
   backHalo.position.set(backCx, 2.0, backCz); roomGroup.add(backHalo);
+
 
   // cloison courbe qui sépare l'arrière-salle (avec passage caché)
   const partition = group();
