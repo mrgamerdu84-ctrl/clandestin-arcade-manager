@@ -1789,6 +1789,32 @@ canvas.addEventListener('click', (e)=>{
   mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouseNDC, camera);
 
+  // mode déplacement : on repose la machine sélectionnée sur une case libre
+  if(movingMachine){
+    const hitsF = raycaster.intersectObjects(roomGroup.children, true);
+    if(!hitsF.length) return;
+    const p0 = hitsF[0].point;
+    const {cols:c0, rows:r0} = state.dims;
+    const nx = Math.floor(p0.x/CELL + c0/2);
+    const nz = Math.floor(p0.z/CELL + r0/2);
+    if(nx<0||nx>=c0||nz<0||nz>=r0) return;
+    if(state.grid[nz][nx] && state.grid[nz][nx]!==movingMachine){ log("Cette case est déjà occupée."); return; }
+    const zoneN = zoneAt(nx, nz);
+    if(!zoneAllows(movingMachine.def, zoneN)){ log(`${movingMachine.def.name} ne peut pas aller dans ${ZONE_LABEL[zoneN]}.`); return; }
+    if(zoneN === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
+    const m = movingMachine;
+    state.grid[m.z][m.x] = null;
+    m.x = nx; m.z = nz;
+    state.grid[nz][nx] = m;
+    const np = cellToWorld(nx,nz,c0,r0);
+    m.mesh.position.set(np.x, m.mesh.position.y, np.z);
+    // les clients en route vers cette machine suivent le déménagement
+    state.customers.forEach(c=>{ if(c.target===m){ c.targetPos.set(np.x,0,np.z); c.stuck=0; } });
+    log(`${m.def.name} déplacé.`);
+    endMoveMode();
+    return;
+  }
+
   // tapping an existing machine (when nothing is selected in the shop) opens its menu
   if(!state.selected){
     const hitsM = raycaster.intersectObjects(machinesGroup.children, true);
@@ -1799,6 +1825,7 @@ canvas.addEventListener('click', (e)=>{
     closeMachineMenu();
     return;
   }
+
 
   closeMachineMenu();
   const hits = raycaster.intersectObjects(roomGroup.children, true);
