@@ -2157,14 +2157,24 @@ function cycleLerp(hexArr, phase, out){
   return out;
 }
 function updateDayNight(){
-  const phase = state.dayTimer/state.dayLength;
+  // le mode choisi par le joueur fige la lumière (jour clair / nuit néon) —
+  // 'auto' garde le cycle jour/nuit lié à la journée de jeu
+  const phase = lightMode==='day' ? 0.5
+    : lightMode==='night' ? 0.02
+    : state.dayTimer/state.dayLength;
   const angle = phase*Math.PI*2 - Math.PI/2;
   const sunHeight = Math.sin(angle);
   const dayFactor = Math.max(0, sunHeight);
   const nightFactor = Math.max(0, -sunHeight);
 
-  sun.intensity = 0.35 + dayFactor*0.85;
-  ambientLight.intensity = 0.5 + dayFactor*0.55;
+  // plancher de lumière : même en pleine nuit la salle et la rue restent lisibles
+  sun.intensity = 0.6 + dayFactor*0.9;
+  ambientLight.intensity = (exteriorMode ? 1.9 : 0.95) + dayFactor*1.1;
+  streetMoon.intensity = 0.9 + nightFactor*0.7;
+  if(scene.fog){
+    scene.fog.near = exteriorMode ? 60 : (isMobile?34:42);
+    scene.fog.far = exteriorMode ? (isMobile?170:210) : (isMobile?95:125);
+  }
 
   cycleLerp(SKY_KEYFRAMES.top, phase, _topOut);
   cycleLerp(SKY_KEYFRAMES.bottom, phase, _botOut);
