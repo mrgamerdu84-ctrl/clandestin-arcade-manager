@@ -139,6 +139,10 @@ function GamePage() {
         <button id="mmRotate" type="button">
           🔄 Pivoter
         </button>
+        <button id="mmMove" type="button">
+          ✋ Déplacer
+        </button>
+
         <button id="mmSell" className="sell" type="button">
           💰 Vendre
         </button>
