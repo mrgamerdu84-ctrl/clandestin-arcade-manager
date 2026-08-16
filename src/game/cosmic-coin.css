@@ -232,5 +232,6 @@
   #doorBtns button:disabled{opacity:.45; cursor:not-allowed;}
   #doorPass{border-color:rgba(32,230,208,0.6)!important; color:#9ff5ea;}
   #doorRefuse{border-color:rgba(255,68,68,0.6)!important; color:#ffb0b0;}
-  #dangerStat.hot{color:#ff2e88; animation:pulse 1s infinite;}
+  @keyframes dangerPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+  #dangerStat.hot{color:#ff2e88; animation:dangerPulse 1s infinite;}
   @media (max-width:820px){ #doorPanel{bottom:66px;} }
