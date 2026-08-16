@@ -743,17 +743,9 @@ function buildMachineMesh(defId){
   return fn();
 }
 
-/* ---------- character (real model, with procedural fallback) ---------- */
+/* ---------- character (procédural : plus de modèles importés) ---------- */
 function buildCharacter(shirtColor){
-  if(CUSTOMER_TEMPLATES.length){
-    const wrapper = group();
-    const tpl = CUSTOMER_TEMPLATES[Math.floor(Math.random()*CUSTOMER_TEMPLATES.length)];
-    const clone = tpl.clone(true);
-    clone.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
-    wrapper.add(clone);
-    fitHeight(clone, 1.25 + Math.random()*0.18);
-    return wrapper;
-  }
+
   const g = group();
   const legs = cyl(0.16,0.18,0.5, PAL.black,10); legs.position.y=0.25; g.add(legs);
   const body = cyl(0.2,0.24,0.55, shirtColor,10); body.position.y=0.75; g.add(body);
@@ -2177,8 +2169,19 @@ function spawnCustomer(){
   const doorP = cellToWorld(0,doorRow,cols,rows);
   mesh.position.set(doorP.x-CELL, 0, doorP.z);
   customersGroup.add(mesh);
-  const targetP = target.mesh.position.clone();
+  const targetP = standSpotFor(target);
   state.customers.push({mesh,target,targetPos:targetP,doorPos:new THREE.Vector3(doorP.x-CELL,0,doorP.z),phase:'in',playTimer:0});
+}
+
+// position "devant" la machine : le client se place face à l'écran, jamais dedans
+function standSpotFor(m){
+  const ry = m.mesh.rotation.y || 0;
+  const off = 1.05;
+  return new THREE.Vector3(
+    m.mesh.position.x + Math.sin(ry)*off,
+    0,
+    m.mesh.position.z + Math.cos(ry)*off
+  );
 }
 
 function updateCustomers(dt){
@@ -2190,11 +2193,14 @@ function updateCustomers(dt){
       c.target = null; c.phase = 'out';
     }
     if(c.phase==='in'){
+      // la machine a pu être déplacée/pivotée : on resynchronise la cible
+      if(c.target) c.targetPos.copy(standSpotFor(c.target));
       const dir = new THREE.Vector3().subVectors(c.targetPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
-      // la machine a pu être déplacée/pivotée : on resynchronise la cible
-      if(c.target) c.targetPos.set(c.target.mesh.position.x, 0, c.target.mesh.position.z);
-      if(dist<0.35){ c.phase='playing'; c.playTimer=0; c.stuck=0; }
+      if(dist<0.25){
+        c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
+        c.phase='playing'; c.playTimer=0; c.stuck=0;
+      }
       else{
         dir.normalize();
         c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
@@ -2209,8 +2215,13 @@ function updateCustomers(dt){
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
-      c.mesh.position.y = Math.sin(performance.now()/150)*0.03+0.0;
+      // face à la machine + petite animation de jeu bien visible
+      if(c.target) c.mesh.lookAt(c.target.mesh.position.x, c.mesh.position.y, c.target.mesh.position.z);
+      const t = performance.now();
+      c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
+      c.mesh.rotation.z = Math.sin(t/120)*0.06;
       c.playTimer += dt;
+
       if(c.playTimer >= c.target.def.time){
         const [lo,hi]=c.target.def.earn;
         const ticketCounters = state.machines.filter(m=>m.def.id==='ticket').length;
@@ -2233,6 +2244,8 @@ function updateCustomers(dt){
         c.phase='out';
       }
     } else if(c.phase==='out'){
+      c.mesh.rotation.z = 0;
+
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
       if(dist<0.2){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
@@ -2484,7 +2497,7 @@ function doorPass(){
       const target = free[Math.floor(Math.random()*free.length)];
       target.busy = true;
       const d = doorWorld();
-      state.customers.push({mesh:v.mesh, target, targetPos:target.mesh.position.clone(),
+      state.customers.push({mesh:v.mesh, target, targetPos:standSpotFor(target),
         doorPos:new THREE.Vector3(d.x-CELL,0,d.z), phase:'in', playTimer:0});
       doorVisitor = null; renderDoorPanel(); return;
     }
