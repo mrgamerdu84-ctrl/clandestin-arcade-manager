@@ -1,24 +1,176 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import "../game/cosmic-coin.css";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Cosmic Coin — salle d'arcade clandestine 3D" },
+      {
+        name: "description",
+        content:
+          "Été 1988 : gère le Cosmic Coin, une arcade néon et son arrière-salle clandestine. Pose des bornes, planque les machines et survis aux descentes de police.",
+      },
+      { property: "og:title", content: "Cosmic Coin — salle d'arcade clandestine 3D" },
+      {
+        property: "og:description",
+        content:
+          "Jeu de gestion 3D : arcade rétro le jour, salle de jeu illégale la nuit. Fais monter les jetons sans faire monter la suspicion.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: GamePage,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function GamePage() {
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+
+    import("../game/cosmicCoin").then((mod) => {
+      if (cancelled) return;
+      cleanup = mod.startCosmicCoin();
+    });
+
+    return () => {
+      cancelled = true;
+      cleanup?.();
+      started.current = false;
+    };
+  }, []);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div id="app">
+      <h1 className="sr-only-title">Cosmic Coin — salle d'arcade clandestine</h1>
+      <div id="viewport">
+        <div id="title">
+          COSMIC COIN<span id="stageLabel">SALLE D'ARCADE</span>
+        </div>
+        <div id="hud">
+          <div className="stat">
+            💰 <b id="money">0</b>¢
+          </div>
+          <div className="stat">
+            ⭐ <b id="rep">0</b>
+          </div>
+          <div className="stat">
+            📅 J<b id="day">1</b>
+          </div>
+          <div className="stat">
+            🎯 Dette <b id="debt">400</b>¢
+          </div>
+          <div className="stat" id="suspStat">
+            🚨 <b id="susp">0</b>%
+          </div>
+        </div>
+        <div id="suspWrap">
+          <div id="suspFill" />
+        </div>
+        <canvas id="three" />
+        <div id="raidBanner">
+          <div id="raidText">DESCENTE !</div>
+        </div>
+        <div id="hint">
+          🖱️ glisser: tourner &nbsp; molette: zoom &nbsp; clic sur une case: poser &nbsp; clic sur une
+          machine: pivoter/vendre
+        </div>
+        <button id="menuToggle" type="button">
+          🕹️ BOUTIQUE
+        </button>
+        <button id="exteriorBtn" type="button">
+          🏙️ EXTÉRIEUR
+        </button>
+      </div>
+
+      <div id="sidebar">
+        <div id="dragHandle">▲ BOUTIQUE ▲</div>
+        <h3>Arrière-salle</h3>
+        <div id="backroomList" />
+        <h3>Boutique</h3>
+        <div id="itemList" />
+        <h3>Décoration</h3>
+        <div id="decorList" />
+        <h3>Personnel</h3>
+        <div id="staffList" />
+        <div id="expandBox">
+          <div id="expandText">Chargement...</div>
+          <button className="btn pink" id="expandBtn" type="button">
+            AGRANDIR
+          </button>
+        </div>
+        <div id="log" />
+        <div id="controlsRow">
+          <button className="btn" id="pauseBtn" type="button">
+            ⏸ Pause
+          </button>
+          <button className="btn pink" id="resetBtn" type="button">
+            ↺ Reset
+          </button>
+        </div>
+      </div>
+
+      <div id="machineMenu">
+        <div className="mTitle" id="mmTitle">
+          Machine
+        </div>
+        <button id="mmRotate" type="button">
+          🔄 Pivoter
+        </button>
+        <button id="mmSell" className="sell" type="button">
+          💰 Vendre
+        </button>
+        <button id="mmClose" className="close" type="button">
+          ✕ Fermer
+        </button>
+      </div>
+
+      <div id="loadModal">
+        <div className="card">
+          <h2>Chargement du Cosmic Coin…</h2>
+          <p id="loadText">On rallume les néons et on dépoussière la porte du fond…</p>
+        </div>
+      </div>
+
+      <div id="storyModal" style={{ display: "none" }}>
+        <div className="card">
+          <h2>COSMIC COIN — 1988</h2>
+          <p>
+            <b>Été 1988.</b> Ta grand-tante Rosa te lègue le <i>Cosmic Coin</i>, une arcade fermée
+            depuis trois ans — et une dette de 400¢ que la banque réclame déjà.
+          </p>
+          <p>
+            Les jetons honnêtes ne suffiront jamais à temps. Derrière le mur du fond, Rosa a laissé
+            une porte : l'ancienne <b>salle clandestine</b> du quartier. Arcade le jour, mises
+            interdites la nuit.
+          </p>
+          <ul>
+            <li>🕹️ Choisis une machine dans la boutique puis clique une case au sol.</li>
+            <li>🚪 Rouvre l'arrière-salle : les machines clandestines rapportent x2,3.</li>
+            <li>🚨 Chaque mise fait monter la <b>suspicion</b>. Blanchis, arrose l'inspecteur.</li>
+            <li>👮 En pleine descente, planque tout avant la fin du compte à rebours.</li>
+            <li>⚖️ Trois descentes ratées et le juge met les scellés.</li>
+          </ul>
+          <button className="btn pink" id="closeStoryBtn" type="button">
+            OUVRIR LA SALLE ▶
+          </button>
+        </div>
+      </div>
+
+      <div id="eventModal" style={{ display: "none" }}>
+        <div className="card">
+          <h2 id="eventTitle" />
+          <p id="eventText" />
+          <button className="btn" id="closeEventBtn" type="button">
+            CONTINUER
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
