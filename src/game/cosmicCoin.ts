@@ -3851,6 +3851,7 @@ function spawnGrime(){
   }
 
   roomGroup.add(grimeGroup);
+  console.log('[grime] piles', left, grimeGroup.children.length, grimeGroup.children[0] && grimeGroup.children[0].position.toArray());
 }
 function cleanOne(){
   if((state.grime|0)<=0){ log("La salle est déjà nickel."); return; }
