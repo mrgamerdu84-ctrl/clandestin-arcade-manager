@@ -1600,6 +1600,87 @@ const EXT_BUILDERS = {
   CRATE: ()=>{ const g=group(); const c=box(0.5,0.45,0.5,'#8a5f38'); c.position.y=0.23; g.add(c); const t=box(0.52,0.05,0.52,'#6d4a2a'); t.position.y=0.47; g.add(t); return g; },
   BARREL: ()=>{ const g=group(); const b=cyl(0.24,0.24,0.7,'#b5462f',14); b.position.y=0.35; g.add(b); const r=cyl(0.25,0.25,0.06,'#2a2a30',14); r.position.y=0.5; g.add(r); return g; },
   HYDRANT: ()=>{ const g=group(); const b=cyl(0.09,0.11,0.42,'#c92a2a',10); b.position.y=0.21; g.add(b); const cap=sphere(0.1,'#c92a2a'); cap.position.y=0.44; g.add(cap); [-0.13,0.13].forEach(x=>{ const n=cyl(0.04,0.04,0.1,'#8f1f1f',8); n.rotation.z=Math.PI/2; n.position.set(x,0.28,0); g.add(n); }); return g; },
+  /* --- décos de façade / rue achetables dans la boutique extérieure --- */
+  WALL_NEON: ()=>{
+    const g = group();
+    const back = box(0.12,0.7,1.6,'#150a1e'); back.position.set(0,1.7,0); g.add(back);
+    const tube = box(0.08,0.12,1.4,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.5}); tube.position.set(-0.08,1.9,0); g.add(tube);
+    const tube2 = box(0.08,0.12,1.0,'#00f3ff',{emissive:0x00f3ff,emissiveIntensity:1.5}); tube2.position.set(-0.08,1.55,0); g.add(tube2);
+    g.add(registerNightHalo(makeGlowSprite('#ff2e88', 1.6), 0.6)).position.set(-0.3,1.75,0);
+    return g;
+  },
+  NEON_ARROW: ()=>{
+    const g = group();
+    const pole = cyl(0.05,0.05,2.0,'#3a3a44'); pole.position.y=1.0; g.add(pole);
+    const panel = box(0.1,0.5,1.1,'#ffd23f',{emissive:0xffd23f,emissiveIntensity:1.3}); panel.position.set(0,2.1,0.3); g.add(panel);
+    const tip = box(0.1,0.35,0.35,'#ffd23f',{emissive:0xffd23f,emissiveIntensity:1.3}); tip.position.set(0,2.1,0.95); tip.rotation.x=Math.PI/4; g.add(tip);
+    return g;
+  },
+  GRAFFITI: ()=>{
+    const g = group();
+    const wall = box(0.1,1.6,2.2,'#2a2340'); wall.position.set(0,0.8,0); g.add(wall);
+    const cols = ['#ff2e88','#2fd4c8','#ffd23f','#8b5cf6'];
+    for(let i=0;i<7;i++){
+      const s = box(0.04,0.18+Math.random()*0.5,0.18+Math.random()*0.4, cols[i%4],{emissive:new THREE.Color(cols[i%4]).getHex(),emissiveIntensity:0.35});
+      s.position.set(-0.07, 0.4+Math.random()*0.9, -0.9+i*0.3); s.rotation.x=(Math.random()-0.5)*0.6; g.add(s);
+    }
+    return g;
+  },
+  BULB_STRING: ()=>{
+    const g = group();
+    [-1.1,1.1].forEach(z=>{ const p=cyl(0.04,0.04,2.4,'#3a3a44'); p.position.set(0,1.2,z); g.add(p); });
+    for(let i=0;i<9;i++){
+      const t = i/8, sag = Math.sin(t*Math.PI)*0.3;
+      const b = sphere(0.07,'#fff0c0',{emissive:0xffcc66,emissiveIntensity:1.3});
+      b.position.set(0, 2.3-sag, -1.1+t*2.2); g.add(b);
+    }
+    return g;
+  },
+  POSTER_WALL: ()=>{
+    const g = group();
+    const frame = box(0.1,1.3,0.95,'#150a1e'); frame.position.set(0,1.2,0); g.add(frame);
+    const art = box(0.05,1.1,0.78,'#8b5cf6',{emissive:0x8b5cf6,emissiveIntensity:0.5}); art.position.set(-0.06,1.2,0); g.add(art);
+    const band = box(0.06,0.18,0.78,'#ffd23f',{emissive:0xffd23f,emissiveIntensity:0.7}); band.position.set(-0.07,0.85,0); g.add(band);
+    return g;
+  },
+  AWNING: ()=>{
+    const g = group();
+    for(let i=0;i<6;i++){
+      const s = box(0.9,0.08,0.34, i%2 ? '#ff2e88' : '#f6f1ff');
+      s.position.set(0.3,1.95-0.12,-0.9+i*0.34); s.rotation.z=-0.35; g.add(s);
+    }
+    const bar = box(0.06,0.06,2.1,'#3a3a44'); bar.position.set(0,2.05,0); g.add(bar);
+    [-1.0,1.0].forEach(z=>{ const p=cyl(0.03,0.03,0.6,'#3a3a44'); p.position.set(0.55,1.7,z); p.rotation.x=0.2; g.add(p); });
+    return g;
+  },
+  VELVET_ROPE: ()=>{
+    const g = group();
+    [-0.8,0.8].forEach(z=>{
+      const p = cyl(0.06,0.08,0.9,'#e8b64a',12); p.position.set(0,0.45,z); g.add(p);
+      const k = sphere(0.09,'#e8b64a'); k.position.set(0,0.94,z); g.add(k);
+    });
+    const rope = cyl(0.045,0.045,1.5,'#8f1f2e',10); rope.rotation.x=Math.PI/2; rope.position.set(0,0.78,0); g.add(rope);
+    return g;
+  },
+  PALM_NEON: ()=>{
+    const g = group();
+    const trunk = cyl(0.09,0.13,2.2,'#5b4326',10); trunk.position.y=1.1; g.add(trunk);
+    for(let i=0;i<6;i++){
+      const a = i*Math.PI/3;
+      const leaf = box(0.9,0.05,0.28,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:0.8});
+      leaf.position.set(Math.cos(a)*0.45,2.2,Math.sin(a)*0.45); leaf.rotation.y=-a; leaf.rotation.z=-0.3; g.add(leaf);
+    }
+    return g;
+  },
+  MARQUEE_SIGN: ()=>{
+    const g = group();
+    const pole = cyl(0.08,0.08,1.6,'#3a3a44'); pole.position.y=0.8; g.add(pole);
+    const panel = makeSignPanel(clubBrand.name.slice(0,12).toUpperCase() || 'CLUB', clubBrand.color, 2.2, 0.7);
+    panel.position.set(0,2.0,0); g.add(panel);
+    const back = box(0.08,0.8,2.3,'#150a1e'); back.position.set(0.06,2.0,0); g.add(back);
+    g.add(registerNightHalo(makeGlowSprite(clubBrand.color, 2.0), 0.7)).position.set(-0.3,2.0,0);
+    return g;
+  },
   BENCH_EXT: ()=>{
     const g = group();
     const seat = box(1.2,0.07,0.38,'#8a5f38'); seat.position.y=0.42; g.add(seat);
