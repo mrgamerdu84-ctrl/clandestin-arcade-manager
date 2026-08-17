@@ -3862,7 +3862,11 @@ function bankRepay(amount){
     return;
   }
   state.money -= pay; state.debt -= pay;
-  log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢, caisse ${Math.round(state.money)}¢).`);
+  const summary = `<span class="ev-good">🏦 Remboursement</span><br>
+• Montant versé : <b>${Math.round(pay)}¢</b><br>
+• Dette restante : <b>${Math.max(0, Math.round(state.debt))}¢</b><br>
+• Caisse actuelle : <b>${Math.round(state.money)}¢</b>`;
+  log(summary);
   checkDebtCleared();
   updateHUD();
   renderBankPanel();
