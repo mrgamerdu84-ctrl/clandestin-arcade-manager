@@ -506,6 +506,24 @@ body.optsOn #lightBar{
   top:auto !important; bottom:64px; left:8px; right:8px; width:auto; z-index:55;
 }
 
+/* panneau Actions : sauvegarde / chargement / quitter */
+#actsBar{ display:none; }
+body.actsOn #actsBar{
+  position:absolute; left:8px; right:8px; bottom:64px; z-index:57;
+  display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+  padding:8px; border-radius:14px;
+  background:rgba(14,5,28,.94); border:1px solid rgba(255,91,214,.4);
+  backdrop-filter:blur(10px);
+}
+#actsBar button{
+  flex:1 1 140px; min-height:42px; cursor:pointer;
+  background:rgba(34,14,58,.9); border:1px solid #5b2a9e; border-radius:11px;
+  color:#ffe9fb; font-family:inherit; font-size:12px; letter-spacing:.4px;
+  touch-action:manipulation;
+}
+#actsBar button.danger{ background:#ff3ea5; border-color:#ff8ccb; color:#12061c; font-weight:800; }
+
+
 /* empilement propre au-dessus du dock */
 #hoodBar{ bottom:64px; left:8px; right:8px; max-width:none; z-index:50; justify-content:center; }
 #hoodPanel, #stylePanel{ bottom:118px; z-index:52; max-height:min(40vh, 320px); }
