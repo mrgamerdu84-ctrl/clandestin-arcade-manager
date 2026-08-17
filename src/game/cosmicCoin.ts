@@ -892,6 +892,46 @@ Object.assign(BUILDERS, {
     const led = cyl(0.06,0.06,0.06, PAL.teal,10); led.rotation.x=Math.PI/2; led.position.set(-0.5,1.7,0.12); g.add(led);
     return g;
   },
+  'bar': ()=>{
+    const g = group();
+    const counter = box(1.9,1.0,0.6,'#3b2350'); counter.position.y=0.5; g.add(counter);
+    const top = box(2.0,0.09,0.7,'#e8b64a',{metalness:0.5,roughness:0.3}); top.position.y=1.03; g.add(top);
+    const rail = box(2.0,0.06,0.08,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.1}); rail.position.set(0,0.72,0.33); g.add(rail);
+    for(let i=0;i<5;i++){ const b=cyl(0.05,0.05,0.28,i%2?'#2fd4c8':'#ffd23f',8); b.position.set(-0.7+i*0.35,1.2,-0.15); g.add(b); }
+    const shelf = box(1.6,0.06,0.25,'#2a1c3a'); shelf.position.set(0,1.45,-0.28); g.add(shelf);
+    return g;
+  },
+  'sofa': ()=>{
+    const g = group();
+    const seat = box(1.5,0.35,0.7,'#8f1f2e'); seat.position.y=0.3; g.add(seat);
+    const back = box(1.5,0.55,0.18,'#8f1f2e'); back.position.set(0,0.65,-0.28); g.add(back);
+    [-0.72,0.72].forEach(x=>{ const a=box(0.16,0.5,0.7,'#6e1724'); a.position.set(x,0.45,0); g.add(a); });
+    const table = box(0.7,0.06,0.5,'#e8b64a'); table.position.set(0,0.42,0.75); g.add(table);
+    return g;
+  },
+  'discoball': ()=>{
+    const g = group();
+    const pole = cyl(0.03,0.03,0.9,'#3a3a44'); pole.position.y=2.05; g.add(pole);
+    const ball = sphere(0.32,'#cfd6e6',{metalness:0.9,roughness:0.15,emissive:0x8899bb,emissiveIntensity:0.5});
+    ball.position.y=1.45; g.add(ball);
+    const halo = makeGlowSprite('#9ffff5', 1.6); halo.position.y=1.45; g.add(halo);
+    g.userData.spin = ball;
+    return g;
+  },
+  'speaker': ()=>{
+    const g = group();
+    const stack = box(0.6,1.6,0.55,'#141024'); stack.position.y=0.8; g.add(stack);
+    [0.45,1.05,1.45].forEach((y,i)=>{ const c=cyl(i?0.16:0.22,i?0.16:0.22,0.06,'#2a2340',14); c.rotation.x=Math.PI/2; c.position.set(0,y,0.29); g.add(c); });
+    const led = box(0.5,0.05,0.03,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:1.3}); led.position.set(0,1.66,0.28); g.add(led);
+    return g;
+  },
+  'wallart': ()=>{
+    const g = group();
+    const panel = box(1.2,1.5,0.08,'#150a1e'); panel.position.y=1.3; g.add(panel);
+    const art = box(1.0,1.3,0.05,'#8b5cf6',{emissive:0x8b5cf6,emissiveIntensity:0.7}); art.position.set(0,1.3,0.06); g.add(art);
+    const tube = box(1.1,0.07,0.07,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.4}); tube.position.set(0,2.1,0.06); g.add(tube);
+    return g;
+  },
   'vip': ()=>{
     const g = group();
     const table = cyl(0.85,0.85,0.16, '#1f5b3a', 20); table.position.y=0.78; g.add(table);
@@ -1002,6 +1042,32 @@ function danceCharacter(mesh, t, style){
 /* ============================================================
    STYLE PERSONNALISÉ — murs, détails, sol (sauvegardé)
    ============================================================ */
+/* ---------- identité de la boîte : nom + enseigne (achetables) ---------- */
+const BRAND_KEY = 'cc_brand_v1';
+const SIGN_STYLES = [
+  {id:'neonpink', label:'Néon rose',   color:'#ff2e88', price:0},
+  {id:'ice',      label:'Bleu glace',  color:'#00f3ff', price:70},
+  {id:'gold',     label:'Or casino',   color:'#ffd23f', price:110},
+  {id:'emerald',  label:'Vert émeraude', color:'#2fd4c8', price:90},
+  {id:'violet',   label:'Violet UV',   color:'#8b5cf6', price:120},
+];
+const RENAME_COST = 30;
+const BRAND_DEFAULT = {name:'COSMIC COIN', sign:'neonpink', owned:['neonpink']};
+let clubBrand = {...BRAND_DEFAULT};
+try{
+  const raw = localStorage.getItem(BRAND_KEY);
+  if(raw){
+    const b = JSON.parse(raw);
+    clubBrand = {...BRAND_DEFAULT, ...b};
+    clubBrand.owned = Array.isArray(clubBrand.owned) ? clubBrand.owned : ['neonpink'];
+    if(!clubBrand.owned.includes('neonpink')) clubBrand.owned.push('neonpink');
+  }
+}catch(e){}
+Object.defineProperty(clubBrand, 'color', {
+  get(){ return (SIGN_STYLES.find(s=>s.id===clubBrand.sign) || SIGN_STYLES[0]).color; },
+});
+function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned})); }catch(e){} }
+
 const STYLE_KEY = 'cc_style_v1';
 const STYLE_DEFAULT = {wall:'#2b2438', trim:'#f4a13c', trim2:'#6b4e9e', floor:'#ffffff', detail:'stripes'};
 const WALL_DETAILS = [
@@ -1600,6 +1666,87 @@ const EXT_BUILDERS = {
   CRATE: ()=>{ const g=group(); const c=box(0.5,0.45,0.5,'#8a5f38'); c.position.y=0.23; g.add(c); const t=box(0.52,0.05,0.52,'#6d4a2a'); t.position.y=0.47; g.add(t); return g; },
   BARREL: ()=>{ const g=group(); const b=cyl(0.24,0.24,0.7,'#b5462f',14); b.position.y=0.35; g.add(b); const r=cyl(0.25,0.25,0.06,'#2a2a30',14); r.position.y=0.5; g.add(r); return g; },
   HYDRANT: ()=>{ const g=group(); const b=cyl(0.09,0.11,0.42,'#c92a2a',10); b.position.y=0.21; g.add(b); const cap=sphere(0.1,'#c92a2a'); cap.position.y=0.44; g.add(cap); [-0.13,0.13].forEach(x=>{ const n=cyl(0.04,0.04,0.1,'#8f1f1f',8); n.rotation.z=Math.PI/2; n.position.set(x,0.28,0); g.add(n); }); return g; },
+  /* --- décos de façade / rue achetables dans la boutique extérieure --- */
+  WALL_NEON: ()=>{
+    const g = group();
+    const back = box(0.12,0.7,1.6,'#150a1e'); back.position.set(0,1.7,0); g.add(back);
+    const tube = box(0.08,0.12,1.4,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.5}); tube.position.set(-0.08,1.9,0); g.add(tube);
+    const tube2 = box(0.08,0.12,1.0,'#00f3ff',{emissive:0x00f3ff,emissiveIntensity:1.5}); tube2.position.set(-0.08,1.55,0); g.add(tube2);
+    const halo = registerNightHalo(makeGlowSprite('#ff2e88', 1.6), 0.6); halo.position.set(-0.3,1.75,0); g.add(halo);
+    return g;
+  },
+  NEON_ARROW: ()=>{
+    const g = group();
+    const pole = cyl(0.05,0.05,2.0,'#3a3a44'); pole.position.y=1.0; g.add(pole);
+    const panel = box(0.1,0.5,1.1,'#ffd23f',{emissive:0xffd23f,emissiveIntensity:1.3}); panel.position.set(0,2.1,0.3); g.add(panel);
+    const tip = box(0.1,0.35,0.35,'#ffd23f',{emissive:0xffd23f,emissiveIntensity:1.3}); tip.position.set(0,2.1,0.95); tip.rotation.x=Math.PI/4; g.add(tip);
+    return g;
+  },
+  GRAFFITI: ()=>{
+    const g = group();
+    const wall = box(0.1,1.6,2.2,'#2a2340'); wall.position.set(0,0.8,0); g.add(wall);
+    const cols = ['#ff2e88','#2fd4c8','#ffd23f','#8b5cf6'];
+    for(let i=0;i<7;i++){
+      const s = box(0.04,0.18+Math.random()*0.5,0.18+Math.random()*0.4, cols[i%4],{emissive:new THREE.Color(cols[i%4]).getHex(),emissiveIntensity:0.35});
+      s.position.set(-0.07, 0.4+Math.random()*0.9, -0.9+i*0.3); s.rotation.x=(Math.random()-0.5)*0.6; g.add(s);
+    }
+    return g;
+  },
+  BULB_STRING: ()=>{
+    const g = group();
+    [-1.1,1.1].forEach(z=>{ const p=cyl(0.04,0.04,2.4,'#3a3a44'); p.position.set(0,1.2,z); g.add(p); });
+    for(let i=0;i<9;i++){
+      const t = i/8, sag = Math.sin(t*Math.PI)*0.3;
+      const b = sphere(0.07,'#fff0c0',{emissive:0xffcc66,emissiveIntensity:1.3});
+      b.position.set(0, 2.3-sag, -1.1+t*2.2); g.add(b);
+    }
+    return g;
+  },
+  POSTER_WALL: ()=>{
+    const g = group();
+    const frame = box(0.1,1.3,0.95,'#150a1e'); frame.position.set(0,1.2,0); g.add(frame);
+    const art = box(0.05,1.1,0.78,'#8b5cf6',{emissive:0x8b5cf6,emissiveIntensity:0.5}); art.position.set(-0.06,1.2,0); g.add(art);
+    const band = box(0.06,0.18,0.78,'#ffd23f',{emissive:0xffd23f,emissiveIntensity:0.7}); band.position.set(-0.07,0.85,0); g.add(band);
+    return g;
+  },
+  AWNING: ()=>{
+    const g = group();
+    for(let i=0;i<6;i++){
+      const s = box(0.9,0.08,0.34, i%2 ? '#ff2e88' : '#f6f1ff');
+      s.position.set(0.3,1.95-0.12,-0.9+i*0.34); s.rotation.z=-0.35; g.add(s);
+    }
+    const bar = box(0.06,0.06,2.1,'#3a3a44'); bar.position.set(0,2.05,0); g.add(bar);
+    [-1.0,1.0].forEach(z=>{ const p=cyl(0.03,0.03,0.6,'#3a3a44'); p.position.set(0.55,1.7,z); p.rotation.x=0.2; g.add(p); });
+    return g;
+  },
+  VELVET_ROPE: ()=>{
+    const g = group();
+    [-0.8,0.8].forEach(z=>{
+      const p = cyl(0.06,0.08,0.9,'#e8b64a',12); p.position.set(0,0.45,z); g.add(p);
+      const k = sphere(0.09,'#e8b64a'); k.position.set(0,0.94,z); g.add(k);
+    });
+    const rope = cyl(0.045,0.045,1.5,'#8f1f2e',10); rope.rotation.x=Math.PI/2; rope.position.set(0,0.78,0); g.add(rope);
+    return g;
+  },
+  PALM_NEON: ()=>{
+    const g = group();
+    const trunk = cyl(0.09,0.13,2.2,'#5b4326',10); trunk.position.y=1.1; g.add(trunk);
+    for(let i=0;i<6;i++){
+      const a = i*Math.PI/3;
+      const leaf = box(0.9,0.05,0.28,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:0.8});
+      leaf.position.set(Math.cos(a)*0.45,2.2,Math.sin(a)*0.45); leaf.rotation.y=-a; leaf.rotation.z=-0.3; g.add(leaf);
+    }
+    return g;
+  },
+  MARQUEE_SIGN: ()=>{
+    const g = group();
+    const pole = cyl(0.08,0.08,1.6,'#3a3a44'); pole.position.y=0.8; g.add(pole);
+    const panel = makeSignPanel(clubBrand.name.slice(0,12).toUpperCase() || 'CLUB', clubBrand.color, 2.2, 0.7);
+    panel.position.set(0,2.0,0); g.add(panel);
+    const back = box(0.08,0.8,2.3,'#150a1e'); back.position.set(0.06,2.0,0); g.add(back);
+    const halo = registerNightHalo(makeGlowSprite(clubBrand.color, 2.0), 0.7); halo.position.set(-0.3,2.0,0); g.add(halo);
+    return g;
+  },
   BENCH_EXT: ()=>{
     const g = group();
     const seat = box(1.2,0.07,0.38,'#8a5f38'); seat.position.y=0.42; g.add(seat);
@@ -2272,8 +2419,8 @@ function buildExteriorBuilding(stageIdx, cols, rows){
 
   // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
   // qui traverse le mur comme le faisait le sprite billboard)
-  const signText = casino ? "CASINO" : (stageIdx===1 ? "ARCADE" : "COSMIC COIN");
-  const signColor = casino?'#ffd23f':'#ff2e88';
+  const signText = (clubBrand.name || 'COSMIC COIN').slice(0,14).toUpperCase();
+  const signColor = clubBrand.color;
   const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
   signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
   signPanel.rotation.y = -Math.PI/2;
@@ -2375,6 +2522,15 @@ const HOOD_ITEMS = [
   {id:'car',       label:'🚗 Voiture',      key:'CAR_SEDAN',        spec:{mode:'footprint',target:1.05}},
   {id:'taxi',      label:'🚕 Taxi',         key:'CAR_TAXI',         spec:{mode:'footprint',target:1.05}},
   {id:'van',       label:'🚐 Camionnette',  key:'CAR_VAN',          spec:{mode:'footprint',target:1.05}},
+  {id:'wallneon',  label:'💗 Néon mural',   key:'WALL_NEON',        spec:{mode:'height',target:2.4}},
+  {id:'neonarrow', label:'➡️ Flèche néon',  key:'NEON_ARROW',       spec:{mode:'height',target:2.4}},
+  {id:'graffiti',  label:'🎨 Graffiti',     key:'GRAFFITI',         spec:{mode:'height',target:1.7}},
+  {id:'bulbs',     label:'✨ Guirlande',    key:'BULB_STRING',      spec:{mode:'height',target:2.4}},
+  {id:'posterext', label:'🖼️ Affiche géante', key:'POSTER_WALL',   spec:{mode:'height',target:1.9}},
+  {id:'awning',    label:'⛱️ Store banne',  key:'AWNING',           spec:{mode:'height',target:2.1}},
+  {id:'rope',      label:'🚩 Cordon VIP',   key:'VELVET_ROPE',      spec:{mode:'height',target:1.0}},
+  {id:'palmneon',  label:'🌴 Palmier néon', key:'PALM_NEON',        spec:{mode:'height',target:2.4}},
+  {id:'marquee',   label:'🪧 Enseigne perso', key:'MARQUEE_SIGN',   spec:{mode:'height',target:2.6}},
 ];
 /* prix des éléments du quartier : on paie avec les jetons gagnés */
 const HOOD_COST = {
@@ -2382,6 +2538,8 @@ const HOOD_COST = {
   house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
   city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
   fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
+  wallneon:70, neonarrow:55, graffiti:30, bulbs:35, posterext:40,
+  awning:60, rope:45, palmneon:65, marquee:150,
 };
 function hoodCost(id){ return HOOD_COST[id] ?? 20; }
 function hoodRefund(id){ return Math.round(hoodCost(id)*0.5); }
@@ -2603,6 +2761,7 @@ function refreshStyleUI(){
   });
   const bill = document.getElementById('styleCost');
   if(bill) bill.innerText = `Repeindre une surface : ${PAINT_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+  if(typeof refreshBrandUI === 'function') refreshBrandUI();
 }
 let styleOpen = false;
 function initStyleUI(){
@@ -2649,6 +2808,67 @@ function initStyleUI(){
   refreshStyleUI();
 }
 
+
+
+/* ---------- boutique enseigne : nom de la boîte + couleurs d'enseigne ---------- */
+function applyBrandToTitle(){
+  const t = document.getElementById('title');
+  if(t && t.firstChild) t.firstChild.nodeValue = (clubBrand.name || 'COSMIC COIN').toUpperCase();
+}
+function rebuildExteriorSign(){
+  if(state.dims) buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
+  if(typeof rebuildHood === 'function') rebuildHood();
+  applyBrandToTitle();
+}
+function refreshBrandUI(){
+  const input = document.getElementById('brandName');
+  if(input && document.activeElement !== input) input.value = clubBrand.name;
+  const list = document.getElementById('brandSigns');
+  if(list){
+    list.querySelectorAll('.styleDet').forEach(b=>{
+      const def = SIGN_STYLES.find(s=>s.id===b.dataset.sign);
+      const owned = clubBrand.owned.includes(def.id);
+      b.classList.toggle('on', clubBrand.sign===def.id);
+      b.classList.toggle('locked', !owned);
+      b.innerText = owned ? def.label : `${def.label} · ${def.price}¢`;
+      b.style.borderColor = def.color;
+    });
+  }
+  const info = document.getElementById('brandInfo');
+  if(info) info.innerText = `Renommer la boîte : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+}
+function initBrandUI(){
+  const list = document.getElementById('brandSigns');
+  if(list){
+    list.innerHTML = SIGN_STYLES.map(s=>`<button type="button" class="styleDet" data-sign="${s.id}">${s.label}</button>`).join('');
+    list.querySelectorAll('.styleDet').forEach(b=>{
+      b.onclick = ()=>{
+        const def = SIGN_STYLES.find(s=>s.id===b.dataset.sign);
+        if(!clubBrand.owned.includes(def.id)){
+          if(!payFor(def.price, `l'enseigne « ${def.label} »`)) { refreshBrandUI(); return; }
+          clubBrand.owned.push(def.id);
+          log(`Nouvelle enseigne débloquée : ${def.label}.`);
+        }
+        clubBrand.sign = def.id;
+        writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+      };
+    });
+  }
+  const save = document.getElementById('brandSave');
+  const input = document.getElementById('brandName');
+  if(save && input){
+    save.onclick = ()=>{
+      const val = (input.value || '').trim().slice(0,14);
+      if(!val || val.toUpperCase() === clubBrand.name.toUpperCase()){ refreshBrandUI(); return; }
+      if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
+      clubBrand.name = val.toUpperCase();
+      writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+      log(`La boîte s'appelle maintenant « ${clubBrand.name} ».`);
+    };
+  }
+  applyBrandToTitle();
+  refreshBrandUI();
+}
 
 /* ---------- retouches du décor d'origine (déplacer / retirer / remettre) ---------- */
 const OVR_KEY = 'cc_hood_ovr_v1';
@@ -3035,6 +3255,11 @@ const DECOR = [
   {id:'jukebox', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
   {id:'safe', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
   {id:'falsewall', name:'Faux mur automatique', color:PAL.purpleDark, price:260, repBoost:0.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'falsewall'},
+  {id:'bar', name:'Comptoir de bar', color:'#e8b64a', price:180, repBoost:1.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'sofa', name:'Canapé lounge', color:'#8f1f2e', price:110, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'discoball', name:'Boule à facettes', color:'#cfd6e6', price:140, repBoost:1.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'speaker', name:'Enceinte de scène', color:'#141024', price:95, repBoost:0.8, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'wallart', name:'Fresque murale néon', color:'#8b5cf6', price:75, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'statue', name:'Statue dorée', color:PAL.casinoGold||'#e8b64a', price:150, repBoost:1.2, repReq:0, stageReq:2, earn:[0,0], time:0, passive:true, decor:true},
 ];
 const STAFF = [
@@ -4802,6 +5027,7 @@ preloadModels(()=>{
   initBigScreen();
   initTapPlace();
   initCamPad();
+  initBrandUI();
   initStyleUI();
   initWallUI();
 
