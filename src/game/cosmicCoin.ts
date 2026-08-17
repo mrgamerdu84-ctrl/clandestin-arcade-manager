@@ -1097,6 +1097,7 @@ const COSMETICS = [
   {id:'posters',    label:'🖼️ Affiches murales',   price:35,  zone:'in'},
   {id:'columns',    label:'🏛️ Colonnes d\u2019angle', price:60, zone:'in'},
   {id:'innerneon',  label:'💡 Barre néon intérieure', price:55, zone:'in'},
+  {id:'partition',  label:'🧱 Cloison arrière-salle', price:60, zone:'in'},
   {id:'facadesign', label:'🪧 Enseigne du nom',    price:120, zone:'out'},
   {id:'roofneon',   label:'📛 Néon de toit',       price:90,  zone:'out'},
   {id:'entryneons', label:'🈺 Enseignes d\u2019entrée', price:75, zone:'out'},
