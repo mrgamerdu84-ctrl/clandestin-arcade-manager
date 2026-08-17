@@ -4114,7 +4114,7 @@ canvas.addEventListener('click', (e)=>{
   mesh.position.set(p.x+(Math.random()*2-1)*jitter, 0, p.z+(Math.random()*2-1)*jitter);
   mesh.rotation.y = Math.floor(Math.random()*4)*(Math.PI/2);
   machinesGroup.add(mesh);
-  const machine = {x:gx,z:gz,def,mesh,busy:false,broken:false};
+  const machine = {x:gx,z:gz,def,mesh,busy:false,broken:false,tint:null,priceMult:1,rigged:false};
   mesh.userData.machine = machine;
   state.grid[gz][gx]=machine;
   state.machines.push(machine);
@@ -4147,7 +4147,10 @@ function openMachineMenu(m, clientX, clientY){
   sellBtn.title = m.busy ? "Un client l'utilise en ce moment" : "";
   rotateBtn.disabled = false;
 
-  const menuW = 190, menuH = 170;
+  renderMachineTints(m);
+  renderMachinePricing(m);
+
+  const menuW = 210, menuH = 320;
   let left = clientX + 10, top = clientY + 10;
   if(left + menuW > window.innerWidth) left = clientX - menuW - 10;
   if(top + menuH > window.innerHeight) top = clientY - menuH - 10;
@@ -4155,6 +4158,62 @@ function openMachineMenu(m, clientX, clientY){
   machineMenuEl.style.top = Math.max(6,top)+'px';
   machineMenuEl.classList.add('open');
 }
+/* pastilles de couleur */
+function renderMachineTints(m){
+  const row = document.getElementById('mmTints');
+  if(!row) return;
+  row.innerHTML = '';
+  MACHINE_TINTS.forEach(t=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tintDot' + ((m.tint||null) === t.hex ? ' on' : '');
+    b.title = t.label;
+    b.style.background = t.hex || 'linear-gradient(135deg,#666,#ddd)';
+    b.onclick = ()=>{
+      m.tint = t.hex;
+      applyMachineTint(m.mesh, t.hex);
+      renderMachineTints(m);
+      if(typeof writeSave === 'function') writeSave();
+    };
+    row.appendChild(b);
+  });
+}
+
+/* tarif + mode arnaque */
+function renderMachinePricing(m){
+  const slider = document.getElementById('mmPrice');
+  const label  = document.getElementById('mmPriceVal');
+  const rigBtn = document.getElementById('mmRig');
+  if(!slider || !label) return;
+  const mult = machinePriceMult(m);
+  slider.value = String(Math.round(mult*100));
+  const paint = ()=>{
+    const v = Math.min(2.5, Math.max(0.5, (+slider.value)/100));
+    m.priceMult = v;
+    const [lo,hi] = m.def.earn || [0,0];
+    const avg = Math.round(((lo+hi)/2) * v * (m.rigged?1.8:1));
+    const app = machineAppeal(m);
+    const crowd = app >= 0.9 ? 'affluence forte' : app >= 0.5 ? 'affluence normale' : 'peu de clients';
+    label.innerHTML = `Tarif ${Math.round(v*100)}% · ~${avg}¢/partie<br><span style="color:var(--dim)">${crowd}</span>`;
+  };
+  slider.oninput = ()=>{ paint(); };
+  slider.onchange = ()=>{ paint(); if(typeof writeSave === 'function') writeSave(); };
+  paint();
+  if(rigBtn){
+    rigBtn.innerText = m.rigged ? '🎲 Arrêter l\'arnaque' : '🎲 Truquer la machine';
+    rigBtn.classList.toggle('rig-on', !!m.rigged);
+    rigBtn.disabled = !!m.def.passive;
+    rigBtn.onclick = ()=>{
+      m.rigged = !m.rigged;
+      log(m.rigged
+        ? `🎲 ${m.def.name} truquée : gains ×1,8 mais les clients vont râler.`
+        : `${m.def.name} remise d'aplomb : plus d'arnaque.`);
+      renderMachinePricing(m);
+      if(typeof writeSave === 'function') writeSave();
+    };
+  }
+}
+
 function closeMachineMenu(){
   menuMachine = null;
   machineMenuEl.classList.remove('open');
@@ -4354,7 +4413,7 @@ function updateCustomers(dt){
         let scammed = false;
         if(c.target.rigged){
           gain = Math.round(gain * 1.8);
-          const risk = Math.min(0.55, 0.16 + riggedCount()*0.05) * (state.staff.bouncer || state.lookout ? 0.6 : 1);
+          const risk = Math.min(0.55, 0.16 + riggedCount()*0.05) * (state.staff.security || state.lookout ? 0.6 : 1);
           if(Math.random() < risk){
             scammed = true;
             state.rep = Math.max(0, state.rep - 0.9);
@@ -5384,7 +5443,8 @@ function serializeSave(){
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
     style: {...roomStyle},
     brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
-    machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
+    machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken,
+      tint:m.tint||null, priceMult:machinePriceMult(m), rigged:!!m.rigged})),
   };
 }
 function writeSave(){
@@ -5449,7 +5509,9 @@ function applySave(data){
     mesh.position.set(p.x, 0, p.z);
     mesh.rotation.y = sm.rot || 0;
     machinesGroup.add(mesh);
-    const machine = {x:sm.x, z:sm.z, def, mesh, busy:false, broken:!!sm.broken};
+    const machine = {x:sm.x, z:sm.z, def, mesh, busy:false, broken:!!sm.broken,
+      tint: sm.tint || null, priceMult: (typeof sm.priceMult==='number' ? sm.priceMult : 1), rigged: !!sm.rigged};
+    if(machine.tint) applyMachineTint(mesh, machine.tint);
     mesh.userData.machine = machine;
     state.grid[sm.z][sm.x] = machine;
     state.machines.push(machine);
