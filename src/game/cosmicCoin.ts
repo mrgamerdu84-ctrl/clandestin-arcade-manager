@@ -2949,6 +2949,7 @@ function initHoodEditor(){
 /* ---------- panneau STYLE : couleurs des murs, détail, sol ---------- */
 function applyStyle(){
   writeStyle();
+  if(typeof writeSave === 'function') writeSave();
   buildRoom(state.stage);
   refreshStyleUI();
 }
@@ -3106,7 +3107,7 @@ function initBrandUI(){
           log(`Nouvelle enseigne débloquée : ${def.label}.`);
         }
         clubBrand.sign = def.id;
-        writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+        writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       };
     });
   }
@@ -3118,7 +3119,7 @@ function initBrandUI(){
       if(!val || val.toUpperCase() === clubBrand.name.toUpperCase()){ refreshBrandUI(); return; }
       if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
       clubBrand.name = val.toUpperCase();
-      writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+      writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       log(`La boîte s'appelle maintenant « ${clubBrand.name} ».`);
     };
   }
@@ -5229,6 +5230,9 @@ function serializeSave(){
     danger: state.danger, closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
+    // personnalisations : murs/sol/motif + nom & enseigne de la boîte
+    style: {...roomStyle},
+    brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
   };
 }
@@ -5268,6 +5272,21 @@ function applySave(data){
     stats:{...state.stats, ...(data.stats||{})},
     logMsgs:data.logMsgs||[],
   });
+  // ---- personnalisations restaurées avant la construction de la salle ----
+  if(data.style && typeof data.style === 'object'){
+    roomStyle = {...STYLE_DEFAULT, ...data.style};
+    roomStyle.owned = Array.isArray(data.style.owned) ? data.style.owned.slice() : ['stripes','plain'];
+    if(!roomStyle.owned.includes('stripes')) roomStyle.owned.push('stripes');
+    if(!roomStyle.owned.includes('plain')) roomStyle.owned.push('plain');
+    writeStyle();
+  }
+  if(data.brand && typeof data.brand === 'object'){
+    clubBrand.name = data.brand.name || BRAND_DEFAULT.name;
+    clubBrand.sign = data.brand.sign || BRAND_DEFAULT.sign;
+    clubBrand.owned = Array.isArray(data.brand.owned) ? data.brand.owned.slice() : ['neonpink'];
+    if(!clubBrand.owned.includes('neonpink')) clubBrand.owned.push('neonpink');
+    writeBrand();
+  }
   initGrid();
   (data.machines||[]).forEach(sm=>{
     const def = MACHINES.find(m=>m.id===sm.id) || DECOR.find(d=>d.id===sm.id);
