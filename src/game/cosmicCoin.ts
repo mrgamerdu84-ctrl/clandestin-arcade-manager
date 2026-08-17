@@ -4012,8 +4012,11 @@ function moveWall(axis, delta){
     // refuse si des machines occupent la dernière rangée
     const occupied = state.machines.some(m=> axis==='cols' ? m.x >= next : m.z >= next);
     if(occupied){ log("Libère d'abord la rangée près du mur."); return; }
-    state.money += WALL_REFUND;
+    // on ne rembourse que les rangées réellement achetées (sinon : argent gratuit en rétrécissant la salle d'origine)
+    const bought = axis==='cols' ? (state.extraCols||0) : (state.extraRows||0);
+    if(bought > 0){ state.money += WALL_REFUND; state.stats.earned += WALL_REFUND; }
   }
+
   if(axis==='cols') state.extraCols = (state.extraCols||0) + delta;
   else state.extraRows = (state.extraRows||0) + delta;
   rebuildRoomKeepMachines();
