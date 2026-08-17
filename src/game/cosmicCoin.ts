@@ -4465,11 +4465,11 @@ const STORY = [
     when: ()=> true,
     cam: {exterior:true, theta:-Math.PI/2-0.9, phi:1.15, radius:22, target:[-5.5,1.2,0]},
     lines: [
-      ['toi',   "La porte est condamnée avec des planches. Un truc dépasse en dessous… une enveloppe."],
+      ['toi',   "Un local minuscule, la porte condamnée avec des planches. Un truc dépasse en dessous… une enveloppe."],
       ['rosa',  "« Si tu lis ça, c'est que je suis partie sans prévenir. La nuit du 3 août, les flics ont mis les scellés et vidé la caisse. J'ai laissé la boîte comme elle était. »"],
       ['rosa',  "« Ils ont tout emporté : la piste, la boule, les platines. Le reste, ce sont des gravats, des cartons et les tentes de ceux qui dormaient là quand plus personne ne venait. »"],
-      ['rosa',  "« Le Cosmic Coin est à toi maintenant. Nettoie-la, rachète tout, jeton par jeton. Et derrière le mur du fond, il y a une porte. Ne l'ouvre que si tu n'as plus le choix. »"],
-      ['toi',   "400¢ de dette, une salle vide et pleine de saletés. On arrache les planches et on rallume."],
+      ['rosa',  "« Il te reste quatre murs et un bout de rue. Pousse-les toi-même, rachète tout jeton par jeton. Et si un jour tu ouvres la porte du fond… ne le fais que si tu n'as plus le choix. »"],
+      ['toi',   "400¢ de dette, quatre murs et un quartier vide à bâtir. On arrache les planches et on rallume."],
     ],
 
   },
@@ -4926,7 +4926,7 @@ function serializeSave(){
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
-    danger: state.danger, closed: !!state.closed, unlocks: state.unlocks, storyDone: state.storyDone,
+    danger: state.danger, closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
@@ -4950,7 +4950,10 @@ function applySave(data){
   setTimeout(()=>{ try{ refreshClosedBtn(); }catch(e){} }, 0);
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
-    extraCols:data.extraCols||0, extraRows:data.extraRows||0, grime:(data.grime===undefined?0:data.grime|0),
+    // anciennes sauvegardes : la taille venait de l'étape, on la convertit en rangées achetées
+    extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, (STAGES[data.stage||0]?.colsLegacy ?? [6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
+    extraRows:(data.extraRows||0) + (data.baseRoom ? 0 : Math.max(0, ([5,7,9][data.stage||0] ?? BASE_ROWS) - BASE_ROWS)),
+    cityDecor: data.baseRoom ? !!data.cityDecor : true, grime:(data.grime===undefined?0:data.grime|0),
 
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,
