@@ -3299,6 +3299,15 @@ function initBigScreen(){
 }
 
 
+// cadrage de départ : plan sur la façade condamnée et son enveloppe
+function frameAbandonedClub(){
+  const portrait = window.innerHeight > window.innerWidth;
+  orbit.theta = -Math.PI/2 - 0.9;
+  orbit.phi = 1.15;
+  orbit.radius = portrait ? 26 : 20;
+  orbit.target.set(-5.5, 1.2, 0);
+  updateCamera();
+}
 // clic sur l'enveloppe de Rosa : lance la cinématique d'ouverture
 function openIntroLetter(){
   if(!introLetter) return;
