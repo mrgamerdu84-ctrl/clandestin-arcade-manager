@@ -4711,14 +4711,20 @@ function updateHUD(){
 }
 
 /* ---------- events modal ---------- */
+function setModalOpen(on){
+  document.body.classList.toggle('modalOpen', !!on);
+  if(on && typeof closeAllPanels === 'function') closeAllPanels('none');
+}
 function showEvent(title,text){
   state.paused=true;
+  setModalOpen(true);
   document.getElementById('eventTitle').innerText=title;
   document.getElementById('eventText').innerText=text;
   document.getElementById('eventModal').style.display='flex';
 }
 document.getElementById('closeEventBtn').onclick=()=>{
   document.getElementById('eventModal').style.display='none';
+  setModalOpen(false);
   if(!cine.active && cine.restore){
     if(cine.wasExterior !== exteriorMode) setExteriorMode(cine.wasExterior);
     else {
@@ -4730,7 +4736,7 @@ document.getElementById('closeEventBtn').onclick=()=>{
   }
   state.paused = !state.gameOver ? false : true;
 };
-document.getElementById('closeStoryBtn').onclick=()=>{ document.getElementById('storyModal').style.display='none'; maybeStory(); };
+document.getElementById('closeStoryBtn').onclick=()=>{ document.getElementById('storyModal').style.display='none'; setModalOpen(false); maybeStory(); };
 
 /* ---------- mobile sidebar drawer ---------- */
 const sidebarEl = document.getElementById('sidebar');
@@ -4808,6 +4814,7 @@ document.getElementById('resetBtn').onclick=()=>{
   initGrid();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
   document.getElementById('storyModal').style.display='flex';
+  setModalOpen(true);
   setExteriorMode(true);
   document.getElementById('pauseBtn').innerText='⏸ Pause';
   renderShop(); updateHUD();
@@ -5268,6 +5275,7 @@ preloadModels(()=>{
     applySave(saved);
   } else {
     document.getElementById('storyModal').style.display='flex';
+  setModalOpen(true);
     initGrid();
     setExteriorMode(true);
   }
