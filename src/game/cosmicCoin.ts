@@ -1019,6 +1019,15 @@ function stepCharacter(mesh, t, amount = 1){
   if(u.armL){ u.armL.rotation.x = -s*0.6; u.armR.rotation.x = s*0.6; }
 }
 
+/* retrouve le corps articulé à l'intérieur d'un wrap posé dans la rue */
+function charBody(wrap){
+  if(!wrap) return null;
+  if(wrap.userData && wrap.userData.legL) return wrap;
+  let found = null;
+  wrap.traverse(o=>{ if(!found && o.userData && o.userData.legL) found = o; });
+  return found;
+}
+
 /* pas de danse sur la piste : genoux qui rebondissent + bras en l'air */
 function danceCharacter(mesh, t, style){
   const u = mesh && mesh.userData;
@@ -2089,7 +2098,7 @@ function buildExteriorStreet(maxSpan){
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, 0);
     if(wrap){
       wrap.userData.noEdit = true;
-      pedestrians.push({wrap, z:startZ, dir: i%2===0?1:-1, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
+      pedestrians.push({wrap, body:charBody(wrap), z:startZ, dir: i%2===0?1:-1, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
     }
   });
 
@@ -5091,7 +5100,8 @@ function animate(ts){
       if(p.z>p.zMax){ p.z=p.zMax; p.dir=-1; p.wrap.rotation.y=Math.PI; }
       if(p.z<p.zMin){ p.z=p.zMin; p.dir=1; p.wrap.rotation.y=0; }
       p.wrap.position.z = p.z;
-      stepCharacter(p.wrap, performance.now()/170*Math.max(0.6,p.speed*1.6));
+      if(!p.body) p.body = charBody(p.wrap);
+      stepCharacter(p.body, performance.now()/170*Math.max(0.6,p.speed*1.6), 1);
     });
     cars.forEach(c=>{
       c.z += c.dir*c.speed*dt/1000;
@@ -5105,6 +5115,8 @@ function animate(ts){
         // badauds qui piétinent en attendant d'entrer
         m.wrap.position.y = (m.base||0) + Math.abs(Math.sin(now*2 + m.phase))*0.045;
         m.wrap.rotation.y += Math.sin(now*0.7 + m.phase)*0.004;
+        if(m.body===undefined) m.body = charBody(m.wrap);
+        if(m.body) stepCharacter(m.body, now*2.4 + m.phase, 0.35);
       } else if(m.type==='cat'){
         m.z += m.dir*m.speed*dt/1000;
         if(m.z>m.zMax){ m.z=m.zMax; m.dir=-1; m.wrap.rotation.y=Math.PI; }
