@@ -970,7 +970,11 @@ const SCREEN_COLORS = {
 // machines sans écran frontal : pas de panneau
 const NO_SCREEN = new Set(['statue','neon','prizes','basket','airhockey','poker','blackjack','vip']);
 function addScreenGlow(wrapper, clone, defId){
+  // panneaux émissifs retirés : ils flottaient devant les bornes et rendaient mal
+  return;
+  // eslint-disable-next-line no-unreachable
   if(NO_SCREEN.has(defId)) return;
+
   const bb = new THREE.Box3().setFromObject(clone);
   const size = new THREE.Vector3(); bb.getSize(size);
   const center = new THREE.Vector3(); bb.getCenter(center);
@@ -4573,7 +4577,7 @@ function standSpotFor(m, cust){
   for(let q=0;q<4;q++){
     const a = ry + q*(Math.PI/2);
     const front = (q%2===0);
-    const off = (front ? depth : width)/2 + 0.72;
+    const off = (front ? depth : width)/2 + 0.95;
     const lat = multi ? sideSign * ((front ? width : depth)/2 + 0.15) : 0;
     cands.push(new THREE.Vector3(
       m.mesh.position.x + Math.sin(a)*off + Math.cos(a)*lat,
@@ -4581,18 +4585,35 @@ function standSpotFor(m, cust){
       m.mesh.position.z + Math.cos(a)*off - Math.sin(a)*lat
     ));
   }
-  // côté visible depuis la caméra, choisi une seule fois par client (pas de téléportation)
-  let q = (cust && cust.spotQ !== undefined) ? cust.spotQ : -1;
-  if(q < 0){
-    const camp = camera ? camera.position : null;
-    let bestScore = Infinity; q = 0;
-    for(let k=0;k<4;k++){
-      let score = inside(cands[k]) ? 0 : 1000;
-      if(camp) score += cands[k].distanceTo(camp);
-      if(score < bestScore){ bestScore = score; q = k; }
+  // côté visible depuis la caméra : on garde le même emplacement, sauf si la machine
+  // finit par masquer complètement le client (on ne verrait plus que ses pieds).
+  const camp = camera ? camera.position : null;
+  const scoreOf = (k)=>{
+    let s = inside(cands[k]) ? 0 : 1000;
+    if(camp){
+      // le client doit être du même côté que la caméra, sinon la borne le cache
+      const dx = cands[k].x - m.mesh.position.x, dz = cands[k].z - m.mesh.position.z;
+      const cx = camp.x - m.mesh.position.x, cz = camp.z - m.mesh.position.z;
+      const len = Math.hypot(dx,dz)*Math.hypot(cx,cz) || 1;
+      const dot = (dx*cx + dz*cz)/len;
+      s += (1 - dot) * 400;
+      s += cands[k].distanceTo(camp) * 0.05;
     }
-    if(cust) cust.spotQ = q;
+    return s;
+  };
+  let q = (cust && cust.spotQ !== undefined) ? cust.spotQ : -1;
+  const now = performance.now();
+  const stale = !cust || !cust.spotAt || (now - cust.spotAt > 1500);
+  if(q < 0 || (stale && scoreOf(q) > 300)){
+    let bestScore = Infinity; let bq = q < 0 ? 0 : q;
+    for(let k=0;k<4;k++){
+      const score = scoreOf(k);
+      if(score < bestScore - 40){ bestScore = score; bq = k; }
+    }
+    q = bq;
+    if(cust){ cust.spotQ = q; cust.spotAt = now; }
   }
+
   const p = cands[q] || cands[0];
 
   if(!inside(p)){ p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
