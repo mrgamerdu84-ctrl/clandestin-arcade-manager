@@ -1097,21 +1097,23 @@ function faceTowards(mesh, x, z){
   mesh.lookAt(x, mesh.position.y, z);
 }
 
-/* un joueur actif doit rester lisible même quand la caméra place la borne devant lui */
+/* un joueur actif reste visible grâce à son bon placement, sans traverser la borne */
 function setPlayingCharacterVisible(mesh, playing){
   if(!mesh) return;
   mesh.visible = true;
-  mesh.renderOrder = playing ? 20 : 0;
-  mesh.scale.setScalar(playing ? 1.08 : 1);
+  mesh.renderOrder = 0;
+  mesh.scale.setScalar(1);
+  mesh.rotation.x = 0;
+  mesh.rotation.z = 0;
   mesh.traverse(o=>{
     if(!o.isMesh || !o.material) return;
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     mats.forEach(mat=>{
-      mat.depthTest = !playing;
-      mat.depthWrite = !playing;
+      mat.depthTest = true;
+      mat.depthWrite = true;
       mat.needsUpdate = true;
     });
-    o.renderOrder = playing ? 20 : 0;
+    o.renderOrder = 0;
   });
 }
 
@@ -4590,65 +4592,47 @@ const _spotBox = new THREE.Box3();
 const _spotSize = new THREE.Vector3();
 function standSpotFor(m, cust){
   const ry = m.mesh.rotation.y || 0;
-  // encombrement réel de la machine : le client reste devant, jamais dedans
-  let depth = 0.9, width = 0.9;
+  // L'avant des modèles est leur axe local +Z. L'encombrement projeté donne
+  // une distance sûre même après rotation de la machine.
+  let depth = 0.9;
   try{
     _spotBox.setFromObject(m.mesh); _spotBox.getSize(_spotSize);
-    depth = Math.max(0.5, Math.min(3.2, _spotSize.z)); width = Math.max(0.5, Math.min(3.2, _spotSize.x));
+    depth = Math.abs(Math.sin(ry))*_spotSize.x + Math.abs(Math.cos(ry))*_spotSize.z;
+    depth = Math.max(0.5, Math.min(3.2, depth));
   }catch(e){}
-  const multi = ['airhockey','poker','blackjack','roulette','table'].includes(m.def.id);
-  if(cust && cust.sideSign === undefined) cust.sideSign = Math.random()<0.5 ? -1 : 1;
-  const sideSign = cust ? cust.sideSign : (Math.random()<0.5 ? -1 : 1);
+  const fx = Math.sin(ry), fz = Math.cos(ry);
+  const rx = Math.cos(ry), rz = -Math.sin(ry);
+  const distance = depth/2 + 0.58;
   const {cols,rows} = state.dims;
-  const hx = cols*CELL/2 - 0.55, hz = rows*CELL/2 - 0.55;
+  const hx = cols*CELL/2 - 0.38, hz = rows*CELL/2 - 0.38;
   const inside = (p)=> Math.abs(p.x)<=hx && Math.abs(p.z)<=hz;
-
-  // 4 emplacements possibles autour de la machine (avant / arrière / gauche / droite)
-  const cands = [];
-  for(let q=0;q<4;q++){
-    const a = ry + q*(Math.PI/2);
-    const front = (q%2===0);
-    const off = (front ? depth : width)/2 + 0.95;
-    const lat = multi ? sideSign * ((front ? width : depth)/2 + 0.15) : 0;
-    cands.push(new THREE.Vector3(
-      m.mesh.position.x + Math.sin(a)*off + Math.cos(a)*lat,
+  const lateralChoices = cust && typeof cust.sideOffset === 'number'
+    ? [cust.sideOffset, 0, -0.28, 0.28]
+    : [0, -0.28, 0.28];
+  let best = null;
+  for(const lateral of lateralChoices){
+    const p = new THREE.Vector3(
+      m.mesh.position.x + fx*distance + rx*lateral,
       0,
-      m.mesh.position.z + Math.cos(a)*off - Math.sin(a)*lat
-    ));
+      m.mesh.position.z + fz*distance + rz*lateral
+    );
+    if(!inside(p)) continue;
+    const blocked = state.machines.some(other=>{
+      if(other===m) return false;
+      try{
+        _spotBox.setFromObject(other.mesh).expandByScalar(0.3);
+        return _spotBox.containsPoint(p);
+      }catch(e){ return false; }
+    });
+    if(!blocked){ best = p; if(cust) cust.sideOffset = lateral; break; }
   }
-  // côté visible depuis la caméra : on garde le même emplacement, sauf si la machine
-  // finit par masquer complètement le client (on ne verrait plus que ses pieds).
-  const camp = camera ? camera.position : null;
-  const scoreOf = (k)=>{
-    let s = inside(cands[k]) ? 0 : 1000;
-    if(camp){
-      // le client doit être du même côté que la caméra, sinon la borne le cache
-      const dx = cands[k].x - m.mesh.position.x, dz = cands[k].z - m.mesh.position.z;
-      const cx = camp.x - m.mesh.position.x, cz = camp.z - m.mesh.position.z;
-      const len = Math.hypot(dx,dz)*Math.hypot(cx,cz) || 1;
-      const dot = (dx*cx + dz*cz)/len;
-      s += (1 - dot) * 400;
-      s += cands[k].distanceTo(camp) * 0.05;
-    }
-    return s;
-  };
-  let q = (cust && cust.spotQ !== undefined) ? cust.spotQ : -1;
-  const now = performance.now();
-  const stale = !cust || !cust.spotAt || (now - cust.spotAt > 1500);
-  if(q < 0 || (stale && scoreOf(q) > 300)){
-    let bestScore = Infinity; let bq = q < 0 ? 0 : q;
-    for(let k=0;k<4;k++){
-      const score = scoreOf(k);
-      if(score < bestScore - 40){ bestScore = score; bq = k; }
-    }
-    q = bq;
-    if(cust){ cust.spotQ = q; cust.spotAt = now; }
-  }
-
-  const p = cands[q] || cands[0];
-
-  if(!inside(p)){ p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
-  return p;
+  // Si la salle est très encombrée, on conserve malgré tout le vrai côté avant
+  // plutôt que de rabattre le PNJ sur la borne ou derrière elle.
+  return best || new THREE.Vector3(
+    m.mesh.position.x + fx*distance,
+    0,
+    m.mesh.position.z + fz*distance
+  );
 }
 
 
@@ -4734,24 +4718,25 @@ function updateCustomers(dt){
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
-      // le client reste bien visible devant la borne pendant toute la partie
+      // Le client reste debout, au sol et face à la borne pendant toute la partie.
       setPlayingCharacterVisible(c.mesh, true);
       if(c.target){
         c.targetPos.copy(standSpotFor(c.target, c));
-        c.mesh.position.x = c.targetPos.x; c.mesh.position.z = c.targetPos.z;
+        c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
         faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
       }
       const t = performance.now();
 
-      c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
-      stepCharacter(c.mesh, t/220, 0.28);
+      c.mesh.position.y = 0;
+      c.mesh.rotation.x = 0;
+      c.mesh.rotation.z = 0;
+      stepCharacter(c.mesh, t/220, 0);
       const u = c.mesh.userData;
       if(u && u.armL){
         // bras tendus vers la machine, petits à-coups sur les boutons
         u.armL.rotation.x = -1.15 + Math.sin(t/110)*0.22;
         u.armR.rotation.x = -1.15 + Math.sin(t/110 + 1.6)*0.22;
       }
-      c.mesh.rotation.z = Math.sin(t/120)*0.06;
       c.playTimer += dt;
       attachPlayBar(c);
       updatePlayBar(c, c.target ? Math.min(1, c.playTimer/Math.max(1,c.target.def.time)) : 0);
