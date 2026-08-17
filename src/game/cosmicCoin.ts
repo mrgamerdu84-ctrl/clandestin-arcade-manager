@@ -6025,7 +6025,7 @@ function animate(ts){
   if(lastTime===null) lastTime=ts;
   const dt = Math.min(80, ts-lastTime); lastTime=ts;
   if(!state.paused) state.playMs = (state.playMs||0) + dt;
-  if(ts - saveTimer > 5000){ saveTimer = ts; writeSave(); }
+  if(ts - saveTimer > AUTOSAVE_MS){ saveTimer = ts; writeSave(true); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
 
   if(!state.paused){
