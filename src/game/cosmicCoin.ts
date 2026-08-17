@@ -6267,6 +6267,9 @@ preloadModels(()=>{
     smCont.onclick = ()=>{ closeMenu(); };
     smNew.onclick  = ()=>{ startNewGame(); loaded = false; closeMenu(); };
     smSc.onclick   = ()=>{ openScorePanel(); };
+    const smSlots = document.getElementById('smSlots');
+    if(smSlots) smSlots.onclick = ()=>openSlotPanel(()=>{ loaded = true; refreshMenu(); closeMenu(); });
+
     if(smMus) smMus.onclick = ()=>{ disco.toggle(); refreshMusicUI(); refreshMenu(); };
     if(smCred) smCred.onclick = ()=>{
       showEvent('CRÉDITS', "Cosmic Coin — simulation de boîte de nuit clandestine, été 1988. Conception, code et néons : toi et Lovable. Musique disco générée en temps réel. Merci de tenir la porte.");
