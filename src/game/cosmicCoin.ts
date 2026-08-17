@@ -5229,6 +5229,9 @@ function serializeSave(){
     danger: state.danger, closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
+    // personnalisations : murs/sol/motif + nom & enseigne de la boîte
+    style: {...roomStyle},
+    brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
   };
 }
