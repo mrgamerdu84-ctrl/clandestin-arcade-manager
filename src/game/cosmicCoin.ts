@@ -1606,7 +1606,7 @@ const EXT_BUILDERS = {
     const back = box(0.12,0.7,1.6,'#150a1e'); back.position.set(0,1.7,0); g.add(back);
     const tube = box(0.08,0.12,1.4,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.5}); tube.position.set(-0.08,1.9,0); g.add(tube);
     const tube2 = box(0.08,0.12,1.0,'#00f3ff',{emissive:0x00f3ff,emissiveIntensity:1.5}); tube2.position.set(-0.08,1.55,0); g.add(tube2);
-    g.add(registerNightHalo(makeGlowSprite('#ff2e88', 1.6), 0.6)).position.set(-0.3,1.75,0);
+    const halo = registerNightHalo(makeGlowSprite('#ff2e88', 1.6), 0.6); halo.position.set(-0.3,1.75,0); g.add(halo);
     return g;
   },
   NEON_ARROW: ()=>{
@@ -1678,7 +1678,7 @@ const EXT_BUILDERS = {
     const panel = makeSignPanel(clubBrand.name.slice(0,12).toUpperCase() || 'CLUB', clubBrand.color, 2.2, 0.7);
     panel.position.set(0,2.0,0); g.add(panel);
     const back = box(0.08,0.8,2.3,'#150a1e'); back.position.set(0.06,2.0,0); g.add(back);
-    g.add(registerNightHalo(makeGlowSprite(clubBrand.color, 2.0), 0.7)).position.set(-0.3,2.0,0);
+    const halo = registerNightHalo(makeGlowSprite(clubBrand.color, 2.0), 0.7); halo.position.set(-0.3,2.0,0); g.add(halo);
     return g;
   },
   BENCH_EXT: ()=>{
