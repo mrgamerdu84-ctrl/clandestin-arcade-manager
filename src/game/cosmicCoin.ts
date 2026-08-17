@@ -2114,10 +2114,11 @@ function buildExteriorStreet(maxSpan){
   const pedRoster = [['PED_MALE',-0.55],['PED_FEMALE',-0.15],['PED_MALE2',0.25],['PED_FEMALE2',0.65]];
   pedRoster.forEach(([key,laneOffset],i)=>{
     const startZ = zMin + 2 + i*((zMax-zMin-4)/pedRoster.length);
-    const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, 0);
+    const pDir = i%2===0 ? 1 : -1;
+    const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, pDir>0?0:Math.PI);
     if(wrap){
       wrap.userData.noEdit = true;
-      pedestrians.push({wrap, body:charBody(wrap), z:startZ, dir: i%2===0?1:-1, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
+      pedestrians.push({wrap, body:charBody(wrap), z:startZ, dir: pDir, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
     }
   });
 
