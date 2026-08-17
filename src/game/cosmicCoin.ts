@@ -3454,6 +3454,51 @@ function placeHoodAt(wx, wz, opts){
   return true;
 }
 
+/* ---------- tracé continu des routes : maintiens et glisse ---------- */
+let roadDrag = false, roadDragCells = null, roadDragAdded = 0;
+function roadPaintable(){
+  return exteriorMode && hoodEdit && hoodSel && !hoodErase && !hoodMove
+      && (ROAD_IDS.includes(hoodSel) || hoodSel === 'sidewalk');
+}
+function pointerToGround(e){
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  return raycaster.ray.intersectPlane(hoodPlane, hoodHit) ? hoodHit : null;
+}
+function roadPaintAt(e){
+  const p = pointerToGround(e);
+  if(!p) return;
+  const k = roadCellKey(p.x, p.z);
+  if(roadDragCells.has(k)) return;
+  roadDragCells.add(k);
+  if(placeHoodAt(p.x, p.z, {defer:true})) roadDragAdded++;
+}
+canvas.addEventListener('pointerdown', (e)=>{
+  if(e.button !== 0 && e.pointerType === 'mouse') return;
+  if(!roadPaintable()) return;
+  if(pointers.size > 1) return;
+  roadDrag = true; roadDragCells = new Set(); roadDragAdded = 0;
+  dragging = false; panning = false;         // la caméra ne tourne pas pendant le tracé
+  if(tapStart) tapStart.locked = true;
+  roadPaintAt(e);
+});
+addWin('pointermove', (e)=>{ if(roadDrag) roadPaintAt(e); });
+function endRoadDrag(){
+  if(!roadDrag) return;
+  roadDrag = false; roadDragCells = null;
+  if(roadDragAdded > 0){
+    rebuildHood();
+    writeHood();
+    updateHoodGrid();
+    dragMoved = true;   // le clic qui suit ne repose pas une dalle en double
+    log(roadDragAdded > 1 ? `🛣️ ${roadDragAdded} dalles posées d'un trait.` : '🛣️ Dalle posée.');
+  }
+  roadDragAdded = 0;
+}
+addWin('pointerup', endRoadDrag);
+addWin('pointercancel', endRoadDrag);
 
 
 /* ---------- panneau lumière (jour / nuit / auto + luminosité) ---------- */
