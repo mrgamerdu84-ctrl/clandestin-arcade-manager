@@ -2498,6 +2498,28 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     });
   }
 
+  // 🔦 projecteurs de façade : éclairent le mur d'entrée la nuit
+  if(hasCos('floodlights')){
+    [-d*0.3, d*0.3].forEach(pz=>{
+      const mast = cyl(0.06,0.06,1.1,'#2b2438');
+      mast.position.set(-w/2-2.2, 0.55, pz);
+      exteriorBuildingGroup.add(mast);
+      const head = box(0.36,0.28,0.3, '#1b1030', {emissive: casino?0xffcc55:0x66e0ff, emissiveIntensity:0.8});
+      head.position.set(-w/2-2.2, 1.2, pz);
+      exteriorBuildingGroup.add(head);
+      const spot = registerNightLamp(new THREE.SpotLight(casino?0xffd9a0:0x9fe8ff, 0, 18, 0.55, 0.5, 1.1), 3.2);
+      spot.position.set(-w/2-2.2, 1.25, pz);
+      spot.target.position.set(-w/2+0.2, 2.2, pz*0.5);
+      exteriorBuildingGroup.add(spot);
+      exteriorBuildingGroup.add(spot.target);
+      const halo = registerNightHalo(makeGlowSprite(casino?'#ffd9a0':'#9fe8ff', 1.1), 0.7);
+      halo.position.set(-w/2-2.2, 1.25, pz);
+      exteriorBuildingGroup.add(halo);
+    });
+  }
+
+
+
 
   // facade windows on the street-facing (west) wall, skipping the doorway
   const doorRow = Math.floor(rows/2);
