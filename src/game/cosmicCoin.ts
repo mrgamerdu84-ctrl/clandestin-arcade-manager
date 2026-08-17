@@ -4352,13 +4352,15 @@ function spawnCustomer(){
   // apparition dehors, sur le seuil : le client franchit vraiment la porte
   mesh.position.set(doorP.x-CELL-1.2, 0, doorP.z);
   customersGroup.add(mesh);
-  const targetP = standSpotFor(target);
-  const gate = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
-  state.customers.push({
-    mesh, target, targetPos:targetP, gatePos:gate, shirt,
+  const cust = {
+    mesh, target, targetPos:new THREE.Vector3(), gatePos:null, shirt,
     doorPos:new THREE.Vector3(doorP.x-CELL-1.2,0,doorP.z),
     phase:'enter', playTimer:0
-  });
+  };
+  cust.targetPos.copy(standSpotFor(target, cust));
+  cust.gatePos = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
+  state.customers.push(cust);
+
 }
 
 // position "devant" la machine : le client se place face à l'écran, jamais dedans
