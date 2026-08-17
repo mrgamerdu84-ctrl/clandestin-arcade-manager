@@ -983,6 +983,40 @@ function buildMachineMesh(defId){
   return fn();
 }
 
+/* ---------- personnalisation des machines : teinte, tarif, arnaque ---------- */
+const MACHINE_TINTS = [
+  {id:'none',   label:'Origine', hex:null},
+  {id:'teal',   label:'Turquoise', hex:'#20e6d0'},
+  {id:'pink',   label:'Rose',      hex:'#ff4fa3'},
+  {id:'purple', label:'Violet',    hex:'#9b5cff'},
+  {id:'gold',   label:'Or',        hex:'#ffd23f'},
+  {id:'red',    label:'Rouge',     hex:'#ff4f4f'},
+  {id:'blue',   label:'Bleu',      hex:'#4f9bff'},
+  {id:'green',  label:'Vert',      hex:'#4fe07a'},
+  {id:'black',  label:'Noir',      hex:'#2a2038'},
+];
+/* applique (ou retire) une teinte sur toutes les surfaces d'une machine */
+function applyMachineTint(mesh, hex){
+  if(!mesh) return;
+  mesh.traverse(o=>{
+    if(!o.isMesh || !o.material || !o.material.color) return;
+    if(!o.userData.__baseCol){
+      o.material = o.material.clone();
+      o.userData.__baseCol = o.material.color.clone();
+    }
+    o.material.color.copy(o.userData.__baseCol);
+    if(hex) o.material.color.lerp(new THREE.Color(hex), 0.7);
+  });
+}
+/* multiplicateur de gain / d'attractivité selon le tarif choisi */
+function machinePriceMult(m){ const v = m && m.priceMult; return (typeof v === 'number' && isFinite(v)) ? Math.min(2.5, Math.max(0.5, v)) : 1; }
+/* un tarif élevé fait fuir les clients, un tarif bas les attire */
+function machineAppeal(m){
+  const mult = machinePriceMult(m);
+  return Math.max(0.12, 1.6 - mult); // 0.5 → 1.1 ; 1 → 0.6 ; 2.5 → 0.12
+}
+function riggedCount(){ return state.machines.filter(m=>m.rigged).length; }
+
 /* ---------- character (procédural : plus de modèles importés) ---------- */
 function buildCharacter(shirtColor){
 
@@ -4080,7 +4114,7 @@ canvas.addEventListener('click', (e)=>{
   mesh.position.set(p.x+(Math.random()*2-1)*jitter, 0, p.z+(Math.random()*2-1)*jitter);
   mesh.rotation.y = Math.floor(Math.random()*4)*(Math.PI/2);
   machinesGroup.add(mesh);
-  const machine = {x:gx,z:gz,def,mesh,busy:false,broken:false};
+  const machine = {x:gx,z:gz,def,mesh,busy:false,broken:false,tint:null,priceMult:1,rigged:false};
   mesh.userData.machine = machine;
   state.grid[gz][gx]=machine;
   state.machines.push(machine);
@@ -4113,7 +4147,10 @@ function openMachineMenu(m, clientX, clientY){
   sellBtn.title = m.busy ? "Un client l'utilise en ce moment" : "";
   rotateBtn.disabled = false;
 
-  const menuW = 190, menuH = 170;
+  renderMachineTints(m);
+  renderMachinePricing(m);
+
+  const menuW = 210, menuH = 320;
   let left = clientX + 10, top = clientY + 10;
   if(left + menuW > window.innerWidth) left = clientX - menuW - 10;
   if(top + menuH > window.innerHeight) top = clientY - menuH - 10;
@@ -4121,6 +4158,62 @@ function openMachineMenu(m, clientX, clientY){
   machineMenuEl.style.top = Math.max(6,top)+'px';
   machineMenuEl.classList.add('open');
 }
+/* pastilles de couleur */
+function renderMachineTints(m){
+  const row = document.getElementById('mmTints');
+  if(!row) return;
+  row.innerHTML = '';
+  MACHINE_TINTS.forEach(t=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tintDot' + ((m.tint||null) === t.hex ? ' on' : '');
+    b.title = t.label;
+    b.style.background = t.hex || 'linear-gradient(135deg,#666,#ddd)';
+    b.onclick = ()=>{
+      m.tint = t.hex;
+      applyMachineTint(m.mesh, t.hex);
+      renderMachineTints(m);
+      if(typeof writeSave === 'function') writeSave();
+    };
+    row.appendChild(b);
+  });
+}
+
+/* tarif + mode arnaque */
+function renderMachinePricing(m){
+  const slider = document.getElementById('mmPrice');
+  const label  = document.getElementById('mmPriceVal');
+  const rigBtn = document.getElementById('mmRig');
+  if(!slider || !label) return;
+  const mult = machinePriceMult(m);
+  slider.value = String(Math.round(mult*100));
+  const paint = ()=>{
+    const v = Math.min(2.5, Math.max(0.5, (+slider.value)/100));
+    m.priceMult = v;
+    const [lo,hi] = m.def.earn || [0,0];
+    const avg = Math.round(((lo+hi)/2) * v * (m.rigged?1.8:1));
+    const app = machineAppeal(m);
+    const crowd = app >= 0.9 ? 'affluence forte' : app >= 0.5 ? 'affluence normale' : 'peu de clients';
+    label.innerHTML = `Tarif ${Math.round(v*100)}% · ~${avg}¢/partie<br><span style="color:var(--dim)">${crowd}</span>`;
+  };
+  slider.oninput = ()=>{ paint(); };
+  slider.onchange = ()=>{ paint(); if(typeof writeSave === 'function') writeSave(); };
+  paint();
+  if(rigBtn){
+    rigBtn.innerText = m.rigged ? '🎲 Arrêter l\'arnaque' : '🎲 Truquer la machine';
+    rigBtn.classList.toggle('rig-on', !!m.rigged);
+    rigBtn.disabled = !!m.def.passive;
+    rigBtn.onclick = ()=>{
+      m.rigged = !m.rigged;
+      log(m.rigged
+        ? `🎲 ${m.def.name} truquée : gains ×1,8 mais les clients vont râler.`
+        : `${m.def.name} remise d'aplomb : plus d'arnaque.`);
+      renderMachinePricing(m);
+      if(typeof writeSave === 'function') writeSave();
+    };
+  }
+}
+
 function closeMachineMenu(){
   menuMachine = null;
   machineMenuEl.classList.remove('open');
@@ -4168,7 +4261,12 @@ function spawnCustomer(){
   if(state.closed) return; // club fermé : plus personne n'entre
   const free = state.machines.filter(m=>!m.busy && !m.broken && !m.def.passive && !(m.def.illegal && state.hidden));
   if(free.length===0) return;
-  const target = free[Math.floor(Math.random()*free.length)];
+  // tarif élevé = machine boudée, tarif cassé = machine prise d'assaut
+  const weights = free.map(machineAppeal);
+  const total = weights.reduce((a,b)=>a+b,0);
+  let pick = Math.random()*total, ti = 0;
+  for(let k=0;k<free.length;k++){ pick -= weights[k]; if(pick<=0){ ti = k; break; } ti = k; }
+  const target = free[ti];
   target.busy = true;
   const mesh = buildCharacter(SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)]);
   const {cols,rows,doorRow} = state.dims;
@@ -4186,14 +4284,52 @@ function spawnCustomer(){
 }
 
 // position "devant" la machine : le client se place face à l'écran, jamais dedans
+const _spotBox = new THREE.Box3();
+const _spotSize = new THREE.Vector3();
 function standSpotFor(m){
   const ry = m.mesh.rotation.y || 0;
-  const off = 1.05;
+  // profondeur réelle de la machine : le client reste devant, jamais dedans
+  let depth = 0.9, width = 0.9;
+  try{
+    _spotBox.setFromObject(m.mesh); _spotBox.getSize(_spotSize);
+    depth = Math.max(0.5, _spotSize.z); width = Math.max(0.5, _spotSize.x);
+  }catch(e){}
+  const off = depth/2 + 0.62;
+  // machines à plusieurs places : on se met sur un côté au lieu du centre
+  const multi = ['airhockey','poker','blackjack','roulette','table'].includes(m.def.id);
+  const side = multi ? (Math.random()<0.5 ? -1 : 1) * (width/2 + 0.15) : 0;
   return new THREE.Vector3(
-    m.mesh.position.x + Math.sin(ry)*off,
+    m.mesh.position.x + Math.sin(ry)*off + Math.cos(ry)*side,
     0,
-    m.mesh.position.z + Math.cos(ry)*off
+    m.mesh.position.z + Math.cos(ry)*off - Math.sin(ry)*side
   );
+}
+
+/* petite barre de progression flottante au-dessus du client qui joue */
+const PLAY_BAR_BG = new THREE.SpriteMaterial({color:0x120a1c, transparent:true, opacity:0.85, depthTest:false});
+const PLAY_BAR_FG = new THREE.SpriteMaterial({color:0x20e6d0, transparent:true, depthTest:false});
+function attachPlayBar(c){
+  if(c.bar) return;
+  const holder = group();
+  const bg = new THREE.Sprite(PLAY_BAR_BG.clone()); bg.scale.set(0.62,0.09,1);
+  const fg = new THREE.Sprite(PLAY_BAR_FG.clone()); fg.scale.set(0.6,0.07,1);
+  fg.renderOrder = 3; bg.renderOrder = 2;
+  holder.add(bg); holder.add(fg);
+  holder.position.set(0, 1.72, 0);
+  c.mesh.add(holder);
+  c.bar = {holder, bg, fg};
+}
+function updatePlayBar(c, ratio){
+  if(!c.bar) return;
+  const w = 0.6 * Math.max(0.02, Math.min(1, ratio));
+  c.bar.fg.scale.set(w, 0.07, 1);
+  c.bar.fg.position.x = -(0.6 - w)/2;
+  c.bar.fg.material.color.set(c.target && c.target.rigged ? 0xff4fa3 : 0x20e6d0);
+}
+function detachPlayBar(c){
+  if(!c.bar) return;
+  c.mesh.remove(c.bar.holder);
+  c.bar = null;
 }
 
 function updateCustomers(dt){
@@ -4203,6 +4339,7 @@ function updateCustomers(dt){
     if(c.phase!=='out' && c.phase!=='exit' && state.closed){ if(c.target) c.target.busy=false; c.target=null; c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0; }
     if(c.phase!=='out' && c.phase!=='exit' && (!c.target || state.machines.indexOf(c.target)===-1 || (c.target.def.illegal && state.hidden))){
       if(c.target) c.target.busy = false;
+      detachPlayBar(c);
       c.target = null; c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
     }
     if(c.phase==='enter' || c.phase==='exit'){
@@ -4247,19 +4384,43 @@ function updateCustomers(dt){
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
-      // face à la machine + petite animation de jeu bien visible
+      // face à la machine + animation de jeu bien lisible (mains sur la borne)
       if(c.target) faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
       const t = performance.now();
       c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
-        stepCharacter(c.mesh, t/220, 0.35);
+      stepCharacter(c.mesh, t/220, 0.28);
+      const u = c.mesh.userData;
+      if(u && u.armL){
+        // bras tendus vers la machine, petits à-coups sur les boutons
+        u.armL.rotation.x = -1.15 + Math.sin(t/110)*0.22;
+        u.armR.rotation.x = -1.15 + Math.sin(t/110 + 1.6)*0.22;
+      }
       c.mesh.rotation.z = Math.sin(t/120)*0.06;
       c.playTimer += dt;
+      attachPlayBar(c);
+      updatePlayBar(c, c.target ? Math.min(1, c.playTimer/Math.max(1,c.target.def.time)) : 0);
 
       if(c.playTimer >= c.target.def.time){
         const [lo,hi]=c.target.def.earn;
         const ticketCounters = state.machines.filter(m=>m.def.id==='ticket').length;
         const ticketMult = 1 + Math.min(0.4, ticketCounters*0.08); // +8%/counter, capped +40%
-        let gain = Math.round((lo+Math.random()*(hi-lo)) * ticketMult * ((state.grime|0)>0 ? 0.6 : 1));
+        const priceMult = machinePriceMult(c.target);
+        let gain = Math.round((lo+Math.random()*(hi-lo)) * ticketMult * priceMult * ((state.grime|0)>0 ? 0.6 : 1));
+        // tarif cassé : les clients sont contents ; tarif abusif : la réputation prend
+        if(priceMult < 0.95) state.rep = Math.min(30, state.rep + 0.08);
+        else if(priceMult > 1.25) state.rep = Math.max(0, state.rep - (priceMult-1.25)*0.14);
+        // machine truquée : gros gains, mais clients qui gueulent et flics qui s'intéressent
+        let scammed = false;
+        if(c.target.rigged){
+          gain = Math.round(gain * 1.8);
+          const risk = Math.min(0.55, 0.16 + riggedCount()*0.05) * (state.staff.security || state.lookout ? 0.6 : 1);
+          if(Math.random() < risk){
+            scammed = true;
+            state.rep = Math.max(0, state.rep - 0.9);
+            state.suspicion = Math.min(100, state.suspicion + 1.6);
+            state.danger = Math.min(100, (state.danger||0) + 1.2);
+          }
+        }
         if(c.target.def.illegal){
           gain = Math.round(gain * 2.3);
           state.illegalEarned += gain;
@@ -4271,13 +4432,20 @@ function updateCustomers(dt){
         state.money += gain;
         state.stats.earned += gain;
         state.stats.customers += 1;
-        spawnFloatText(c.mesh.position, `+${gain}¢`);
+        if(scammed){
+          spawnFloatText(c.mesh.position, `ARNAQUE !`);
+          log(`😡 Un client crie à l'arnaque sur ${c.target.def.name} : réputation en baisse.`);
+        } else {
+          spawnFloatText(c.mesh.position, `+${gain}¢`);
+        }
+        detachPlayBar(c);
         c.target.busy=false;
         c.target=null;
         c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
       }
     } else if(c.phase==='out'){
       c.mesh.rotation.z = 0;
+      detachPlayBar(c);
 
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
@@ -5275,7 +5443,8 @@ function serializeSave(){
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
     style: {...roomStyle},
     brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
-    machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
+    machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken,
+      tint:m.tint||null, priceMult:machinePriceMult(m), rigged:!!m.rigged})),
   };
 }
 function writeSave(){
@@ -5340,7 +5509,9 @@ function applySave(data){
     mesh.position.set(p.x, 0, p.z);
     mesh.rotation.y = sm.rot || 0;
     machinesGroup.add(mesh);
-    const machine = {x:sm.x, z:sm.z, def, mesh, busy:false, broken:!!sm.broken};
+    const machine = {x:sm.x, z:sm.z, def, mesh, busy:false, broken:!!sm.broken,
+      tint: sm.tint || null, priceMult: (typeof sm.priceMult==='number' ? sm.priceMult : 1), rigged: !!sm.rigged};
+    if(machine.tint) applyMachineTint(mesh, machine.tint);
     mesh.userData.machine = machine;
     state.grid[sm.z][sm.x] = machine;
     state.machines.push(machine);

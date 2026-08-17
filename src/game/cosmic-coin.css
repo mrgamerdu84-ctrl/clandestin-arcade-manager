@@ -139,7 +139,7 @@
     position:fixed; z-index:30; background:linear-gradient(160deg,#1c0a2e,#11041c);
     border:2px solid var(--neon1); border-radius:12px; padding:12px;
     box-shadow:0 0 30px rgba(255,0,127,0.5); font-family:'Courier New',monospace;
-    min-width:180px; display:none; backdrop-filter: blur(10px);
+    min-width:190px; max-width:230px; max-height:74vh; overflow:auto; display:none; backdrop-filter: blur(10px);
   }
   #machineMenu.open{display:block; animation: popIn 0.2s cubic-bezier(0.1, 1.2, 0.3, 1);}
   @keyframes popIn { 0% { transform: scale(0.9); opacity:0; } 100% { transform: scale(1); opacity:1; } }
@@ -155,6 +155,16 @@
   #machineMenu button.sell{border-color:#ff4444; color:#ffb0b0;}
   #machineMenu button.sell:hover{background:rgba(255,68,68,0.2); box-shadow:0 0 10px rgba(255,68,68,0.3);}
   #machineMenu button.close{border-color:rgba(255,255,255,0.2); color:var(--dim); margin-bottom:0;}
+  #machineMenu .mmLabel{color:var(--dim); font-size:9px; letter-spacing:1px; margin:8px 0 4px;}
+  #machineMenu .mmHint{color:var(--text); font-size:9px; line-height:1.4; margin-bottom:7px;}
+  #machineMenu .tintRow{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:4px;}
+  #machineMenu .tintRow button.tintDot{
+    width:22px; height:22px; min-width:22px; padding:0; margin:0; border-radius:50%;
+    border:2px solid rgba(255,255,255,0.25);
+  }
+  #machineMenu .tintRow button.tintDot.on{border-color:var(--neon3); box-shadow:0 0 8px rgba(255,230,0,0.6);}
+  #machineMenu input[type=range]{width:100%; accent-color:var(--neon2); margin:0 0 4px;}
+  #machineMenu button.rig-on{border-color:#ff2e88; color:#ffb0d8; background:rgba(255,46,136,0.15);}
 
 /* ---------- couche clandestine ---------- */
 .illegalTag{color:#ff2e88; font-size:8px; font-weight:900; letter-spacing:1px; border:1px solid #ff2e8899; padding:1px 4px; border-radius:4px;}
