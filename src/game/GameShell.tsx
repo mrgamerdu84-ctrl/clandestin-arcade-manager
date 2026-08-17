@@ -340,7 +340,12 @@ export default function GameShell() {
               ✦ Nouvelle partie
               <small>Repartir d'une boîte condamnée</small>
             </button>
+            <button className="startBtn" id="smSlots" type="button">
+              📁 Charger une ancienne partie
+              <small>Emplacements de sauvegarde manuelle</small>
+            </button>
             <button className="startBtn" id="smScores" type="button">
+
               🏆 Classement & stats
               <small>Meilleures parties</small>
             </button>
