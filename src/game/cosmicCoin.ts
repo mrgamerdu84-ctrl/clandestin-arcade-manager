@@ -5498,6 +5498,10 @@ function serializeSave(){
     brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken,
       tint:m.tint||null, priceMult:machinePriceMult(m), rigged:!!m.rigged})),
+    // clients en train de jouer : on note la machine (cellule), l'avancement et la couleur du perso
+    players: state.customers
+      .filter(c=>c.phase==='playing' && c.target && !c.illegal)
+      .map(c=>({mx:c.target.x, mz:c.target.z, t:Math.round(c.playTimer||0), shirt:c.shirt||null})),
   };
 }
 function writeSave(){
