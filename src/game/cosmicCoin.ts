@@ -2209,11 +2209,8 @@ function buildExteriorStreet(maxSpan){
   // (plus de mur de fond isolé : il flottait à côté du bâtiment)
 
   if(decor){
-  ['#ff2e88','#2fd4c8','#ffd23f'].forEach((c,i)=>{
-    const tag = box(0.04, 0.9, 1.6, c, {emissive:new THREE.Color(c).getHex(), emissiveIntensity:0.5});
-    tag.position.set(alleyX+1.7, 1.5+ (i%2)*0.9, -5 + i*4.5);
-    exteriorStreetGroup.add(tag);
-  });
+  // (graffitis retirés avec le mur : ils flottaient dans le vide)
+
   placeExt(exteriorStreetGroup, 'DUMPSTER', {mode:'height',target:0.9}, alleyX-0.4, -3.2, Math.PI/2);
   placeExt(exteriorStreetGroup, 'DUMPSTER', {mode:'height',target:0.9}, alleyX+0.6, 4.1, -Math.PI/2);
   [[-2.2,-1.4],[0.6,2.6],[1.2,-5.4]].forEach(([dx,z])=>{
