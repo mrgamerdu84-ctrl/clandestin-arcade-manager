@@ -3322,6 +3322,7 @@ function rebuildRoomKeepMachines(){
     }
   });
   buildExteriorBuilding(state.stage, dims.cols, dims.rows);
+  spawnGrime();
   renderExpandBox();
 }
 function moveWall(axis, delta){
@@ -3801,7 +3802,7 @@ function updateCustomers(dt){
         const [lo,hi]=c.target.def.earn;
         const ticketCounters = state.machines.filter(m=>m.def.id==='ticket').length;
         const ticketMult = 1 + Math.min(0.4, ticketCounters*0.08); // +8%/counter, capped +40%
-        let gain = Math.round((lo+Math.random()*(hi-lo)) * ticketMult);
+        let gain = Math.round((lo+Math.random()*(hi-lo)) * ticketMult * ((state.grime|0)>0 ? 0.6 : 1));
         if(c.target.def.illegal){
           gain = Math.round(gain * 2.3);
           state.illegalEarned += gain;
@@ -4569,17 +4570,12 @@ function newDay(){
   state.day+=1;
   questEvent('day');
   if(state.debt>0){
+    state.debt += state.debt * LOAN_RATE;   // intérêts du jour
     const payment = Math.min(state.debt, 20+state.rep*3);
     if(state.money>=payment){ state.money-=payment; state.debt-=payment; log(`Jour ${state.day} — Remboursement banque : -${Math.round(payment)}¢.`); }
     else log(`Jour ${state.day} — Pas assez pour rembourser la banque ce jour-ci...`);
   }
-  if(state.debt<=0 && !state.won){
-    state.won=true;
-    recordRun('dette remboursée'); clearSave();
-    showEvent("DETTE REMBOURSÉE 🎉", state.illegalEarned>500
-      ? "La banque est remboursée — avec l'argent de l'arrière-salle. Le Cosmic Coin est à toi, et la moitié du quartier sait déjà pour la porte du fond. Continue : empire clandestin ou blanchiment total, à toi de voir."
-      : "La banque est remboursée, jeton par jeton, à la loyale. Rosa serait fière. Rien ne t'empêche maintenant de rouvrir la porte du fond… ou de la murer pour de bon.");
-  }
+  checkDebtCleared();
   const safes = state.machines.filter(m=>m.def.id==='safe').length;
   if(safes) state.suspicion = Math.max(0, state.suspicion - safes*3);
   // suspicion : décroît les nuits calmes, monte si la salle secrète tourne à découvert
@@ -4621,6 +4617,8 @@ function updateHUD(){
   if(typeof refreshStyleUI === 'function' && styleOpen) refreshStyleUI();
   renderDoorPanel();
   renderExpandBox();
+  renderBankPanel();
+  renderCleanPanel();
   renderBackroom();
   renderQuestPanel();
 }
@@ -4694,7 +4692,7 @@ function serializeSave(){
   return {
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
-    extraCols: state.extraCols||0, extraRows: state.extraRows||0,
+    extraCols: state.extraCols||0, extraRows: state.extraRows||0, grime: state.grime|0,
 
     staff: state.staff, dayTimer: state.dayTimer, dayLength: state.dayLength, won: state.won,
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
@@ -4723,7 +4721,7 @@ function readSave(){
 function applySave(data){
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
-    extraCols:data.extraCols||0, extraRows:data.extraRows||0,
+    extraCols:data.extraCols||0, extraRows:data.extraRows||0, grime:(data.grime===undefined?0:data.grime|0),
 
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,
