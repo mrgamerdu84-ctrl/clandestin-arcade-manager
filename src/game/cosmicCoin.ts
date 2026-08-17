@@ -3274,7 +3274,9 @@ const DECOR = [
   {id:'bench', name:"Banc d'attente", color:PAL.orange, price:55, repBoost:0.6, repReq:1, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'toilets', name:'Toilettes', color:'#cfd6e6', price:90, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'tables', name:'Table + chaises', color:PAL.teal, price:70, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'dancefloor', name:'Piste de danse lumineuse', color:'#20e6d0', price:210, repBoost:1.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'djdeck', name:'Platine du DJ', color:PAL.pink, price:160, repBoost:1.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+
   {id:'neon', name:'Enseigne néon', color:PAL.pink, price:80, repBoost:0.8, repReq:2, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'jukebox', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
   {id:'safe', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
