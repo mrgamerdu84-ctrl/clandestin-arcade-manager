@@ -5446,7 +5446,7 @@ if(closedBtn) closedBtn.onclick=()=>{
     : "Le club rouvre : les clients reviennent.");
 };
 refreshClosedBtn();
-document.getElementById('resetBtn').onclick=()=>{
+function startNewGame(){
   recordRun(state.gameOver ? 'scellés' : 'abandon');
   clearSave();
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
