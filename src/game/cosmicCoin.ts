@@ -4863,7 +4863,7 @@ function serializeSave(){
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
-    danger: state.danger, unlocks: state.unlocks, storyDone: state.storyDone,
+    danger: state.danger, closed: !!state.closed, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
@@ -4884,6 +4884,7 @@ function readSave(){
   } catch(e){ return null; }
 }
 function applySave(data){
+  setTimeout(()=>{ try{ refreshClosedBtn(); }catch(e){} }, 0);
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
     extraCols:data.extraCols||0, extraRows:data.extraRows||0, grime:(data.grime===undefined?0:data.grime|0),
