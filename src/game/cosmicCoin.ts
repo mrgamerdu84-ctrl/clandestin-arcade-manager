@@ -2731,17 +2731,28 @@ function autoRoadPiece(x, z, cells){
   const cx = Math.round(x/HOOD_TILE), cz = Math.round(z/HOOD_TILE);
   const links = DIR_VECT.map(([dx,dz]) => cells.has((cx+dx)+'|'+(cz+dz)));
   const n = links.filter(Boolean).length;
+  // isolée : dalle droite nord-sud
   if(n === 0) return {key:'ROAD_STRAIGHT', rot:0};
+  // bout de ligne : on garde une droite alignée sur le voisin (pas de cul-de-sac)
+  if(n === 1){
+    const d = links.indexOf(true);
+    return {key:'ROAD_STRAIGHT', rot:(d % 2 === 0) ? 0 : Math.PI/2};
+  }
+  // deux voisins opposés : droite alignée
+  if(n === 2 && links[0] === links[2]){
+    return {key:'ROAD_STRAIGHT', rot: links[0] ? 0 : Math.PI/2};
+  }
   for(const shape of ROAD_SHAPES){
     if(shape.open.length !== n) continue;
     for(let r=0; r<4; r++){
-      // rotation de +r*90° autour de Y : la direction d passe à (d + r) % 4
-      const ok = shape.open.every(d => links[(d - r + 8) % 4]);
+      // rotation de +r*90° autour de Y : l'ouverture d du modèle vise (d + r) % 4
+      const ok = shape.open.every(d => links[(d + r) % 4]);
       if(ok) return {key:shape.key, rot:r * Math.PI/2};
     }
   }
   return {key:'ROAD_STRAIGHT', rot:0};
 }
+
 
 function spawnHood(entry, cells){
   const def = hoodDef(entry.id);
