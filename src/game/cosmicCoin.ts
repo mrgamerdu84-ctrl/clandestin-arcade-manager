@@ -3676,7 +3676,7 @@ addWin('pointermove', (e)=>{ if(roadDrag) roadPaintAt(e); });
 
 function endRoadDrag(){
   if(!roadDrag) return;
-  roadDrag = false; roadDragCells = null;
+  roadDrag = false; roadDragCells = null; roadLastCell = null;
   if(roadDragAdded > 0){
     rebuildHood();
     writeHood();
