@@ -177,7 +177,9 @@ function GamePage() {
           <button id="hoodErase" type="button" title="Supprimer">🧨 Retirer</button>
           <button id="hoodUndo" type="button" title="Annuler le dernier">↩︎</button>
           <button id="hoodClear" type="button" title="Tout effacer">🗑️</button>
+          <button id="hoodWipe" type="button" title="Raser tout le quartier">🧹 Tout raser</button>
           <button id="hoodRestore" type="button" title="Remettre le décor d'origine">↺ Tout remettre</button>
+
         </div>
         <div id="hoodArrows" style={{ display: "none" }}>
           <button id="hoodUp" type="button" title="Décaler vers le haut">▲</button>
