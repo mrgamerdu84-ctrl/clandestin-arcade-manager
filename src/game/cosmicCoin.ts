@@ -4396,34 +4396,45 @@ const _spotBox = new THREE.Box3();
 const _spotSize = new THREE.Vector3();
 function standSpotFor(m, cust){
   const ry = m.mesh.rotation.y || 0;
-  // profondeur réelle de la machine : le client reste devant, jamais dedans
+  // encombrement réel de la machine : le client reste devant, jamais dedans
   let depth = 0.9, width = 0.9;
   try{
     _spotBox.setFromObject(m.mesh); _spotBox.getSize(_spotSize);
     depth = Math.max(0.5, Math.min(3.2, _spotSize.z)); width = Math.max(0.5, Math.min(3.2, _spotSize.x));
   }catch(e){}
-  const off = depth/2 + 0.62;
-  // machines à plusieurs places : on se met sur un côté au lieu du centre (côté fixe par client)
   const multi = ['airhockey','poker','blackjack','roulette','table'].includes(m.def.id);
   if(cust && cust.sideSign === undefined) cust.sideSign = Math.random()<0.5 ? -1 : 1;
   const sideSign = cust ? cust.sideSign : (Math.random()<0.5 ? -1 : 1);
-  const side = multi ? sideSign * (width/2 + 0.15) : 0;
   const {cols,rows} = state.dims;
   const hx = cols*CELL/2 - 0.55, hz = rows*CELL/2 - 0.55;
-  const make = (sign)=> new THREE.Vector3(
-    m.mesh.position.x + Math.sin(ry)*off*sign + Math.cos(ry)*side,
-    0,
-    m.mesh.position.z + Math.cos(ry)*off*sign - Math.sin(ry)*side
-  );
   const inside = (p)=> Math.abs(p.x)<=hx && Math.abs(p.z)<=hz;
-  let p = make(1);
-  if(!inside(p)){
-    const alt = make(-1);
-    if(inside(alt)) p = alt;
-    else { p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
+
+  // 4 emplacements possibles autour de la machine (avant / arrière / gauche / droite)
+  const cands = [];
+  for(let q=0;q<4;q++){
+    const a = ry + q*(Math.PI/2);
+    const front = (q%2===0);
+    const off = (front ? depth : width)/2 + 0.72;
+    const lat = multi ? sideSign * ((front ? width : depth)/2 + 0.15) : 0;
+    cands.push(new THREE.Vector3(
+      m.mesh.position.x + Math.sin(a)*off + Math.cos(a)*lat,
+      0,
+      m.mesh.position.z + Math.cos(a)*off - Math.sin(a)*lat
+    ));
   }
+  // on garde le côté visible depuis la caméra, pour ne jamais cacher le client derrière la borne
+  const camp = (typeof camera !== 'undefined' && camera) ? camera.position : null;
+  let best = null, bestScore = Infinity;
+  for(const p of cands){
+    let score = inside(p) ? 0 : 1000;
+    if(camp) score += p.distanceTo(camp);
+    if(score < bestScore){ bestScore = score; best = p; }
+  }
+  const p = best || cands[0];
+  if(!inside(p)){ p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
   return p;
 }
+
 
 
 /* petite barre de progression flottante au-dessus du client qui joue */
