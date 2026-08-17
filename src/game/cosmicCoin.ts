@@ -2437,6 +2437,24 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   exteriorBuildingGroup.add(doorCanopy);
   const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
   const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
+  // lettre glissée sous la porte : point de départ de l'histoire
+  if(!(state && state.storyDone && state.storyDone.includes('intro'))){
+    const letter = group();
+    const env = box(0.34,0.02,0.24,'#efe6cf'); env.position.y=0.02; letter.add(env);
+    const flap = box(0.2,0.02,0.14,'#d9cbab'); flap.position.set(0.02,0.035,0); flap.rotation.y=0.35; letter.add(flap);
+    const halo = makeGlowSprite('#fff3c4', 0.6); halo.position.y=0.25; letter.add(halo);
+    letter.position.set(-w/2-0.75, 0.21, doorZ+0.15);
+    letter.rotation.y = 0.4;
+    exteriorBuildingGroup.add(letter);
+    // planches clouées sur la porte : la boîte est condamnée
+    [0.35,0.95].forEach((y,k)=>{
+      const plank = box(0.08,0.16,1.5, k? '#6b5231':'#7d6039');
+      plank.position.set(-w/2-0.28, 0.9+y, doorZ);
+      plank.rotation.x = k ? 0.12 : -0.12;
+      exteriorBuildingGroup.add(plank);
+    });
+  }
+
 
   // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
   // qui traverse le mur comme le faisait le sprite billboard)
