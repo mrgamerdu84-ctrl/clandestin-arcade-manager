@@ -2267,19 +2267,66 @@ const hoodHit = new THREE.Vector3();
 
 function hoodDef(id){ return HOOD_ITEMS.find(i=>i.id===id); }
 
-function spawnHood(entry){
+/* --- Raccordement automatique des routes (droite / virage / T / carrefour) --- */
+const HOOD_TILE = 2.3;
+const ROAD_IDS = ['roadauto','road','roadcross','roadbend','roadinter'];
+// Directions dans l'ordre N(-Z), E(+X), S(+Z), W(-X)
+const DIR_VECT = [[0,-1],[1,0],[0,1],[-1,0]];
+// Ouvertures des modèles à rotation 0 (déduites de la géométrie Kenney)
+const ROAD_SHAPES = [
+  {key:'ROAD_END',       open:[2]},        // cul-de-sac ouvert au sud
+  {key:'ROAD_STRAIGHT',  open:[0,2]},      // droite nord-sud
+  {key:'ROAD_BEND',      open:[2,3]},      // virage sud-ouest
+  {key:'ROAD_TEE',       open:[1,2,3]},    // T (fermé au nord)
+  {key:'ROAD_CROSSROAD', open:[0,1,2,3]},  // carrefour
+];
+function roadCellKey(x,z){ return Math.round(x/HOOD_TILE) + '|' + Math.round(z/HOOD_TILE); }
+function roadCellSet(){
+  const set = new Set();
+  hoodData.forEach(e=>{ if(ROAD_IDS.includes(e.id)) set.add(roadCellKey(e.x,e.z)); });
+  if(typeof exteriorStreetGroup !== 'undefined' && exteriorStreetGroup){
+    exteriorStreetGroup.children.forEach(w=>{
+      const k = w.userData && w.userData.extKey;
+      if(k && k.startsWith('ROAD') && k!=='ROAD_SIDE') set.add(roadCellKey(w.position.x, w.position.z));
+    });
+  }
+  return set;
+}
+function autoRoadPiece(x, z, cells){
+  const cx = Math.round(x/HOOD_TILE), cz = Math.round(z/HOOD_TILE);
+  const links = DIR_VECT.map(([dx,dz]) => cells.has((cx+dx)+'|'+(cz+dz)));
+  const n = links.filter(Boolean).length;
+  if(n === 0) return {key:'ROAD_STRAIGHT', rot:0};
+  for(const shape of ROAD_SHAPES){
+    if(shape.open.length !== n) continue;
+    for(let r=0; r<4; r++){
+      // rotation de +r*90° autour de Y : la direction d passe à (d + r) % 4
+      const ok = shape.open.every(d => links[(d + r) % 4]);
+      if(ok) return {key:shape.key, rot:r * Math.PI/2};
+    }
+  }
+  return {key:'ROAD_STRAIGHT', rot:0};
+}
+
+function spawnHood(entry, cells){
   const def = hoodDef(entry.id);
   if(!def) return null;
-  const wrap = placeExt(hoodGroup, def.key, def.spec, entry.x, entry.z, entry.rot||0);
+  let key = def.key, rot = entry.rot || 0;
+  if(def.auto){
+    const piece = autoRoadPiece(entry.x, entry.z, cells || roadCellSet());
+    key = piece.key; rot = piece.rot;
+  }
+  const wrap = placeExt(hoodGroup, key, def.spec, entry.x, entry.z, rot);
   if(!wrap) return null;
   wrap.position.set(entry.x, def.id.startsWith('road')||def.id==='sidewalk' ? 0.02 : 0, entry.z);
-  wrap.rotation.y = entry.rot || 0;
+  wrap.rotation.y = rot;
   wrap.userData.hood = entry;
   return wrap;
 }
 function rebuildHood(){
   while(hoodGroup.children.length) hoodGroup.remove(hoodGroup.children[0]);
-  hoodData.forEach(spawnHood);
+  const cells = roadCellSet();
+  hoodData.forEach(e=>spawnHood(e, cells));
 }
 function writeHood(){
   try { localStorage.setItem(HOOD_KEY, JSON.stringify(hoodData)); } catch(e){}
