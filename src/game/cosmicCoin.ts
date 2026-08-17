@@ -1621,6 +1621,9 @@ function buildRoom(stageIdx){
 
   updateCamera();
 
+  // la reconstruction vide roomGroup : on remet les gravats restants
+  if(typeof spawnGrime === 'function' && state && (state.grime|0) > 0) spawnGrime();
+
   return {cols,rows,doorRow};
 }
 
