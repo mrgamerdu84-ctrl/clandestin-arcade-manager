@@ -1222,7 +1222,7 @@ let roomStyle = {...STYLE_DEFAULT, owned:['stripes','plain']};
 function payFor(cost, label){
   if(!cost || cost<=0) return true;
   if(state.money < cost){ log(`Pas assez de jetons : ${label} coûte ${cost}¢ (tu as ${Math.round(state.money)}¢).`); return false; }
-  state.money -= cost;
+  spendMoney(cost, 'buy');
   if(typeof updateHUD === 'function') updateHUD();
   return true;
 }
@@ -3697,7 +3697,7 @@ canvas.addEventListener('click', (e)=>{
       hoodGroup.remove(pick.wrap);
       const back = hoodRefund(pick.entry.id);
       if(back>0){
-        state.money += back;
+        earnMoney(back, 'refund');
         log(`Objet retiré : +${back}¢ récupérés.`);
       } else log("Élément retiré.");
       if(typeof updateHUD === 'function') updateHUD();
@@ -3956,10 +3956,79 @@ function freshState(){
     questIdx:0, questProgress:{}, questsDone:[],
     stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
            passed:0, refused:0, searched:0, timeMs:0},
+    // journal des mouvements de caisse (anti-triche) : tout entre/sort par ici
+    ledger:{in:0, out:0, loan:0, repay:0, day:1, dayIn:0},
     scored:false,
   };
 }
 let state = freshState();
+
+/* ============================================================
+   TRÉSORERIE VÉRIFIÉE — journal des transactions + plafonds
+   Toute écriture de caisse passe par earnMoney/spendMoney :
+   on garde la trace de ce qui est entré et sorti pour pouvoir
+   recalculer un solde plausible (sauvegarde bidouillée, double gain…).
+   ============================================================ */
+const START_MONEY = 140;
+function ledger(){
+  if(!state.ledger) state.ledger = {in:0, out:0, loan:0, repay:0, day:state.day||1, dayIn:0};
+  return state.ledger;
+}
+/* plafond de gains sur une journée : large pour le jeu normal, infranchissable pour un script */
+function dailyEarnCap(){
+  return 500 + (state.day|0)*150 + (state.machines?state.machines.length:0)*220 + (state.stage|0)*350;
+}
+/* borne haute du solde, reconstruite depuis le journal */
+function maxPlausibleMoney(){
+  const l = ledger();
+  return START_MONEY + l.in + l.loan - l.out - l.repay;
+}
+/* entrée d'argent — kind: 'play' | 'illegal' | 'quest' | 'refund' | 'loan' */
+function earnMoney(amount, kind){
+  let a = Math.round(Math.max(0, Number(amount) || 0));
+  if(!a) return 0;
+  const l = ledger();
+  if(l.day !== state.day){ l.day = state.day; l.dayIn = 0; }
+  const capped = (kind !== 'loan' && kind !== 'refund');
+  if(capped){
+    const cap = dailyEarnCap();
+    if(l.dayIn + a > cap){
+      a = Math.max(0, cap - l.dayIn);
+      if(a <= 0){
+        log("⚠️ Recette du jour plafonnée : la caisse ne peut plus encaisser aujourd'hui.");
+        return 0;
+      }
+    }
+    l.dayIn += a;
+  }
+  state.money += a;
+  if(kind === 'loan') l.loan += a;
+  else { l.in += a; state.stats.earned += a; }
+  return a;
+}
+/* sortie d'argent — kind: 'buy' (défaut) | 'repay' ; refuse si la caisse ne suit pas */
+function spendMoney(amount, kind){
+  const a = Math.round(Math.max(0, Number(amount) || 0));
+  if(a > Math.round(state.money)) return false;
+  state.money -= a;
+  const l = ledger();
+  if(kind === 'repay') l.repay += a;
+  else { l.out += a; state.stats.spent += a; }
+  return true;
+}
+/* contrôle de cohérence : un solde supérieur au journal = sauvegarde trafiquée */
+function auditMoney(silent){
+  const max = maxPlausibleMoney();
+  if(state.money > max + 1){
+    state.money = Math.max(0, Math.round(max));
+    if(!silent) log("⚠️ Caisse incohérente : le solde a été recalculé depuis le journal des transactions.");
+    return false;
+  }
+  if(state.money < 0) state.money = 0;
+  return true;
+}
+
+
 
 function initGrid(){
   const dims = buildRoom(state.stage);
@@ -4006,15 +4075,15 @@ function moveWall(axis, delta){
   if(delta > 0){
     const cost = wallCost();
     if(state.money < cost){ log(`Pas assez de jetons : une rangée coûte ${cost}¢.`); return; }
-    state.money -= cost;
-    state.stats.spent += cost;
+    spendMoney(cost, 'buy');
+
   } else {
     // refuse si des machines occupent la dernière rangée
     const occupied = state.machines.some(m=> axis==='cols' ? m.x >= next : m.z >= next);
     if(occupied){ log("Libère d'abord la rangée près du mur."); return; }
     // on ne rembourse que les rangées réellement achetées (sinon : argent gratuit en rétrécissant la salle d'origine)
     const bought = axis==='cols' ? (state.extraCols||0) : (state.extraRows||0);
-    if(bought > 0){ state.money += WALL_REFUND; state.stats.earned += WALL_REFUND; }
+    if(bought > 0){ earnMoney(WALL_REFUND, 'refund'); }
   }
 
   if(axis==='cols') state.extraCols = (state.extraCols||0) + delta;
@@ -4041,7 +4110,7 @@ function bankBorrow(amount){
   if(room < 40){ log("La banque refuse : ta ligne de crédit est déjà au maximum."); return; }
   const take = Math.min(amount, room);
   state.debt += take;
-  state.money += take;
+  earnMoney(take, 'loan');
   state.won = false;
   log(`🏦 Emprunt accordé : +${take}¢ (dette ${Math.round(state.debt)}¢).`);
   updateHUD();
@@ -4061,7 +4130,7 @@ function bankRepay(amount){
     log(`Pas assez de jetons : la banque te laisse garder ${CASH_RESERVE}¢ en caisse pour faire tourner la boîte.`);
     return;
   }
-  state.money -= pay; state.debt -= pay;
+  spendMoney(pay, 'repay'); state.debt -= pay;
   const summary = `<span class="ev-good">🏦 Remboursement</span><br>
 • Montant versé : <b>${Math.round(pay)}¢</b><br>
 • Dette restante : <b>${Math.max(0, Math.round(state.debt))}¢</b><br>
@@ -4310,7 +4379,7 @@ document.getElementById('expandBtn').onclick = ()=>{
   const next = STAGES[state.stage+1];
   if(!next) return;
   if(state.money<next.cost || state.rep<next.unlockRep) return;
-  state.money -= next.cost;
+  spendMoney(next.cost, 'buy');
   state.stage += 1;
   // clear machines/customers visually and logically (renovation)
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
@@ -4409,8 +4478,8 @@ canvas.addEventListener('click', (e)=>{
   }
   if(zone === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
   if(state.money < def.price){ log("Pas assez de jetons pour cet achat."); return; }
-  state.money -= def.price;
-  state.stats.spent += def.price;
+  spendMoney(def.price, 'buy');
+
   state.stats.machinesBuilt += 1;
   const mesh = buildMachineMesh(def.id);
   const p = cellToWorld(gx,gz,cols,rows);
@@ -4539,7 +4608,7 @@ document.getElementById('mmSell').onclick = ()=>{
   if(!menuMachine || menuMachine.busy) return;
   const m = menuMachine;
   const refund = Math.round(m.def.price*0.5);
-  state.money += refund;
+  earnMoney(refund, 'refund');
   machinesGroup.remove(m.mesh);
   state.grid[m.z][m.x] = null;
   const idx = state.machines.indexOf(m);
@@ -4765,16 +4834,17 @@ function updateCustomers(dt){
             state.danger = Math.min(100, (state.danger||0) + 1.2);
           }
         }
-        if(c.target.def.illegal){
+        const illegalPlay = !!c.target.def.illegal;
+        if(illegalPlay){
           gain = Math.round(gain * 2.3);
-          state.illegalEarned += gain;
           state.suspicion = Math.min(100, state.suspicion + (state.lookout?0.45:0.75)*(1+state.danger/120));
           state.rep = Math.min(30, state.rep + 0.05);
         } else {
           state.rep = Math.min(30,state.rep+0.15);
         }
-        state.money += gain;
-        state.stats.earned += gain;
+        gain = earnMoney(gain, illegalPlay ? 'illegal' : 'play');
+        if(illegalPlay) state.illegalEarned += gain;
+
         state.stats.customers += 1;
         if(scammed){
           spawnFloatText(c.mesh.position, `ARNAQUE !`);
@@ -4896,7 +4966,7 @@ function renderBackroom(){
   box.innerHTML = '';
   if(!state.backroom){
     box.appendChild(backAction("Rouvrir l'arrière-salle", "La porte cachée de Rosa. Machines clandestines, gains x2,3.", BACKROOM_COST, state.money>=BACKROOM_COST, ()=>{
-      state.money -= BACKROOM_COST;
+      spendMoney(BACKROOM_COST, 'buy');
       state.backroom = true;
       questEvent('backroom');
       log("Tu descelles la porte du fond. L'arrière-salle de Rosa rouvre ce soir.");
@@ -4912,7 +4982,7 @@ function renderBackroom(){
 
   box.appendChild(backAction("Blanchir la caisse", state.launderDay===state.day?"Déjà fait aujourd'hui.":"-18 suspicion (1×/jour).", LAUNDER_COST,
     state.money>=LAUNDER_COST && state.launderDay!==state.day, ()=>{
-      state.money -= LAUNDER_COST; state.launderDay = state.day;
+      spendMoney(LAUNDER_COST, 'buy'); state.launderDay = state.day;
       state.suspicion = Math.max(0, state.suspicion-18);
       log("Recettes passées dans les jetons d'arcade. La compta redevient présentable.");
       renderBackroom();
@@ -4920,7 +4990,7 @@ function renderBackroom(){
 
   box.appendChild(backAction("Pot-de-vin à l'inspecteur", state.day-state.bribeDay<3?"L'inspecteur se fait discret (3 jours).":"-40 suspicion, risque légal.", BRIBE_COST,
     state.money>=BRIBE_COST && state.day-state.bribeDay>=3, ()=>{
-      state.money -= BRIBE_COST; state.bribeDay = state.day;
+      spendMoney(BRIBE_COST, 'buy'); state.bribeDay = state.day;
       state.suspicion = Math.max(0, state.suspicion-40);
       log("Une enveloppe change de main dans l'arrière-cour. Silence acheté.");
       renderBackroom();
@@ -4928,7 +4998,7 @@ function renderBackroom(){
 
   if(!state.lookout){
     box.appendChild(backAction("Engager un guetteur", "Prévient plus tôt et ralentit la suspicion.", LOOKOUT_COST, state.money>=LOOKOUT_COST, ()=>{
-      state.money -= LOOKOUT_COST; state.lookout = true;
+      spendMoney(LOOKOUT_COST, 'buy'); state.lookout = true;
       log("Momo prend son poste devant la porte. Il siffle deux fois quand ça sent le bleu.");
       renderBackroom();
     }));
@@ -5039,8 +5109,8 @@ function doorPass(){
     log("Le curieux entre, compte les tables et repart. Ça se saura.");
   } else {
     const [lo,hi] = v.kind.pay;
-    const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
-    state.money += gain; state.illegalEarned += gain; state.stats.earned += gain;
+    let gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
+    gain = earnMoney(gain, 'illegal'); state.illegalEarned += gain;
     questEvent('pass_good');
     questEvent('illegal_earn', gain);
     state.rep = Math.min(30, state.rep+0.2);
@@ -5234,7 +5304,7 @@ function questEvent(track, n=1){
 function completeQuest(){
   const q = activeQuest(); if(!q) return;
   const r = q.reward||{};
-  if(r.money){ state.money += r.money; state.stats.earned += r.money; }
+  if(r.money){ earnMoney(r.money, 'quest'); }
   if(r.rep) state.rep = Math.min(30, state.rep + r.rep);
   if(r.danger) addDanger(r.danger);
   state.questsDone.push(q.id);
@@ -5491,7 +5561,7 @@ function resolveRaid(){
     showEvent("RIEN À SIGNALER", "Deux agents traversent la salle, tapotent une borne, repartent. Derrière le faux mur, personne n'ose respirer. Suspicion en forte baisse.");
   } else {
     const fine = Math.min(state.money, 120 + exposed.length*40);
-    state.money -= fine;
+    spendMoney(fine, 'buy');
     state.rep = Math.max(0, state.rep-2);
     state.busts += 1;
     state.stats.busts += 1;
@@ -5548,6 +5618,8 @@ function maybeTriggerEvent(){
 }
 function newDay(){
   state.day+=1;
+  { const l = ledger(); l.day = state.day; l.dayIn = 0; }
+  auditMoney();
   questEvent('day');
   if(state.debt>0){
     state.debt += state.debt * LOAN_RATE;   // intérêts du jour
@@ -5820,8 +5892,26 @@ var saveReady = false; // eslint-disable-line no-var
 
 const AUTOSAVE_MS = 600000; // sauvegarde automatique toutes les 10 minutes
 
+/* ---- signature locale des sauvegardes (détection de bidouille) ---- */
+const SAVE_SALT = 'cosmic-coin-1988';
+function saveSignature(d){
+  const src = SAVE_SALT + '|' + [d.money, d.debt, d.day, d.rep, d.stage,
+    (d.ledger&&d.ledger.in)|0, (d.ledger&&d.ledger.out)|0, (d.ledger&&d.ledger.loan)|0,
+    (d.ledger&&d.ledger.repay)|0, (d.machines||[]).length, (d.stats&&d.stats.earned)|0].join('|');
+  let h1 = 0x811c9dc5, h2 = 0x1000193;
+  for(let i=0;i<src.length;i++){
+    const c = src.charCodeAt(i);
+    h1 = (h1 ^ c) >>> 0; h1 = Math.imul(h1, 16777619) >>> 0;
+    h2 = (h2 + c * (i+7)) >>> 0; h2 = Math.imul(h2, 2246822519) >>> 0;
+  }
+  return h1.toString(36) + '-' + h2.toString(36);
+}
+function signSave(d){ d.sig = saveSignature(d); return d; }
+/* true si la sauvegarde n'a pas été modifiée à la main */
+function saveTrusted(d){ return !!d && typeof d.sig === 'string' && d.sig === saveSignature(d); }
+
 function serializeSave(){
-  return {
+  return signSave({
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
     extraCols: state.extraCols||0, extraRows: state.extraRows||0, grime: state.grime|0,
@@ -5833,7 +5923,7 @@ function serializeSave(){
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
     danger: state.danger, playMs: Math.round(state.playMs||0), closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
-    stats: state.stats, logMsgs: state.logMsgs.slice(-14),
+    stats: state.stats, ledger: ledger(), logMsgs: state.logMsgs.slice(-14),
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
     style: {...roomStyle},
     brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned, named: !!clubBrand.named},
@@ -5843,7 +5933,7 @@ function serializeSave(){
     players: state.customers
       .filter(c=>c.phase==='playing' && c.target && !c.illegal)
       .map(c=>({mx:c.target.x, mz:c.target.z, t:Math.round(c.playTimer||0), shirt:c.shirt||null})),
-  };
+  });
 }
 let lastSaveAt = 0;         // horodatage réel du dernier enregistrement réussi
 function flashSaveBadge(){
@@ -5914,6 +6004,7 @@ function readSave(){
     if(!raw) return null;
     const data = JSON.parse(raw);
     if(!data || data.v !== SAVE_VERSION) return null;
+    data.__untrusted = !saveTrusted(data);
     return data;
   } catch(e){ return null; }
 }
@@ -5941,6 +6032,7 @@ function readSlot(i){
     if(!raw) return null;
     const d = JSON.parse(raw);
     if(!d || d.v !== SAVE_VERSION) return null;
+    d.__untrusted = !saveTrusted(d);
     return d;
   } catch(e){ return null; }
 }
@@ -6042,8 +6134,22 @@ function applySave(data){
     unlocks:data.unlocks||[], storyDone:data.storyDone||[],
     questIdx:data.questIdx??0, questProgress:data.questProgress||{}, questsDone:data.questsDone||[],
     stats:{...state.stats, ...(data.stats||{})},
+    ledger: (data.ledger && typeof data.ledger === 'object')
+      ? {in:data.ledger.in|0, out:data.ledger.out|0, loan:data.ledger.loan|0,
+         repay:data.ledger.repay|0, day:data.ledger.day|0, dayIn:data.ledger.dayIn|0}
+      // vieille sauvegarde sans journal : on le reconstruit depuis les statistiques
+      : {in:(data.stats&&data.stats.earned)|0, out:(data.stats&&data.stats.spent)|0,
+         loan:Math.max(0,(data.debt||0)), repay:0, day:data.day||1, dayIn:0},
     logMsgs:data.logMsgs||[],
   });
+  // sauvegarde retouchée à la main ? on recale le solde sur le journal des transactions
+  if(data.__untrusted){
+    const max = maxPlausibleMoney();
+    if(state.money > max + 1){
+      state.money = Math.max(0, Math.round(max));
+      log("⚠️ Sauvegarde modifiée détectée : la caisse a été recalculée depuis le journal.");
+    }
+  } else auditMoney(true);
   // ---- personnalisations restaurées avant la construction de la salle ----
   if(data.style && typeof data.style === 'object'){
     roomStyle = {...STYLE_DEFAULT, ...data.style};
