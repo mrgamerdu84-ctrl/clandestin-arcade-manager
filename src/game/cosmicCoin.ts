@@ -4390,12 +4390,15 @@ const STORY = [
   {
     id:'intro',
     when: ()=> true,
-    cam: {exterior:true, theta:-Math.PI/2-0.9, phi:1.15, radius:30, target:[-4.5,1.8,0]},
+    cam: {exterior:true, theta:-Math.PI/2-0.9, phi:1.15, radius:22, target:[-5.5,1.2,0]},
     lines: [
-      ['rosa', "« Si tu lis ça, c'est que je suis partie et que le Cosmic Coin est à toi. Les néons tiennent encore. La banque, elle, ne tiendra pas longtemps. »"],
-      ['rosa', "« Compte les jetons honnêtes le jour. Et pour le reste… derrière le mur du fond, il y a une porte. Ne l'ouvre que si tu n'as plus le choix. »"],
-      ['toi',  "400¢ à rembourser, une salle vide et un été devant moi. On rallume."],
+      ['toi',   "La porte est condamnée avec des planches. Un truc dépasse en dessous… une enveloppe."],
+      ['rosa',  "« Si tu lis ça, c'est que je suis partie sans prévenir. La nuit du 3 août, les flics ont mis les scellés et vidé la caisse. J'ai laissé la boîte comme elle était. »"],
+      ['rosa',  "« Ils ont tout emporté : la piste, la boule, les platines. Le reste, ce sont des gravats, des cartons et les tentes de ceux qui dormaient là quand plus personne ne venait. »"],
+      ['rosa',  "« Le Cosmic Coin est à toi maintenant. Nettoie-la, rachète tout, jeton par jeton. Et derrière le mur du fond, il y a une porte. Ne l'ouvre que si tu n'as plus le choix. »"],
+      ['toi',   "400¢ de dette, une salle vide et pleine de saletés. On arrache les planches et on rallume."],
     ],
+
   },
   {
     id:'momo',
