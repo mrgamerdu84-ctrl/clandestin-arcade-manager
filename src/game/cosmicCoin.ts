@@ -1596,6 +1596,10 @@ function placeExt(parentGroup, key, spec, x, z, rotY){
   }
   const wrap = group(); wrap.add(obj);
   wrap.position.set(x,0,z); wrap.rotation.y = rotY||0;
+  if(parentGroup === exteriorStreetGroup){
+    wrap.userData.sid = 's' + (extSidCounter++);
+    wrap.userData.extKey = key;
+  }
   parentGroup.add(wrap);
   return wrap;
 }
@@ -1655,8 +1659,10 @@ function placeStreetlight(x, z, roadDir, withPointLight){
 
 // static street dressing — built once, independent of the arcade's stage/size
 
+let extSidCounter = 0;
 function buildExteriorStreet(maxSpan){
   while(exteriorStreetGroup.children.length) exteriorStreetGroup.remove(exteriorStreetGroup.children[0]);
+  extSidCounter = 0;
   pedestrians.length = 0;
   cars.length = 0;
   extMovers.length = 0;
@@ -1808,6 +1814,7 @@ function buildExteriorStreet(maxSpan){
     const startZ = zMin + 2 + i*((zMax-zMin-4)/pedRoster.length);
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, 0);
     if(wrap){
+      wrap.userData.noEdit = true;
       pedestrians.push({wrap, z:startZ, dir: i%2===0?1:-1, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
     }
   });
@@ -1821,6 +1828,7 @@ function buildExteriorStreet(maxSpan){
     const startZ = zMin + (i/4)*(zMax-zMin);
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'footprint',target:1.05}, laneX, startZ, dir>0?0:Math.PI);
     if(wrap){
+      wrap.userData.noEdit = true;
       cars.push({wrap, z:startZ, dir, speed: 2.6+Math.random()*1.4, zMin:zMin-2, zMax:zMax+2, x:laneX});
     }
   }
@@ -1838,6 +1846,7 @@ function buildExteriorStreet(maxSpan){
   for(let i=0;i<5;i++){
     const key = ['PED_MALE','PED_FEMALE','PED_MALE2','PED_FEMALE2'][i%4];
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, queueX + (i%2?0.35:-0.2), -2.6 + i*0.85, Math.PI/2);
+    if(wrap) wrap.userData.noEdit = true;
     if(wrap) extMovers.push({type:'queue', wrap, base:wrap.position.y, phase:Math.random()*6.28});
   }
   // barrières lumineuses au sol devant l'entrée (flaques de néon)
@@ -1946,9 +1955,14 @@ function buildExteriorStreet(maxSpan){
   /* ---------- voiture de patrouille (visible quand la suspicion monte) ---------- */
   const patrol = placeExt(exteriorStreetGroup, 'CAR_POLICE', {mode:'footprint',target:1.05}, roadX - roadLaneOffset, zMax, Math.PI);
   if(patrol){
+    patrol.userData.noEdit = true;
     patrolCar = {wrap:patrol, z:zMax, dir:-1, speed:2.2, zMin:zMin-2, zMax:zMax+2};
     patrol.visible = false;
   }
+
+  // les figurants animés ne sont pas éditables (ils bougent tout seuls)
+  [...pedestrians, ...cars, ...extMovers].forEach(m=>{ if(m && m.wrap) m.wrap.userData.noEdit = true; });
+  applyStreetOverrides();
 }
 
 
@@ -2317,7 +2331,15 @@ function initHoodEditor(){
   const t = document.getElementById('hoodToggle');
   if(t) t.onclick = ()=>{ hoodEdit = !hoodEdit; if(!hoodEdit){ hoodSel=null; hoodErase=false; } refreshHoodUI(); };
   const r = document.getElementById('hoodRotate');
-  if(r) r.onclick = ()=>{ hoodRot = (hoodRot + Math.PI/2) % (Math.PI*2); refreshHoodUI(); };
+  if(r) r.onclick = ()=>{
+    hoodRot = (hoodRot + Math.PI/2) % (Math.PI*2);
+    const sel = hoodCarry || hoodPick;
+    if(sel && !hoodCarry){
+      if(sel.kind==='hood'){ sel.entry.rot = hoodRot; writeHood(); rebuildHood(); }
+      else { sel.wrap.rotation.y = hoodRot; saveStreetWrap(sel.wrap); }
+    }
+    refreshHoodUI();
+  };
   const e = document.getElementById('hoodErase');
   if(e) e.onclick = ()=>{ hoodErase = !hoodErase; if(hoodErase){ hoodSel = null; hoodMove = false; hoodCarry = null; } refreshHoodUI(); };
   const mv = document.getElementById('hoodMove');
@@ -2326,6 +2348,15 @@ function initHoodEditor(){
     if(hoodMove){ hoodErase = false; hoodSel = null; }
     hoodCarry = null;
     refreshHoodUI();
+  };
+  const rs = document.getElementById('hoodRestore');
+  if(rs) rs.onclick = ()=>{
+    streetOvr = {}; writeOvr();
+    eachStreetWrap(w=>{ w.visible = true; w.userData.hidden = false; });
+    hoodPick = null;
+    buildExteriorStreet(16);
+    updateHoodGrid();
+    log("Décor d'origine du quartier remis en place.");
   };
   const u = document.getElementById('hoodUndo');
   if(u) u.onclick = ()=>{
@@ -2386,6 +2417,43 @@ function initStyleUI(){
   refreshStyleUI();
 }
 
+/* ---------- retouches du décor d'origine (déplacer / retirer / remettre) ---------- */
+const OVR_KEY = 'cc_hood_ovr_v1';
+let streetOvr = {};
+try { streetOvr = JSON.parse(localStorage.getItem(OVR_KEY) || '{}') || {}; } catch(e){ streetOvr = {}; }
+function writeOvr(){ try { localStorage.setItem(OVR_KEY, JSON.stringify(streetOvr)); } catch(e){} }
+function eachStreetWrap(fn){
+  exteriorStreetGroup.children.forEach(w=>{ if(w.userData && w.userData.sid) fn(w); });
+}
+function applyStreetOverrides(){
+  eachStreetWrap(w=>{
+    const o = streetOvr[w.userData.sid];
+    if(!o) return;
+    if(o.del){ w.visible = false; w.userData.hidden = true; return; }
+    if(typeof o.x === 'number'){ w.position.x = o.x; w.position.z = o.z; }
+    if(typeof o.rot === 'number') w.rotation.y = o.rot;
+  });
+}
+function streetFromObject(obj){
+  let o = obj;
+  while(o){ if(o.userData && o.userData.sid) return o; o = o.parent; }
+  return null;
+}
+function editableHits(){
+  const hits = raycaster.intersectObjects([hoodGroup, exteriorStreetGroup], true);
+  for(const h of hits){
+    const hw = hoodFromObject(h.object);
+    if(hw) return {kind:'hood', wrap:hw, entry:hw.userData.hood};
+    const sw = streetFromObject(h.object);
+    if(sw && !sw.userData.noEdit && sw.visible) return {kind:'street', wrap:sw};
+  }
+  return null;
+}
+function saveStreetWrap(w){
+  streetOvr[w.userData.sid] = {x:+w.position.x.toFixed(3), z:+w.position.z.toFixed(3), rot:+w.rotation.y.toFixed(3)};
+  writeOvr();
+}
+
 function hoodFromObject(obj){
   let o = obj;
   while(o){ if(o.userData && o.userData.hood) return o; o = o.parent; }
@@ -2414,8 +2482,19 @@ hoodPickBox.position.y = 0.07;
 hoodPickBox.visible = false;
 scene.add(hoodPickBox);
 
+function selPos(sel){
+  if(!sel) return null;
+  return sel.kind==='hood' ? {x:sel.entry.x, z:sel.entry.z} : {x:sel.wrap.position.x, z:sel.wrap.position.z};
+}
+function selSnap(sel){
+  if(!sel) return null;
+  if(sel.kind==='hood'){ const d = hoodDef(sel.entry.id); return (d && d.snap) || 1.15; }
+  return 1.15;
+}
 function currentSnap(){
-  const d = hoodDef(hoodCarry ? hoodCarry.id : (hoodPick ? hoodPick.id : hoodSel));
+  const sel = hoodCarry || hoodPick;
+  if(sel) return selSnap(sel);
+  const d = hoodDef(hoodSel);
   return (d && d.snap) || 1.15;
 }
 function updateHoodGrid(){
@@ -2434,10 +2513,11 @@ function updateHoodGrid(){
   if(hoodGridMesh) hoodGridMesh.visible = show;
   if(!show){ hoodCell.visible = false; hoodPickBox.visible = false; return; }
   hoodCell.scale.set(snap*0.94, snap*0.94, 1);
-  if(hoodPick){
-    const ps = (hoodDef(hoodPick.id)||{}).snap || 1.15;
+  const p = selPos(hoodPick);
+  if(p){
+    const ps = selSnap(hoodPick);
     hoodPickBox.scale.set(ps*0.98, ps*0.98, 1);
-    hoodPickBox.position.set(hoodPick.x, 0.07, hoodPick.z);
+    hoodPickBox.position.set(p.x, 0.07, p.z);
     hoodPickBox.visible = true;
   } else hoodPickBox.visible = false;
 }
@@ -2458,12 +2538,19 @@ canvas.addEventListener('pointermove', (e)=>{
 });
 
 function nudgePick(dx, dz){
-  const target = hoodCarry || hoodPick;
-  if(!target){ log("Choisis d'abord un objet (✋ Déplacer ou pose-en un)."); return; }
-  const snap = ((hoodDef(target.id)||{}).snap || 1.15) / 4;
-  target.x = +(target.x + dx*snap).toFixed(3);
-  target.z = +(target.z + dz*snap).toFixed(3);
-  writeHood(); rebuildHood(); updateHoodGrid();
+  const sel = hoodCarry || hoodPick;
+  if(!sel){ log("Choisis d'abord un objet : clique-le en mode ✋ Déplacer."); return; }
+  const step = selSnap(sel) / 4;
+  if(sel.kind==='hood'){
+    sel.entry.x = +(sel.entry.x + dx*step).toFixed(3);
+    sel.entry.z = +(sel.entry.z + dz*step).toFixed(3);
+    writeHood(); rebuildHood();
+  } else {
+    sel.wrap.position.x += dx*step;
+    sel.wrap.position.z += dz*step;
+    saveStreetWrap(sel.wrap);
+  }
+  updateHoodGrid();
 }
 function initHoodArrows(){
   const map = {hoodUp:[0,-1], hoodDown:[0,1], hoodLeft:[-1,0], hoodRight:[1,0]};
@@ -2517,40 +2604,51 @@ canvas.addEventListener('click', (e)=>{
 
   if(hoodMove){
     if(!hoodCarry){
-      // on attrape l'objet cliqué
-      const hits = raycaster.intersectObjects(hoodGroup.children, true);
-      if(!hits.length) return;
-      const wrap = hoodFromObject(hits[0].object);
-      if(!wrap) return;
-      hoodCarry = wrap.userData.hood;
-      hoodPick = hoodCarry;
-      hoodRot = hoodCarry.rot || 0;
+      const pick = editableHits();
+      if(!pick) return;
+      hoodCarry = pick;
+      hoodPick = pick;
+      hoodRot = pick.kind==='hood' ? (pick.entry.rot||0) : pick.wrap.rotation.y;
       refreshHoodUI();
       log("Objet attrapé : clique où tu veux le reposer.");
       return;
     }
     // on le repose à l'endroit cliqué
     if(!raycaster.ray.intersectPlane(hoodPlane, hoodHit)) return;
-    const mdef = hoodDef(hoodCarry.id);
-    const msnap = (mdef && mdef.snap) || 1.15;
-    hoodCarry.x = Math.round(hoodHit.x/msnap)*msnap;
-    hoodCarry.z = Math.round(hoodHit.z/msnap)*msnap;
-    hoodCarry.rot = hoodRot;
+    const msnap = selSnap(hoodCarry);
+    const nx = Math.round(hoodHit.x/msnap)*msnap;
+    const nz = Math.round(hoodHit.z/msnap)*msnap;
+    if(hoodCarry.kind==='hood'){
+      hoodCarry.entry.x = nx; hoodCarry.entry.z = nz; hoodCarry.entry.rot = hoodRot;
+      writeHood(); rebuildHood();
+    } else {
+      hoodCarry.wrap.position.x = nx; hoodCarry.wrap.position.z = nz;
+      hoodCarry.wrap.rotation.y = hoodRot;
+      saveStreetWrap(hoodCarry.wrap);
+    }
     hoodPick = hoodCarry;
     hoodCarry = null;
-    writeHood(); rebuildHood(); refreshHoodUI();
+    refreshHoodUI();
     return;
   }
 
   if(hoodErase){
-    const hits = raycaster.intersectObjects(hoodGroup.children, true);
-    if(!hits.length) return;
-    const wrap = hoodFromObject(hits[0].object);
-    if(!wrap) return;
-    if(hoodPick === wrap.userData.hood) hoodPick = null;
-    hoodData = hoodData.filter(d=>d !== wrap.userData.hood);
-    hoodGroup.remove(wrap);
-    writeHood();
+    const pick = editableHits();
+    if(!pick) return;
+    if(pick.kind==='hood'){
+      if(hoodPick && hoodPick.entry === pick.entry) hoodPick = null;
+      hoodData = hoodData.filter(d=>d !== pick.entry);
+      hoodGroup.remove(pick.wrap);
+      writeHood();
+    } else {
+      pick.wrap.visible = false;
+      pick.wrap.userData.hidden = true;
+      streetOvr[pick.wrap.userData.sid] = {del:true};
+      writeOvr();
+      if(hoodPick && hoodPick.wrap === pick.wrap) hoodPick = null;
+      log("Élément du quartier retiré (↺ Tout remettre pour le récupérer).");
+    }
+    updateHoodGrid();
     return;
   }
 
@@ -2567,7 +2665,7 @@ canvas.addEventListener('click', (e)=>{
   if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
   hoodData.push(entry);
   spawnHood(entry);
-  hoodPick = entry;
+  hoodPick = {kind:'hood', entry};
   writeHood();
   updateHoodGrid();
 });
