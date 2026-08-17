@@ -1946,6 +1946,38 @@ const EXT_BUILDERS = {
     return g;
   },
   NEON_TUBE: ()=> box(1.6,0.12,0.08,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:1.2}),
+  BANK_BUILDING: ()=>{
+    const g = group();
+    // corps en pierre claire
+    const body = box(3.6,3.0,2.8,'#cfc7b4'); body.position.y=1.5; g.add(body);
+    const base = box(3.9,0.3,3.1,'#a79f8d'); base.position.y=0.15; g.add(base);
+    // fronton triangulaire
+    const ped = new THREE.Mesh(new THREE.ConeGeometry(2.35,0.9,3), mat('#e3dbc6'));
+    ped.rotation.y = Math.PI/2; ped.position.set(0,3.4,0.05); ped.scale.set(1,1,0.62); g.add(ped);
+    const roof = box(3.9,0.22,2.95,'#e3dbc6'); roof.position.y=3.05; g.add(roof);
+    // colonnes en façade
+    [-1.3,-0.44,0.44,1.3].forEach(x=>{
+      const c = cyl(0.17,0.17,2.7,'#efe8d6',12); c.position.set(x,1.35,1.5); g.add(c);
+      const cap = box(0.42,0.14,0.42,'#e3dbc6'); cap.position.set(x,2.76,1.5); g.add(cap);
+    });
+    // grande porte + marches
+    const door = box(1.0,1.6,0.1,'#3a2a18'); door.position.set(0,0.8,1.42); g.add(door);
+    const hand = cyl(0.05,0.05,0.16,'#e8b64a',8); hand.rotation.x=Math.PI/2; hand.position.set(0.3,0.9,1.5); g.add(hand);
+    [0,1,2].forEach(i=>{ const s=box(1.6-i*0.15,0.1,0.5-i*0.1,'#bdb5a2'); s.position.set(0,0.05+i*0.1,1.85-i*0.12); g.add(s); });
+    // vitrines
+    [-1.2,1.2].forEach(x=>{
+      const w = box(0.7,1.1,0.08,'#20364d',{transparent:true,opacity:0.75,emissive:0x2f6fae,emissiveIntensity:0.35});
+      w.position.set(x,1.6,1.44); g.add(w);
+    });
+    // enseigne néon BANQUE
+    const sign = makeSignPanel('BANQUE', '#e8b64a', 2.4, 0.55);
+    sign.position.set(0,2.55,1.62); g.add(sign);
+    const halo = registerNightHalo(makeGlowSprite('#e8b64a', 2.4), 0.55);
+    halo.position.set(0,2.55,1.9); g.add(halo);
+    // symbole € sur le fronton
+    const coin = cyl(0.28,0.28,0.08,'#e8b64a',16); coin.rotation.x=Math.PI/2; coin.position.set(0,3.45,0.6); g.add(coin);
+    return g;
+  },
 };
 
 
