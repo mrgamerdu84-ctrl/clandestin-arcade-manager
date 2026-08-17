@@ -57,3 +57,19 @@ Secrets requis pour la release :
 `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
 
 Variable repo optionnelle : `CAP_SERVER_URL` (URL publiée du jeu chargée par le WebView).
+
+## Icône & écran de démarrage
+
+Les sources sont dans `resources/` :
+- `resources/icon.png` (1024×1024) — icône de l'app
+- `resources/splash.png` / `resources/splash-dark.png` (2732×2732) — écran de démarrage
+
+Génération des densités Android :
+
+```bash
+bun add -d @capacitor/assets @capacitor/splash-screen
+bunx capacitor-assets generate --android
+bunx cap sync android
+```
+
+La config du splash (durée, couleur `#07060f`, plein écran) est dans `capacitor.config.ts`.

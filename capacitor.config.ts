@@ -16,6 +16,20 @@ const config: CapacitorConfig = {
     cleartext: false,
     androidScheme: "https",
   },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 1800,
+      launchAutoHide: true,
+      backgroundColor: "#07060fff",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: true,
+      androidSpinnerStyle: "small",
+      spinnerColor: "#ff2d95",
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
   android: {
     allowMixedContent: false,
     backgroundColor: "#07060f",

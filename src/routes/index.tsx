@@ -296,6 +296,7 @@ function GamePage() {
 
       <div id="loadModal">
         <div className="card">
+          <div id="loadBar"><i /></div>
           <h2>Chargement du Cosmic Coin…</h2>
           <p id="loadText">On rallume les néons et on dépoussière la porte du fond…</p>
         </div>
