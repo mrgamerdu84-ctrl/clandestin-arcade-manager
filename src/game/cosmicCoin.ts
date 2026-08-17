@@ -1097,6 +1097,24 @@ function faceTowards(mesh, x, z){
   mesh.lookAt(x, mesh.position.y, z);
 }
 
+/* un joueur actif doit rester lisible même quand la caméra place la borne devant lui */
+function setPlayingCharacterVisible(mesh, playing){
+  if(!mesh) return;
+  mesh.visible = true;
+  mesh.renderOrder = playing ? 20 : 0;
+  mesh.scale.setScalar(playing ? 1.08 : 1);
+  mesh.traverse(o=>{
+    if(!o.isMesh || !o.material) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach(mat=>{
+      mat.depthTest = !playing;
+      mat.depthWrite = !playing;
+      mat.needsUpdate = true;
+    });
+    o.renderOrder = playing ? 20 : 0;
+  });
+}
+
 /* pas de marche : balancement jambes/bras (amount = amplitude, 0 = repos) */
 function stepCharacter(mesh, t, amount = 1){
   const u = mesh && mesh.userData;
@@ -4685,6 +4703,7 @@ function updateCustomers(dt){
       if(dist<0.25){
         c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
         c.phase='playing'; c.playTimer=0; c.stuck=0;
+        setPlayingCharacterVisible(c.mesh, true);
       }
       else{
         dir.normalize();
@@ -4697,12 +4716,13 @@ function updateCustomers(dt){
         if(c.stuck > 4000){
           c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
           c.phase='playing'; c.playTimer=0; c.stuck=0;
+          setPlayingCharacterVisible(c.mesh, true);
         }
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
       // le client reste bien visible devant la borne pendant toute la partie
-      c.mesh.visible = true;
+      setPlayingCharacterVisible(c.mesh, true);
       if(c.target){
         c.targetPos.copy(standSpotFor(c.target, c));
         c.mesh.position.x = c.targetPos.x; c.mesh.position.z = c.targetPos.z;
@@ -4762,6 +4782,7 @@ function updateCustomers(dt){
           spawnFloatText(c.mesh.position, `+${gain}¢`);
         }
         detachPlayBar(c);
+        setPlayingCharacterVisible(c.mesh, false);
         c.target.busy=false;
         c.target=null;
         c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
@@ -4769,6 +4790,7 @@ function updateCustomers(dt){
     } else if(c.phase==='out'){
       c.mesh.rotation.z = 0;
       detachPlayBar(c);
+      setPlayingCharacterVisible(c.mesh, false);
 
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
@@ -6001,6 +6023,7 @@ function applySave(data){
     const mesh = buildCharacter(shirt);
     const spot = standSpotFor(target);
     mesh.position.set(spot.x, 0, spot.z);
+    setPlayingCharacterVisible(mesh, true);
     customersGroup.add(mesh);
     target.busy = true;
     const {cols:cc, rows:rr, doorRow:dr} = state.dims;
