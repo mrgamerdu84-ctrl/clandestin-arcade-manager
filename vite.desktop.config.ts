@@ -6,13 +6,13 @@ import path from "node:path";
 // Build statique (SPA) utilisé uniquement pour les versions installables
 // PC (Electron) et Android (Capacitor). Le site web reste sur TanStack Start.
 export default defineConfig({
+  root: "desktop",
   base: "./",
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": path.resolve(process.cwd(), "src") } },
-  publicDir: "public",
+  publicDir: path.resolve(process.cwd(), "public"),
   build: {
-    outDir: "dist",
+    outDir: path.resolve(process.cwd(), "dist"),
     emptyOutDir: true,
-    rollupOptions: { input: path.resolve(process.cwd(), "desktop/index.html") },
   },
 });
