@@ -169,6 +169,9 @@ function GamePage() {
           </label>
           <div className="hoodHead">Style des murs</div>
           <div id="styleDetails" />
+          <div className="hoodHead">Décorations à acheter (intérieur & façade)</div>
+          <div id="cosmoList" />
+          <div id="cosmoInfo" className="costLine" />
           <div className="hoodHead">Nom & enseigne de la boîte</div>
           <div className="styleRow">
             <input id="brandName" type="text" maxLength={14} placeholder="COSMIC COIN" aria-label="Nom de la boîte" />
