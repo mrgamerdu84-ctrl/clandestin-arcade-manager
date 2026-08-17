@@ -40,7 +40,10 @@ jobs:
         env:
           CAP_SERVER_URL: ${{ vars.CAP_SERVER_URL }}
         run: |
-          if [ ! -d android ]; then bunx cap add android; fi
+          if [ ! -f android/gradlew ]; then
+            rm -rf android
+            bunx cap add android
+          fi
           bunx cap sync android
 
       - name: Decode keystore
