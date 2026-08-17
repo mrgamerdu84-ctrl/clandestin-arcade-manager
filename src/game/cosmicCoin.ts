@@ -5357,6 +5357,16 @@ function animate(ts){
   // enseignes néon + marquise de l'entrée
   if(exteriorMode){
     const tn = ts*0.001;
+    if(introLetter){
+      introLetter.position.y = introLetter.userData.baseY + Math.sin(tn*2.2)*0.05;
+      introLetter.rotation.y = 0.4 + Math.sin(tn*0.8)*0.15;
+      const pulse = 0.7 + 0.3*Math.abs(Math.sin(tn*2.6));
+      if(introLetter.userData.halo){
+        introLetter.userData.halo.material.opacity = pulse;
+        introLetter.userData.halo.scale.setScalar(0.6 + pulse*0.5);
+      }
+      if(introLetter.userData.tag) introLetter.userData.tag.position.y = 1.15 + Math.sin(tn*2.2)*0.06;
+    }
     const signs = exteriorBuildingGroup.userData.neonSigns || [];
 
     for(const s of signs){
