@@ -3353,6 +3353,47 @@ hoodPickBox.position.y = 0.07;
 hoodPickBox.visible = false;
 scene.add(hoodPickBox);
 
+/* ---------- fantôme de pose : l'objet choisi apparaît avant d'être posé ---------- */
+const hoodGhostGroup = group();
+hoodGhostGroup.visible = false;
+scene.add(hoodGhostGroup);
+let hoodGhostId = null, hoodGhostRot = null;
+function clearHoodGhost(){
+  while(hoodGhostGroup.children.length) hoodGhostGroup.remove(hoodGhostGroup.children[0]);
+  hoodGhostId = null; hoodGhostRot = null;
+  hoodGhostGroup.visible = false;
+}
+function buildHoodGhost(){
+  while(hoodGhostGroup.children.length) hoodGhostGroup.remove(hoodGhostGroup.children[0]);
+  const def = hoodDef(hoodSel);
+  if(!def) return;
+  const wrap = placeExt(hoodGhostGroup, def.key, def.spec, 0, 0, 0);
+  if(!wrap) return;
+  wrap.rotation.y = def.auto ? 0 : hoodRot;
+  wrap.traverse(o=>{
+    if(!o.isMesh) return;
+    o.castShadow = false; o.receiveShadow = false;
+    const src = Array.isArray(o.material) ? o.material[0] : o.material;
+    const m = src ? src.clone() : new THREE.MeshBasicMaterial();
+    m.transparent = true; m.opacity = 0.45; m.depthWrite = false;
+    if(m.emissive) m.emissive.setHex(0x2fd4c8);
+    o.material = m;
+  });
+  hoodGhostId = hoodSel; hoodGhostRot = hoodRot;
+}
+function updateHoodGhost(x, z){
+  const active = exteriorMode && hoodEdit && hoodSel && !hoodErase && !hoodMove;
+  if(!active || x === undefined || x === null){ hoodGhostGroup.visible = false; return; }
+  if(hoodGhostId !== hoodSel || hoodGhostRot !== hoodRot) buildHoodGhost();
+  if(!hoodGhostGroup.children.length){ hoodGhostGroup.visible = false; return; }
+  const def = hoodDef(hoodSel);
+  const snap = (def && def.snap) || 1.15;
+  hoodGhostGroup.position.set(Math.round(x/snap)*snap, 0.03, Math.round(z/snap)*snap);
+  hoodGhostGroup.visible = true;
+}
+let hoodGhostPos = null;
+
+
 /* ---------- aperçu de la case visée à l'intérieur (achat / déplacement) ---------- */
 const roomCell = new THREE.Mesh(
   new THREE.PlaneGeometry(CELL*0.92, CELL*0.92),
