@@ -4951,7 +4951,7 @@ function applySave(data){
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
     // anciennes sauvegardes : la taille venait de l'étape, on la convertit en rangées achetées
-    extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, (STAGES[data.stage||0]?.colsLegacy ?? [6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
+    extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, ([6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
     extraRows:(data.extraRows||0) + (data.baseRoom ? 0 : Math.max(0, ([5,7,9][data.stage||0] ?? BASE_ROWS) - BASE_ROWS)),
     cityDecor: data.baseRoom ? !!data.cityDecor : true, grime:(data.grime===undefined?0:data.grime|0),
 
