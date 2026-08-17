@@ -3390,13 +3390,19 @@ canvas.addEventListener('click', (e)=>{
     if(!pick) return;
     if(pick.kind==='hood'){
       if(hoodPick && hoodPick.entry === pick.entry) hoodPick = null;
+      const wasRoad = ROAD_IDS.includes(pick.entry.id);
       hoodData = hoodData.filter(d=>d !== pick.entry);
       hoodGroup.remove(pick.wrap);
       const back = hoodRefund(pick.entry.id);
-      state.money += back;
+      if(back>0){
+        state.money += back;
+        log(`Objet retiré : +${back}¢ récupérés.`);
+      } else log("Élément retiré.");
       if(typeof updateHUD === 'function') updateHUD();
-      log(`Objet retiré : +${back}¢ récupérés.`);
       writeHood();
+      // les dalles voisines se rebranchent (virage -> droite, carrefour -> T…)
+      if(wasRoad) rebuildHood();
+
     } else {
       pick.wrap.visible = false;
       pick.wrap.userData.hidden = true;
