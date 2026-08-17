@@ -269,6 +269,10 @@ export default function GameShell() {
             <button className="btn" id="scoreBtn" type="button">
               🏆 Score
             </button>
+            <button className="btn" id="menuBtn" type="button">
+              🎬 Menu principal
+            </button>
+
             <button className="btn pink" id="resetBtn" type="button">
               ↺ Reset
             </button>
@@ -314,6 +318,39 @@ export default function GameShell() {
           <p id="loadText">On rallume les néons et on dépoussière la porte du fond…</p>
         </div>
       </div>
+
+      <div id="startMenu" style={{ display: "none" }}>
+        <div id="startInner">
+          <div id="startLogo">
+            <span className="l1">COSMIC</span>
+            <span className="l2">COIN</span>
+            <span className="l3">boîte de nuit clandestine — 1988</span>
+          </div>
+          <div id="startBtns">
+            <button className="startBtn" id="smContinue" type="button">
+              ▶ Continuer la partie
+              <small id="smSaveInfo" />
+            </button>
+            <button className="startBtn" id="smNew" type="button">
+              ✦ Nouvelle partie
+              <small>Repartir d'une boîte condamnée</small>
+            </button>
+            <button className="startBtn" id="smScores" type="button">
+              🏆 Classement & stats
+              <small>Meilleures parties</small>
+            </button>
+            <button className="startBtn" id="smMusic" type="button">
+              🔊 Musique : —
+              <small>Ambiance disco du hall</small>
+            </button>
+          </div>
+          <div id="startFoot">
+            <span>v1 · jouable sur mobile et PC</span>
+            <button className="startGhost" id="smCredits" type="button">Crédits</button>
+          </div>
+        </div>
+      </div>
+
 
       <div id="storyModal" style={{ display: "none" }}>
         <div className="card">
