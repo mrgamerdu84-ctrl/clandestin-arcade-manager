@@ -2717,7 +2717,7 @@ canvas.addEventListener('click', (e)=>{
   };
   if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
   hoodData.push(entry);
-  spawnHood(entry);
+  if(ROAD_IDS.includes(entry.id)) rebuildHood(); else spawnHood(entry);
   hoodPick = {kind:'hood', entry};
   writeHood();
   updateHoodGrid();
