@@ -3171,7 +3171,13 @@ function refreshBrandUI(){
     });
   }
   const info = document.getElementById('brandInfo');
-  if(info) info.innerText = `Renommer la boîte : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+  if(info){
+    const cur = `Nom actuel : « ${clubBrand.name} ».`;
+    const sign = hasCos('facadesign')
+      ? "L'enseigne de la façade affiche ce nom."
+      : "⚠️ Achète l'enseigne de façade (déco ci-dessus) pour voir ce nom en néon dehors.";
+    info.innerText = `${cur} ${sign} Renommer : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+  }
 }
 function initBrandUI(){
   const list = document.getElementById('brandSigns');
@@ -3193,14 +3199,22 @@ function initBrandUI(){
   const save = document.getElementById('brandSave');
   const input = document.getElementById('brandName');
   if(save && input){
-    save.onclick = ()=>{
+    const doRename = ()=>{
       const val = (input.value || '').trim().slice(0,14);
-      if(!val || val.toUpperCase() === clubBrand.name.toUpperCase()){ refreshBrandUI(); return; }
+      if(!val){ log("Tape d'abord un nom dans la case avant de valider."); refreshBrandUI(); return; }
+      if(val.toUpperCase() === clubBrand.name.toUpperCase()){
+        log(`La boîte s'appelle déjà « ${clubBrand.name} ».`); refreshBrandUI(); return;
+      }
       if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
       clubBrand.name = val.toUpperCase();
+      input.value = clubBrand.name;
       writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
-      log(`La boîte s'appelle maintenant « ${clubBrand.name} ».`);
+      log(`✅ La boîte s'appelle maintenant « ${clubBrand.name} ».`);
+      if(!hasCos('facadesign')) log("Pense à acheter l'enseigne de façade pour afficher ce nom en néon dehors.");
+
     };
+    save.onclick = doRename;
+    input.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); input.blur(); doRename(); } };
   }
   applyBrandToTitle();
   refreshBrandUI();
