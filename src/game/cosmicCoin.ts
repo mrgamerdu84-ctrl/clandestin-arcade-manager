@@ -5618,6 +5618,8 @@ function maybeTriggerEvent(){
 }
 function newDay(){
   state.day+=1;
+  { const l = ledger(); l.day = state.day; l.dayIn = 0; }
+  auditMoney();
   questEvent('day');
   if(state.debt>0){
     state.debt += state.debt * LOAN_RATE;   // intérêts du jour
