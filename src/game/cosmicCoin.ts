@@ -892,6 +892,46 @@ Object.assign(BUILDERS, {
     const led = cyl(0.06,0.06,0.06, PAL.teal,10); led.rotation.x=Math.PI/2; led.position.set(-0.5,1.7,0.12); g.add(led);
     return g;
   },
+  'bar': ()=>{
+    const g = group();
+    const counter = box(1.9,1.0,0.6,'#3b2350'); counter.position.y=0.5; g.add(counter);
+    const top = box(2.0,0.09,0.7,'#e8b64a',{metalness:0.5,roughness:0.3}); top.position.y=1.03; g.add(top);
+    const rail = box(2.0,0.06,0.08,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.1}); rail.position.set(0,0.72,0.33); g.add(rail);
+    for(let i=0;i<5;i++){ const b=cyl(0.05,0.05,0.28,i%2?'#2fd4c8':'#ffd23f',8); b.position.set(-0.7+i*0.35,1.2,-0.15); g.add(b); }
+    const shelf = box(1.6,0.06,0.25,'#2a1c3a'); shelf.position.set(0,1.45,-0.28); g.add(shelf);
+    return g;
+  },
+  'sofa': ()=>{
+    const g = group();
+    const seat = box(1.5,0.35,0.7,'#8f1f2e'); seat.position.y=0.3; g.add(seat);
+    const back = box(1.5,0.55,0.18,'#8f1f2e'); back.position.set(0,0.65,-0.28); g.add(back);
+    [-0.72,0.72].forEach(x=>{ const a=box(0.16,0.5,0.7,'#6e1724'); a.position.set(x,0.45,0); g.add(a); });
+    const table = box(0.7,0.06,0.5,'#e8b64a'); table.position.set(0,0.42,0.75); g.add(table);
+    return g;
+  },
+  'discoball': ()=>{
+    const g = group();
+    const pole = cyl(0.03,0.03,0.9,'#3a3a44'); pole.position.y=2.05; g.add(pole);
+    const ball = sphere(0.32,'#cfd6e6',{metalness:0.9,roughness:0.15,emissive:0x8899bb,emissiveIntensity:0.5});
+    ball.position.y=1.45; g.add(ball);
+    const halo = makeGlowSprite('#9ffff5', 1.6); halo.position.y=1.45; g.add(halo);
+    g.userData.spin = ball;
+    return g;
+  },
+  'speaker': ()=>{
+    const g = group();
+    const stack = box(0.6,1.6,0.55,'#141024'); stack.position.y=0.8; g.add(stack);
+    [0.45,1.05,1.45].forEach((y,i)=>{ const c=cyl(i?0.16:0.22,i?0.16:0.22,0.06,'#2a2340',14); c.rotation.x=Math.PI/2; c.position.set(0,y,0.29); g.add(c); });
+    const led = box(0.5,0.05,0.03,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:1.3}); led.position.set(0,1.66,0.28); g.add(led);
+    return g;
+  },
+  'wallart': ()=>{
+    const g = group();
+    const panel = box(1.2,1.5,0.08,'#150a1e'); panel.position.y=1.3; g.add(panel);
+    const art = box(1.0,1.3,0.05,'#8b5cf6',{emissive:0x8b5cf6,emissiveIntensity:0.7}); art.position.set(0,1.3,0.06); g.add(art);
+    const tube = box(1.1,0.07,0.07,'#ff2e88',{emissive:0xff2e88,emissiveIntensity:1.4}); tube.position.set(0,2.1,0.06); g.add(tube);
+    return g;
+  },
   'vip': ()=>{
     const g = group();
     const table = cyl(0.85,0.85,0.16, '#1f5b3a', 20); table.position.y=0.78; g.add(table);
@@ -3153,6 +3193,11 @@ const DECOR = [
   {id:'jukebox', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
   {id:'safe', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
   {id:'falsewall', name:'Faux mur automatique', color:PAL.purpleDark, price:260, repBoost:0.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'falsewall'},
+  {id:'bar', name:'Comptoir de bar', color:'#e8b64a', price:180, repBoost:1.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'sofa', name:'Canapé lounge', color:'#8f1f2e', price:110, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'discoball', name:'Boule à facettes', color:'#cfd6e6', price:140, repBoost:1.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'speaker', name:'Enceinte de scène', color:'#141024', price:95, repBoost:0.8, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'wallart', name:'Fresque murale néon', color:'#8b5cf6', price:75, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'statue', name:'Statue dorée', color:PAL.casinoGold||'#e8b64a', price:150, repBoost:1.2, repReq:0, stageReq:2, earn:[0,0], time:0, passive:true, decor:true},
 ];
 const STAFF = [
