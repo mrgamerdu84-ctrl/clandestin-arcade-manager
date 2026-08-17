@@ -3308,23 +3308,30 @@ function initBrandUI(){
   const save = document.getElementById('brandSave');
   const input = document.getElementById('brandName');
   if(save && input){
+    let typed = input.value || '';
+    input.oninput = ()=>{ typed = input.value || ''; };
     const doRename = ()=>{
-      const val = (input.value || '').trim().slice(0,14);
+      const val = ((input.value || typed) || '').trim().slice(0,14);
       if(!val){ log("Tape d'abord un nom dans la case avant de valider."); refreshBrandUI(); return; }
       if(val.toUpperCase() === clubBrand.name.toUpperCase()){
         log(`La boîte s'appelle déjà « ${clubBrand.name} ».`); refreshBrandUI(); return;
       }
-      if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
+      const cost = renameCost();
+      if(!payFor(cost, 'un changement de nom')){ refreshBrandUI(); return; }
       clubBrand.name = val.toUpperCase();
+      clubBrand.named = true;
+      typed = clubBrand.name;
       input.value = clubBrand.name;
       writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       log(`✅ La boîte s'appelle maintenant « ${clubBrand.name} ».`);
       if(!hasCos('facadesign')) log("Pense à acheter l'enseigne de façade pour afficher ce nom en néon dehors.");
-
     };
-    save.onclick = doRename;
-    input.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); input.blur(); doRename(); } };
+    // pointerdown : évite que le clavier mobile (blur + reflow) avale le clic
+    save.onpointerdown = (e)=>{ e.preventDefault(); doRename(); };
+    save.onclick = (e)=>{ e.preventDefault(); };
+    input.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); doRename(); input.blur(); } };
   }
+
   applyBrandToTitle();
   refreshBrandUI();
 }
