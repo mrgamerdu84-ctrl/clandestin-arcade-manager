@@ -5575,6 +5575,26 @@ function applySave(data){
     state.grid[sm.z][sm.x] = machine;
     state.machines.push(machine);
   });
+  // ---- clients qui étaient en train de jouer : on les remet devant leur machine ----
+  (data.players||[]).forEach(sp=>{
+    const target = state.machines.find(m=>m.x===sp.mx && m.z===sp.mz);
+    if(!target || target.busy || target.broken) return;
+    const shirt = (typeof sp.shirt==='number') ? sp.shirt : SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)];
+    const mesh = buildCharacter(shirt);
+    const spot = standSpotFor(target);
+    mesh.position.set(spot.x, 0, spot.z);
+    customersGroup.add(mesh);
+    target.busy = true;
+    const {cols:cc, rows:rr, doorRow:dr} = state.dims;
+    const doorP = cellToWorld(0, dr, cc, rr);
+    state.customers.push({
+      mesh, target, targetPos:spot.clone(),
+      gatePos:new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z),
+      doorPos:new THREE.Vector3(doorP.x-CELL-1.2, 0, doorP.z),
+      shirt, phase:'playing',
+      playTimer: Math.max(0, Math.min(sp.t||0, target.def.time-200)),
+    });
+  });
   setHidden(false);
   document.getElementById('log').innerHTML = state.logMsgs.map(m=>`<div>${m}</div>`).join('');
 }
