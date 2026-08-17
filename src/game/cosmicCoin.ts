@@ -1946,6 +1946,38 @@ const EXT_BUILDERS = {
     return g;
   },
   NEON_TUBE: ()=> box(1.6,0.12,0.08,'#2fd4c8',{emissive:0x2fd4c8,emissiveIntensity:1.2}),
+  BANK_BUILDING: ()=>{
+    const g = group();
+    // corps en pierre claire
+    const body = box(3.6,3.0,2.8,'#cfc7b4'); body.position.y=1.5; g.add(body);
+    const base = box(3.9,0.3,3.1,'#a79f8d'); base.position.y=0.15; g.add(base);
+    // fronton triangulaire
+    const ped = new THREE.Mesh(new THREE.ConeGeometry(2.35,0.9,3), mat('#e3dbc6'));
+    ped.rotation.y = Math.PI/2; ped.position.set(0,3.4,0.05); ped.scale.set(1,1,0.62); g.add(ped);
+    const roof = box(3.9,0.22,2.95,'#e3dbc6'); roof.position.y=3.05; g.add(roof);
+    // colonnes en façade
+    [-1.3,-0.44,0.44,1.3].forEach(x=>{
+      const c = cyl(0.17,0.17,2.7,'#efe8d6',12); c.position.set(x,1.35,1.5); g.add(c);
+      const cap = box(0.42,0.14,0.42,'#e3dbc6'); cap.position.set(x,2.76,1.5); g.add(cap);
+    });
+    // grande porte + marches
+    const door = box(1.0,1.6,0.1,'#3a2a18'); door.position.set(0,0.8,1.42); g.add(door);
+    const hand = cyl(0.05,0.05,0.16,'#e8b64a',8); hand.rotation.x=Math.PI/2; hand.position.set(0.3,0.9,1.5); g.add(hand);
+    [0,1,2].forEach(i=>{ const s=box(1.6-i*0.15,0.1,0.5-i*0.1,'#bdb5a2'); s.position.set(0,0.05+i*0.1,1.85-i*0.12); g.add(s); });
+    // vitrines
+    [-1.2,1.2].forEach(x=>{
+      const w = box(0.7,1.1,0.08,'#20364d',{transparent:true,opacity:0.75,emissive:0x2f6fae,emissiveIntensity:0.35});
+      w.position.set(x,1.6,1.44); g.add(w);
+    });
+    // enseigne néon BANQUE
+    const sign = makeSignPanel('BANQUE', '#e8b64a', 2.4, 0.55);
+    sign.position.set(0,2.55,1.62); g.add(sign);
+    const halo = registerNightHalo(makeGlowSprite('#e8b64a', 2.4), 0.55);
+    halo.position.set(0,2.55,1.9); g.add(halo);
+    // symbole € sur le fronton
+    const coin = cyl(0.28,0.28,0.08,'#e8b64a',16); coin.rotation.x=Math.PI/2; coin.position.set(0,3.45,0.6); g.add(coin);
+    return g;
+  },
 };
 
 
@@ -2717,6 +2749,7 @@ const HOOD_ITEMS = [
   {id:'sky_a',     label:'🌆 Gratte-ciel',  key:'CITY_SKY_A',       spec:{mode:'footprint',target:5.0}},
   {id:'sky_c',     label:'🌇 Tour',         key:'CITY_SKY_C',       spec:{mode:'footprint',target:5.0}},
   {id:'shop',      label:'🛍️ Boutique néon', key:'SHOPFRONT',       spec:{mode:'height',target:2.8}},
+  {id:'bank',      label:'🏦 Banque',       key:'BANK_BUILDING',    spec:{mode:'height',target:3.6}},
   {id:'lamp',      label:'💡 Lampadaire',   key:'STREETLIGHT',      spec:{mode:'height',target:2.9}},
   {id:'tree',      label:'🌳 Arbre',        key:'TREE_LARGE',       spec:{mode:'height',target:1.5}},
   {id:'planter',   label:'🪴 Jardinière',   key:'PLANTER',          spec:{mode:'height',target:0.55}},
@@ -2740,7 +2773,7 @@ const HOOD_ITEMS = [
 const HOOD_COST = {
   roadauto:0, road:0, roadcross:0, roadbend:0, roadinter:0, sidewalk:0,
   house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
-  city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
+  city_f:120, sky_a:200, sky_c:200, shop:90, bank:0, lamp:25, tree:15, planter:10,
   fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
   wallneon:70, neonarrow:55, graffiti:30, bulbs:35, posterext:40,
   awning:60, rope:45, palmneon:65, marquee:150,
@@ -3406,6 +3439,25 @@ canvas.addEventListener('click', (e)=>{
   raycaster.setFromCamera(mouseNDC, camera);
   const hits = raycaster.intersectObject(introLetter, true);
   if(hits.length) openIntroLetter();
+});
+
+/* clic sur la banque du quartier (hors mode éditeur) : ouvre le guichet */
+canvas.addEventListener('click', (e)=>{
+  if(!exteriorMode || hoodEdit) return;
+  if(dragMoved){ dragMoved = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObjects(hoodGroup.children, true);
+  for(const h of hits){
+    const w = hoodFromObject(h.object);
+    if(w && w.userData.hood && w.userData.hood.id === 'bank'){
+      log('🏦 Guichet de la banque ouvert.');
+      openShopTab('bank');
+      return;
+    }
+  }
 });
 
 canvas.addEventListener('click', (e)=>{
