@@ -2206,10 +2206,8 @@ function buildExteriorStreet(maxSpan){
   const alleyFloor = box(3.4, 0.06, (zMax-zMin)*0.8, '#1d1a26');
   alleyFloor.position.set(alleyX, 0.03, 0); alleyFloor.receiveShadow = true;
   exteriorStreetGroup.add(alleyFloor);
-  // mur du fond de la ruelle, avec graffitis néon
-  const alleyWall = box(0.35, 4.2, (zMax-zMin)*0.8, '#241f31');
-  alleyWall.position.set(alleyX+1.9, 2.1, 0);
-  exteriorStreetGroup.add(alleyWall);
+  // (plus de mur de fond isolé : il flottait à côté du bâtiment)
+
   if(decor){
   ['#ff2e88','#2fd4c8','#ffd23f'].forEach((c,i)=>{
     const tag = box(0.04, 0.9, 1.6, c, {emissive:new THREE.Color(c).getHex(), emissiveIntensity:0.5});
