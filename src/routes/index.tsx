@@ -169,6 +169,13 @@ function GamePage() {
           </label>
           <div className="hoodHead">Style des murs</div>
           <div id="styleDetails" />
+          <div className="hoodHead">Nom & enseigne de la boîte</div>
+          <div className="styleRow">
+            <input id="brandName" type="text" maxLength={14} placeholder="COSMIC COIN" aria-label="Nom de la boîte" />
+            <button id="brandSave" type="button">Renommer</button>
+          </div>
+          <div id="brandSigns" />
+          <div id="brandInfo" className="costLine" />
           <button id="styleReset" type="button" className="styleReset">
             ↺ Réinitialiser
           </button>
