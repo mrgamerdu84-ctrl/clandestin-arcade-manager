@@ -4422,15 +4422,20 @@ function standSpotFor(m, cust){
       m.mesh.position.z + Math.cos(a)*off - Math.sin(a)*lat
     ));
   }
-  // on garde le côté visible depuis la caméra, pour ne jamais cacher le client derrière la borne
-  const camp = (typeof camera !== 'undefined' && camera) ? camera.position : null;
-  let best = null, bestScore = Infinity;
-  for(const p of cands){
-    let score = inside(p) ? 0 : 1000;
-    if(camp) score += p.distanceTo(camp);
-    if(score < bestScore){ bestScore = score; best = p; }
+  // côté visible depuis la caméra, choisi une seule fois par client (pas de téléportation)
+  let q = (cust && cust.spotQ !== undefined) ? cust.spotQ : -1;
+  if(q < 0){
+    const camp = camera ? camera.position : null;
+    let bestScore = Infinity; q = 0;
+    for(let k=0;k<4;k++){
+      let score = inside(cands[k]) ? 0 : 1000;
+      if(camp) score += cands[k].distanceTo(camp);
+      if(score < bestScore){ bestScore = score; q = k; }
+    }
+    if(cust) cust.spotQ = q;
   }
-  const p = best || cands[0];
+  const p = cands[q] || cands[0];
+
   if(!inside(p)){ p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
   return p;
 }
