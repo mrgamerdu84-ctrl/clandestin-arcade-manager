@@ -270,12 +270,19 @@ export default function GameShell() {
             <button className="btn" id="scoreBtn" type="button">
               🏆 Score
             </button>
+            <button className="btn" id="saveNowBtn" type="button">
+              💾 Sauvegarder
+            </button>
             <button className="btn" id="slotsBtn" type="button">
-              💾 Sauvegardes
+              📁 Sauvegardes
             </button>
             <button className="btn" id="menuBtn" type="button">
               🎬 Menu principal
             </button>
+            <button className="btn pink" id="quitBtn" type="button">
+              ⏻ Quitter le jeu
+            </button>
+
 
 
             <button className="btn pink" id="resetBtn" type="button">
