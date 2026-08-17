@@ -1511,22 +1511,36 @@ function buildRoom(stageIdx){
     g.position.set(px,0,pz); g.rotation.y=rotY;
     roomGroup.add(g);
   }
-  // north & south walls
+  // north & south walls (légèrement rallongés pour recouvrir les angles)
   for(let x=0;x<cols;x++){
     const pN = cellToWorld(x,0,cols,rows);
-    wallSeg(pN.x, pN.z-CELL/2, 0, CELL);
+    wallSeg(pN.x, pN.z-CELL/2, 0, CELL+0.02);
     const pS = cellToWorld(x,rows-1,cols,rows);
-    wallSeg(pS.x, pS.z+CELL/2, Math.PI, CELL);
+    wallSeg(pS.x, pS.z+CELL/2, Math.PI, CELL+0.02);
   }
-  // east & west walls (skip door cell on west)
+  // east & west walls (porte étroite sur la façade ouest)
   for(let z=0;z<rows;z++){
     const pE = cellToWorld(cols-1,z,cols,rows);
-    wallSeg(pE.x+CELL/2, pE.z, Math.PI/2, CELL);
+    wallSeg(pE.x+CELL/2, pE.z, Math.PI/2, CELL+0.02);
+    const pW = cellToWorld(0,z,cols,rows);
     if(z!==doorRow){
-      const pW = cellToWorld(0,z,cols,rows);
-      wallSeg(pW.x-CELL/2, pW.z, -Math.PI/2, CELL);
+      wallSeg(pW.x-CELL/2, pW.z, -Math.PI/2, CELL+0.02);
+    } else {
+      // on ne laisse qu'un passage de 1.1 : deux jambages ferment le reste
+      const side = Math.max(0.1, (CELL-1.1)/2);
+      wallSeg(pW.x-CELL/2, pW.z - (CELL-side)/2, -Math.PI/2, side);
+      wallSeg(pW.x-CELL/2, pW.z + (CELL-side)/2, -Math.PI/2, side);
     }
   }
+  // poteaux d'angle : suppriment les trous aux jonctions de murs
+  [[0,0],[cols-1,0],[0,rows-1],[cols-1,rows-1]].forEach(([cx,cz])=>{
+    const p = cellToWorld(cx,cz,cols,rows);
+    const px = p.x + (cx===0 ? -CELL/2 : CELL/2);
+    const pz = p.z + (cz===0 ? -CELL/2 : CELL/2);
+    const post = box(0.3, wallH, 0.3, wallCol);
+    post.position.set(px, wallH/2, pz);
+    roomGroup.add(post);
+  });
   // posters along the north wall — décor payant
   if(hasCos('posters')){
     const posterKinds = ['logo','score','pad'];
