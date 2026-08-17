@@ -3171,7 +3171,13 @@ function refreshBrandUI(){
     });
   }
   const info = document.getElementById('brandInfo');
-  if(info) info.innerText = `Renommer la boîte : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+  if(info){
+    const cur = `Nom actuel : « ${clubBrand.name} ».`;
+    const sign = hasCos('facadesign')
+      ? "L'enseigne de la façade affiche ce nom."
+      : "⚠️ Achète l'enseigne de façade (déco ci-dessus) pour voir ce nom en néon dehors.";
+    info.innerText = `${cur} ${sign} Renommer : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+  }
 }
 function initBrandUI(){
   const list = document.getElementById('brandSigns');
