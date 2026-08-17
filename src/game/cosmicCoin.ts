@@ -3282,8 +3282,11 @@ function refreshBrandUI(){
     const sign = hasCos('facadesign')
       ? "L'enseigne de la façade affiche ce nom."
       : "⚠️ Achète l'enseigne de façade (déco ci-dessus) pour voir ce nom en néon dehors.";
-    info.innerText = `${cur} ${sign} Renommer : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+    const cost = renameCost();
+    const price = cost ? `${cost}¢` : 'gratuit (1er baptême)';
+    info.innerText = `${cur} ${sign} Renommer : ${price} — jetons : ${Math.round(state.money)}¢`;
   }
+
 }
 function initBrandUI(){
   const list = document.getElementById('brandSigns');
