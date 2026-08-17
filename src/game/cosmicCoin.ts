@@ -1814,6 +1814,7 @@ function buildExteriorStreet(maxSpan){
     const startZ = zMin + 2 + i*((zMax-zMin-4)/pedRoster.length);
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, 0);
     if(wrap){
+      wrap.userData.noEdit = true;
       pedestrians.push({wrap, z:startZ, dir: i%2===0?1:-1, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
     }
   });
@@ -1827,6 +1828,7 @@ function buildExteriorStreet(maxSpan){
     const startZ = zMin + (i/4)*(zMax-zMin);
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'footprint',target:1.05}, laneX, startZ, dir>0?0:Math.PI);
     if(wrap){
+      wrap.userData.noEdit = true;
       cars.push({wrap, z:startZ, dir, speed: 2.6+Math.random()*1.4, zMin:zMin-2, zMax:zMax+2, x:laneX});
     }
   }
@@ -1844,6 +1846,7 @@ function buildExteriorStreet(maxSpan){
   for(let i=0;i<5;i++){
     const key = ['PED_MALE','PED_FEMALE','PED_MALE2','PED_FEMALE2'][i%4];
     const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, queueX + (i%2?0.35:-0.2), -2.6 + i*0.85, Math.PI/2);
+    if(wrap) wrap.userData.noEdit = true;
     if(wrap) extMovers.push({type:'queue', wrap, base:wrap.position.y, phase:Math.random()*6.28});
   }
   // barrières lumineuses au sol devant l'entrée (flaques de néon)
@@ -1952,6 +1955,7 @@ function buildExteriorStreet(maxSpan){
   /* ---------- voiture de patrouille (visible quand la suspicion monte) ---------- */
   const patrol = placeExt(exteriorStreetGroup, 'CAR_POLICE', {mode:'footprint',target:1.05}, roadX - roadLaneOffset, zMax, Math.PI);
   if(patrol){
+    patrol.userData.noEdit = true;
     patrolCar = {wrap:patrol, z:zMax, dir:-1, speed:2.2, zMin:zMin-2, zMax:zMax+2};
     patrol.visible = false;
   }
