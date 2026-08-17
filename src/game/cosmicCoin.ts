@@ -4782,6 +4782,7 @@ function updateCustomers(dt){
           spawnFloatText(c.mesh.position, `+${gain}¢`);
         }
         detachPlayBar(c);
+        setPlayingCharacterVisible(c.mesh, false);
         c.target.busy=false;
         c.target=null;
         c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
@@ -4789,6 +4790,7 @@ function updateCustomers(dt){
     } else if(c.phase==='out'){
       c.mesh.rotation.z = 0;
       detachPlayBar(c);
+      setPlayingCharacterVisible(c.mesh, false);
 
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
@@ -6021,6 +6023,7 @@ function applySave(data){
     const mesh = buildCharacter(shirt);
     const spot = standSpotFor(target);
     mesh.position.set(spot.x, 0, spot.z);
+    setPlayingCharacterVisible(mesh, true);
     customersGroup.add(mesh);
     target.busy = true;
     const {cols:cc, rows:rr, doorRow:dr} = state.dims;
