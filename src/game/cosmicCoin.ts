@@ -5570,6 +5570,8 @@ document.getElementById('resetBtn').onclick = startNewGame;
 const SAVE_KEY = 'cc_save_v1';
 const SAVE_VERSION = 1;
 let saveTimer = 0; // horodatage du dernier autosave
+const AUTOSAVE_MS = 600000; // sauvegarde automatique toutes les 10 minutes
+
 function serializeSave(){
   return {
     v: SAVE_VERSION, ts: Date.now(),
