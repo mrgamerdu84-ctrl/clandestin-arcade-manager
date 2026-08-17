@@ -2456,6 +2456,19 @@ function initHoodEditor(){
     updateHoodGrid();
     log("Décor d'origine du quartier remis en place.");
   };
+  const wp = document.getElementById('hoodWipe');
+  if(wp) wp.onclick = ()=>{
+    eachStreetWrap(w=>{
+      streetOvr[w.userData.sid] = {del:true};
+      w.visible = false; w.userData.hidden = true;
+    });
+    writeOvr();
+    hoodPick = null; hoodCarry = null;
+    hoodData = []; writeHood(); rebuildHood();
+    updateHoodGrid();
+    log("Quartier rasé : terrain vide, à toi de tout reconstruire (↺ Tout remettre pour annuler).");
+  };
+
   const u = document.getElementById('hoodUndo');
   if(u) u.onclick = ()=>{
     if(!hoodData.length) return;
