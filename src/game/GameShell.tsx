@@ -269,6 +269,10 @@ export default function GameShell() {
             <button className="btn" id="scoreBtn" type="button">
               🏆 Score
             </button>
+            <button className="btn" id="menuBtn" type="button">
+              🎬 Menu principal
+            </button>
+
             <button className="btn pink" id="resetBtn" type="button">
               ↺ Reset
             </button>
