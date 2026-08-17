@@ -6431,10 +6431,9 @@ preloadModels(()=>{
       return cands[0];
     }
 
-    const smRes0 = document.getElementById('smResume');
-    if(smRes0) smRes0.onclick = ()=>{
+    smCont.onclick = ()=>{
       const best = latestSave();
-      if(!best) return;
+      if(!best){ closeMenu(); return; }
       try {
         state.scored = false;
         applySave(best.data);
@@ -6442,13 +6441,11 @@ preloadModels(()=>{
         writeSave();
         renderShop(); updateHUD();
         try{ renderQuestPanel(); }catch(e){}
-        log(`⏩ Reprise : ${best.label} — jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
-        closeMenu();
-      } catch(e){ log("⚠️ Impossible de reprendre cette sauvegarde."); }
+        log(`▶ Reprise : ${best.label} — jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+      } catch(e){ log("⚠️ Impossible de charger cette sauvegarde."); }
+      closeMenu();
     };
 
-
-    smCont.onclick = ()=>{ closeMenu(); };
     smNew.onclick  = ()=>{ startNewGame(); loaded = false; closeMenu(); };
     smSc.onclick   = ()=>{ openScorePanel(); };
     const smSlots = document.getElementById('smSlots');
