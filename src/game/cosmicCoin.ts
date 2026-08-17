@@ -3620,7 +3620,7 @@ function freshState(){
   return {
     money:140, rep:0, day:1, debt:400, paused:false, closed:false, stage:0, cityDecor:false,
     grid:null, dims:null, machines:[], customers:[], selected:null,
-    extraCols:0, extraRows:0, grime:4, cosmetics:[],
+    extraCols:0, extraRows:0, grime:12, cosmetics:[],
 
 
     staff:{tech:false,host:false,security:false},
