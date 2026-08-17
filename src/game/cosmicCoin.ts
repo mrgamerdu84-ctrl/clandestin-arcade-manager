@@ -4808,6 +4808,7 @@ document.getElementById('resetBtn').onclick=()=>{
   initGrid();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
   document.getElementById('storyModal').style.display='flex';
+  setExteriorMode(true);
   document.getElementById('pauseBtn').innerText='⏸ Pause';
   renderShop(); updateHUD();
   log("Nouvelle partie lancée. Bonne chance avec le Cosmic Coin !");
@@ -5268,6 +5269,7 @@ preloadModels(()=>{
   } else {
     document.getElementById('storyModal').style.display='flex';
     initGrid();
+    setExteriorMode(true);
   }
   buildExteriorStreet(16);
   initHoodEditor();
