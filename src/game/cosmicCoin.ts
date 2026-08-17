@@ -1471,6 +1471,7 @@ function buildRoom(stageIdx){
   // outer walls (skip a gap on west wall middle for the door)
   const wallH = 2.4;
   const doorRow = Math.floor(rows/2);
+  const DOOR_W = 1.4, DOOR_H = wallH*0.82;
   function wallSeg(px,pz,rotY,len){
     const detail = roomStyle.detail || 'stripes';
     if(detail === 'model' && MODEL_TEMPLATES.WALL){
@@ -1526,10 +1527,17 @@ function buildRoom(stageIdx){
     if(z!==doorRow){
       wallSeg(pW.x-CELL/2, pW.z, -Math.PI/2, CELL+0.02);
     } else {
-      // on ne laisse qu'un passage de 1.1 : deux jambages ferment le reste
-      const side = Math.max(0.1, (CELL-1.1)/2);
+      // on ne laisse que la largeur de l'encadrement : deux jambages ferment le reste
+      const side = Math.max(0.1, (CELL-DOOR_W)/2);
       wallSeg(pW.x-CELL/2, pW.z - (CELL-side)/2, -Math.PI/2, side);
       wallSeg(pW.x-CELL/2, pW.z + (CELL-side)/2, -Math.PI/2, side);
+      // linteau au-dessus de l'ouverture : plus aucun trou vu de l'intérieur
+      const lintelH = wallH - DOOR_H;
+      if(lintelH > 0.05){
+        const lintel = box(0.25, lintelH, DOOR_W + 0.04, wallCol);
+        lintel.position.set(pW.x-CELL/2, DOOR_H + lintelH/2, pW.z);
+        roomGroup.add(lintel);
+      }
     }
   }
   // poteaux d'angle : suppriment les trous aux jonctions de murs
@@ -1598,7 +1606,7 @@ function buildRoom(stageIdx){
 
   // door — a proper detailed doorway (frame, glass panels, handles, canopy)
   const doorP = cellToWorld(0,doorRow,cols,rows);
-  const doorway = buildDoorway(casino, wallH*0.82);
+  const doorway = buildDoorway(casino, DOOR_H);
   doorway.position.set(doorP.x-CELL/2, 0, doorP.z);
   doorway.rotation.y = -Math.PI/2;
   roomGroup.add(doorway);
@@ -3014,6 +3022,7 @@ function initCosmeticsUI(){
       buildRoom(state.stage);
       if(state.dims) buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
       refreshCosmeticsUI();
+      if(typeof writeSave === 'function') writeSave();
     };
   });
   refreshCosmeticsUI();
@@ -4145,6 +4154,7 @@ document.getElementById('mmSell').onclick = ()=>{
   if(['dancefloor','discoball','djdeck'].includes(m.def.id)) rebuildRoomKeepMachines();
   closeMachineMenu();
   renderShop();
+  if(typeof writeSave === 'function') writeSave();
 };
 
 
@@ -4160,10 +4170,16 @@ function spawnCustomer(){
   const mesh = buildCharacter(SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)]);
   const {cols,rows,doorRow} = state.dims;
   const doorP = cellToWorld(0,doorRow,cols,rows);
-  mesh.position.set(doorP.x-CELL, 0, doorP.z);
+  // apparition dehors, sur le seuil : le client franchit vraiment la porte
+  mesh.position.set(doorP.x-CELL-1.2, 0, doorP.z);
   customersGroup.add(mesh);
   const targetP = standSpotFor(target);
-  state.customers.push({mesh,target,targetPos:targetP,doorPos:new THREE.Vector3(doorP.x-CELL,0,doorP.z),phase:'in',playTimer:0});
+  const gate = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
+  state.customers.push({
+    mesh, target, targetPos:targetP, gatePos:gate,
+    doorPos:new THREE.Vector3(doorP.x-CELL-1.2,0,doorP.z),
+    phase:'enter', playTimer:0
+  });
 }
 
 // position "devant" la machine : le client se place face à l'écran, jamais dedans
@@ -4181,10 +4197,28 @@ function updateCustomers(dt){
   for(let i=state.customers.length-1;i>=0;i--){
     const c = state.customers[i];
     // machine disparue (vendue, saisie, planquée) : le client repart au lieu de rester figé
-    if(c.phase!=='out' && state.closed){ if(c.target) c.target.busy=false; c.target=null; c.phase='out'; }
-    if(c.phase!=='out' && (!c.target || state.machines.indexOf(c.target)===-1 || (c.target.def.illegal && state.hidden))){
+    if(c.phase!=='out' && c.phase!=='exit' && state.closed){ if(c.target) c.target.busy=false; c.target=null; c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0; }
+    if(c.phase!=='out' && c.phase!=='exit' && (!c.target || state.machines.indexOf(c.target)===-1 || (c.target.def.illegal && state.hidden))){
       if(c.target) c.target.busy = false;
-      c.target = null; c.phase = 'out';
+      c.target = null; c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
+    }
+    if(c.phase==='enter' || c.phase==='exit'){
+      // franchissement de la porte : on vise d'abord le seuil
+      const gp = c.gatePos || c.targetPos;
+      const d = new THREE.Vector3().subVectors(gp, c.mesh.position); d.y=0;
+      const dd = d.length();
+      c.gateTimer = (c.gateTimer||0) + dt;
+      if(dd < 0.25 || c.gateTimer > 8000){
+        c.gateTimer = 0;
+        c.phase = (c.phase==='enter') ? 'in' : 'out';
+      } else {
+        d.normalize();
+        c.mesh.position.addScaledVector(d, (1.6*dt/1000));
+        c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+        stepCharacter(c.mesh, performance.now()/150);
+        faceTowards(c.mesh, gp.x, gp.z);
+      }
+      continue;
     }
     if(c.phase==='in'){
       // la machine a pu être déplacée/pivotée : on resynchronise la cible
@@ -4237,7 +4271,7 @@ function updateCustomers(dt){
         spawnFloatText(c.mesh.position, `+${gain}¢`);
         c.target.busy=false;
         c.target=null;
-        c.phase='out';
+        c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
       }
     } else if(c.phase==='out'){
       c.mesh.rotation.z = 0;
