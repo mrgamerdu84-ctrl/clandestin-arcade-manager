@@ -33,8 +33,8 @@ jobs:
       - name: Install Capacitor
         run: bun add @capacitor/core @capacitor/android && bun add -d @capacitor/cli
 
-      - name: Build web assets
-        run: bun run build
+      - name: Build static web assets for Android
+        run: bun run build:desktop
 
       - name: Add / sync Android platform
         env:
