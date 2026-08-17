@@ -3977,6 +3977,7 @@ function animate(ts){
     for(let i=0;i<dancers.length;i++){
       const d = dancers[i];
       const beat = Math.abs(Math.sin(t*2.4 + d.phase));
+      danceCharacter(d.wrap, t*4.4 + d.phase, d.style);
       if(d.style==='jump'){
         d.wrap.position.y = d.base + beat*0.22;
         d.wrap.rotation.z = Math.sin(t*2.4 + d.phase)*0.06;
