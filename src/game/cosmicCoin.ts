@@ -2652,7 +2652,9 @@ function refreshHoodUI(){
   const head = document.getElementById('hoodMoney');
   if(head) head.innerText = `Jetons : ${Math.round(state.money)}¢ — retirer un objet rembourse la moitié.`;
   const arrows = document.getElementById('hoodArrows');
-  if(arrows) arrows.style.display = (exteriorMode && hoodEdit) ? 'grid' : 'none';
+  const editing = !!(exteriorMode && hoodEdit);
+  if(arrows) arrows.style.display = editing ? 'grid' : 'none';
+  document.body.classList.toggle('hoodEdit', editing);
   if(typeof updateHoodGrid === 'function') updateHoodGrid();
 }
 

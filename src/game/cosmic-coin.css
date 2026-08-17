@@ -512,3 +512,14 @@ body.camOn #camPad{ display:grid; }
 #cinema.on ~ #hoodArrows,
 #cinema.on ~ #camPad{ display:none !important; }
 #cinema.on ~ #dock{ opacity:.35; pointer-events:none; }
+
+/* --- empilement propre au-dessus du dock --- */
+#hoodBar{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+#hoodBar button{ flex:0 0 auto; }
+#hoodArrows{ left:auto; right:8px; bottom:118px; z-index:56; }
+#camPad{ bottom:64px; }
+body.hoodEdit #camPad{ display:none !important; }
+@media (max-width: 820px){
+  #hoodPanel, #stylePanel, #sidebar{ right:96px; }
+  #hoodArrows{ bottom:112px; }
+}
