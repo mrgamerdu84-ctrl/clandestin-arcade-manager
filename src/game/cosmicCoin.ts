@@ -3275,7 +3275,8 @@ function freshState(){
   return {
     money:170, rep:0, day:1, debt:400, paused:false, stage:0,
     grid:null, dims:null, machines:[], customers:[], selected:null,
-    extraCols:0, extraRows:0,
+    extraCols:0, extraRows:0, grime:8,
+
 
     staff:{tech:false,host:false,security:false},
     logMsgs:[], dayTimer:0, dayLength:26000, spawnTimer:0, spawnEvery:2400, won:false,
