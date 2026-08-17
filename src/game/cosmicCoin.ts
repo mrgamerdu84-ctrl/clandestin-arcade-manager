@@ -6531,6 +6531,8 @@ preloadModels(()=>{
     setExteriorMode(true);
     frameAbandonedClub();
   }
+  saveReady = true;   // à partir d'ici, la partie peut être enregistrée sans risque
+
 
   buildExteriorStreet(16);
   initHoodEditor();
