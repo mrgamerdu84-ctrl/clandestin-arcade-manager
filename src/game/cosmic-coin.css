@@ -552,3 +552,6 @@ body.modalOpen #sidebar{ transform:translateY(120%) !important; }
 }
 #brandSigns .styleDet.on{ background:#ff3ea5; border-color:#ff8ccb; color:#12061c; font-weight:700; }
 #brandSigns .styleDet.locked{ border-style:dashed; color:#ffe36e; }
+
+/* club fermé : liseré rouge discret pour rappeler que le rideau est baissé */
+body.clubClosed #hud { box-shadow: inset 0 2px 0 rgba(255,80,120,.75); }
