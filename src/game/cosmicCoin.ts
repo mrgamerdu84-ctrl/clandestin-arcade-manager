@@ -274,6 +274,33 @@ function resetCameraTarget(){ orbit.target.set(0,0,0); updateCamera(); }
 const pointers = new Map(); // pointerId -> {x,y}
 let dragging=false, dragMoved=false, panning=false;
 let pinchStartDist=0, pinchStartRadius=0, pinchMid=null;
+let tapStart=null;
+
+/* --- mode « tap pour placer » : tolère le glissement du doigt et bloque la caméra --- */
+const isCoarse = (typeof matchMedia==='function') && matchMedia('(pointer: coarse)').matches;
+let tapPlace = (localStorage.getItem('cc_tapPlace') ?? (isCoarse?'1':'0')) === '1';
+function placingActive(){
+  try{
+    if(exteriorMode) return !!(hoodEdit && (hoodSel || hoodCarry || hoodMove || hoodErase));
+    return !!(!state.paused && (movingMachine || state.selected));
+  }catch(err){ return false; }
+}
+function tapLock(e){ return tapPlace && e.pointerType!=='mouse' && placingActive(); }
+function syncTapPlaceBtn(){
+  const b = document.getElementById('tapPlaceBtn');
+  if(b){ b.classList.toggle('on', tapPlace); b.title = tapPlace ? 'Tap pour placer : activé' : 'Tap pour placer : désactivé'; }
+}
+function initTapPlace(){
+  const b = document.getElementById('tapPlaceBtn');
+  if(!b) return;
+  b.onclick = ()=>{
+    tapPlace = !tapPlace;
+    localStorage.setItem('cc_tapPlace', tapPlace?'1':'0');
+    syncTapPlaceBtn();
+    log(tapPlace ? 'Tap pour placer activé : glisse le doigt puis relâche pour poser (caméra bloquée pendant le placement).' : 'Tap pour placer désactivé.');
+  };
+  syncTapPlaceBtn();
+}
 
 function pointerDist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
 function pointerMid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
@@ -284,10 +311,11 @@ canvas.addEventListener('pointerdown', e=>{
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   dragMoved=false;
   if(pointers.size===1){
-    dragging=true;
+    tapStart = {x:e.clientX, y:e.clientY, t:performance.now(), locked:tapLock(e)};
+    dragging = !tapStart.locked;   // en mode tap : pas de rotation caméra
     panning = (e.button===1 || e.button===2 || e.shiftKey);
   } else if(pointers.size===2){
-    dragging=false; panning=false;
+    dragging=false; panning=false; tapStart=null;
     const pts=[...pointers.values()];
     pinchStartDist = pointerDist(pts[0],pts[1]);
     pinchStartRadius = orbit.radius;
@@ -313,6 +341,10 @@ addWin('pointermove', e=>{
     dragMoved=true;
     return;
   }
+  if(pointers.size===1 && tapStart && tapStart.locked){
+    // le doigt peut glisser librement : on ne bouge pas la caméra, le tap reste valide
+    return;
+  }
   if(dragging && pointers.size===1){
     if(panning) panCamera(dx, dy);
     else {
@@ -323,9 +355,10 @@ addWin('pointermove', e=>{
     if(Math.abs(dx)+Math.abs(dy) > 3) dragMoved = true;
   }
 });
+
 function releasePointer(e){
   pointers.delete(e.pointerId);
-  if(pointers.size===0){ dragging=false; panning=false; pinchStartDist=0; pinchMid=null; }
+  if(pointers.size===0){ dragging=false; panning=false; pinchStartDist=0; pinchMid=null; tapStart=null; }
   else if(pointers.size===1){
     dragging=true;
     const [id,pt]=[...pointers.entries()][0];
@@ -4671,6 +4704,7 @@ preloadModels(()=>{
   initHoodEditor();
   initHoodArrows();
   initBigScreen();
+  initTapPlace();
   initStyleUI();
   initWallUI();
 

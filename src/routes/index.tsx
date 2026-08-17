@@ -99,6 +99,10 @@ function GamePage() {
           <button id="bigScreenBtn" type="button" title="Grand écran">
             🗖
           </button>
+          <button id="tapPlaceBtn" type="button" title="Tap pour placer (mobile)">
+            👆
+          </button>
+
 
 
 
