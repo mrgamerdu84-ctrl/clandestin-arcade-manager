@@ -210,7 +210,18 @@ function GamePage() {
           <button className="btn pink" id="expandBtn" type="button">
             AGRANDIR
           </button>
+          <div className="hoodHead">Murs de la salle</div>
+          <div id="wallGrid">
+            <button id="wallColMinus" type="button" title="Enlever un mur (largeur)">◀−</button>
+            <span id="wallColVal">6</span>
+            <button id="wallColPlus" type="button" title="Pousser le mur (largeur)">+▶</button>
+            <button id="wallRowMinus" type="button" title="Enlever un mur (profondeur)">▲−</button>
+            <span id="wallRowVal">5</span>
+            <button id="wallRowPlus" type="button" title="Pousser le mur (profondeur)">+▼</button>
+          </div>
+          <div id="wallInfo" />
         </div>
+
         <div id="log" />
         <div id="controlsRow">
           <button className="btn" id="pauseBtn" type="button">
