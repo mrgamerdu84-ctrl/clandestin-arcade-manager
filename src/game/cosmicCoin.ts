@@ -4760,6 +4760,7 @@ function maybeStory(){
   if(cine.active || state.gameOver) return;
   if(document.getElementById('eventModal').style.display === 'flex') return;
   for(const beat of STORY){
+    if(beat.id === 'intro') continue; // l'intro ne se joue qu'en cliquant sur la lettre
     if(state.storyDone.includes(beat.id)) continue;
     if(!beat.when()) continue;
     state.storyDone.push(beat.id);
