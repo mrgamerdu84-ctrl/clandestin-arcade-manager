@@ -2913,8 +2913,49 @@ function refreshStyleUI(){
   const bill = document.getElementById('styleCost');
   if(bill) bill.innerText = `Repeindre une surface : ${PAINT_COST}¢ — jetons : ${Math.round(state.money)}¢`;
   if(typeof refreshBrandUI === 'function') refreshBrandUI();
+  refreshCosmeticsUI();
+}
+
+/* ---------- déco achetable (rien n'est offert : néons, enseignes, affiches) ---------- */
+function refreshCosmeticsUI(){
+  const list = document.getElementById('cosmoList');
+  if(!list) return;
+  list.querySelectorAll('.styleDet').forEach(b=>{
+    const def = COSMETICS.find(c=>c.id===b.dataset.cos); if(!def) return;
+    const owned = hasCos(def.id);
+    b.classList.toggle('on', owned);
+    b.classList.toggle('locked', !owned);
+    b.innerText = owned ? `${def.label} ✓` : `${def.label} · ${def.price}¢`;
+  });
+  const info = document.getElementById('cosmoInfo');
+  if(info){
+    const left = COSMETICS.filter(c=>!hasCos(c.id)).length;
+    info.innerText = left
+      ? `${left} décoration(s) encore à acheter — jetons : ${Math.round(state.money)}¢`
+      : `Tout est décoré ! jetons : ${Math.round(state.money)}¢`;
+  }
+}
+function initCosmeticsUI(){
+  const list = document.getElementById('cosmoList');
+  if(!list) return;
+  list.innerHTML = COSMETICS.map(c=>
+    `<button type="button" class="styleDet" data-cos="${c.id}">${c.label}</button>`).join('');
+  list.querySelectorAll('.styleDet').forEach(b=>{
+    b.onclick = ()=>{
+      const def = COSMETICS.find(c=>c.id===b.dataset.cos); if(!def) return;
+      if(hasCos(def.id)){ log(`« ${def.label} » est déjà installé.`); return; }
+      if(!payFor(def.price, `« ${def.label} »`)) { refreshCosmeticsUI(); return; }
+      state.cosmetics.push(def.id);
+      log(`Déco installée : ${def.label}.`);
+      buildRoom(state.stage);
+      if(state.dims) buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
+      refreshCosmeticsUI();
+    };
+  });
+  refreshCosmeticsUI();
 }
 let styleOpen = false;
+
 function initStyleUI(){
   const list = document.getElementById('styleDetails');
   if(list){
