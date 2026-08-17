@@ -194,53 +194,111 @@ function GamePage() {
 
       <div id="sidebar">
         <div id="dragHandle">▲ BOUTIQUE ▲</div>
-        <h3>🕹️ Boutique intérieur — machines</h3>
-        <div id="itemList" />
-        <h3>🛋️ Boutique déco de la boîte</h3>
-        <div id="decorList" />
-        <h3>Arrière-salle</h3>
-        <div id="backroomList" />
-        <h3>Personnel</h3>
-        <div id="staffList" />
-        <h3>Mission</h3>
-        <div id="questBox" />
-        <h3>🧹 Remise en état</h3>
-        <div id="cleanBox" />
-        <h3>🏦 Banque</h3>
-        <div id="bankBox" />
-        <div id="expandBox">
-          <div id="expandText">Chargement...</div>
-          <button className="btn pink" id="expandBtn" type="button">
-            AGRANDIR
-          </button>
-          <div className="hoodHead">Murs de la salle</div>
-          <div id="wallGrid">
-            <button id="wallColMinus" type="button" title="Enlever un mur (largeur)">◀−</button>
-            <span id="wallColVal">6</span>
-            <button id="wallColPlus" type="button" title="Pousser le mur (largeur)">+▶</button>
-            <button id="wallRowMinus" type="button" title="Enlever un mur (profondeur)">▲−</button>
-            <span id="wallRowVal">5</span>
-            <button id="wallRowPlus" type="button" title="Pousser le mur (profondeur)">+▼</button>
-          </div>
-          <div id="wallInfo" />
+        <nav id="shopTabs" aria-label="Sections de la boutique">
+          <button type="button" data-tab="machines" className="on"><i>🕹️</i>Machines</button>
+          <button type="button" data-tab="room"><i>🧱</i>Salle &amp; murs</button>
+          <button type="button" data-tab="deco"><i>🛋️</i>Déco</button>
+          <button type="button" data-tab="bank"><i>🏦</i>Banque</button>
+          <button type="button" data-tab="manage"><i>⚙️</i>Gestion</button>
+        </nav>
+
+        <div className="shopTab" data-tab="machines">
+          <h3>🕹️ Boutique intérieur — machines</h3>
+          <div id="itemList" />
+          <h3>🛋️ Boutique déco de la boîte</h3>
+          <div id="decorList" />
+          <h3>Arrière-salle</h3>
+          <div id="backroomList" />
+          <h3>Personnel</h3>
+          <div id="staffList" />
         </div>
 
-        <div id="log" />
-        <div id="controlsRow">
-          <button className="btn" id="pauseBtn" type="button">
-            ⏸ Pause
-          </button>
-          <button className="btn" id="closedBtn" type="button">
-            🚪 Fermer le club
-          </button>
-          <button className="btn" id="scoreBtn" type="button">
-            🏆 Score
-          </button>
-          <button className="btn pink" id="resetBtn" type="button">
-            ↺ Reset
-          </button>
+        <div className="shopTab" data-tab="room" style={{ display: "none" }}>
+          <h3>🧱 Murs & agrandissement</h3>
+          <div id="expandBox">
+            <div id="expandText">Chargement...</div>
+            <button className="btn pink" id="expandBtn" type="button">
+              AGRANDIR
+            </button>
+            <div className="hoodHead">Murs de la salle</div>
+            <div id="wallGrid">
+              <button id="wallColMinus" type="button" title="Enlever un mur (largeur)">◀−</button>
+              <span id="wallColVal">6</span>
+              <button id="wallColPlus" type="button" title="Pousser le mur (largeur)">+▶</button>
+              <button id="wallRowMinus" type="button" title="Enlever un mur (profondeur)">▲−</button>
+              <span id="wallRowVal">5</span>
+              <button id="wallRowPlus" type="button" title="Pousser le mur (profondeur)">+▼</button>
+            </div>
+            <div id="wallInfo" />
+          </div>
+          <h3>🧹 Remise en état</h3>
+          <div id="cleanBox" />
+        </div>
+
+        <div className="shopTab" data-tab="deco" style={{ display: "none" }}>
+          <div id="stylePanel">
+            <div className="hoodHead">Personnalise ta boîte — payé avec tes jetons, sauvegardé auto</div>
+            <div id="styleCost" className="costLine" />
+            <label className="styleRow">
+              <span>Mur</span>
+              <input id="styleWall" type="color" />
+            </label>
+            <label className="styleRow">
+              <span>Détail 1</span>
+              <input id="styleTrim" type="color" />
+            </label>
+            <label className="styleRow">
+              <span>Détail 2</span>
+              <input id="styleTrim2" type="color" />
+            </label>
+            <label className="styleRow">
+              <span>Sol</span>
+              <input id="styleFloor" type="color" />
+            </label>
+            <div className="hoodHead">Style des murs</div>
+            <div id="styleDetails" />
+            <div className="hoodHead">Décorations à acheter (intérieur & façade)</div>
+            <div id="cosmoList" />
+            <div id="cosmoInfo" className="costLine" />
+            <div className="hoodHead">Nom & enseigne de la boîte</div>
+            <div className="styleRow">
+              <input id="brandName" type="text" maxLength={14} placeholder="COSMIC COIN" aria-label="Nom de la boîte" />
+              <button id="brandSave" type="button">Renommer</button>
+            </div>
+            <div id="brandSigns" />
+            <div id="brandInfo" className="costLine" />
+            <button id="styleReset" type="button" className="styleReset">
+              ↺ Réinitialiser
+            </button>
+          </div>
+        </div>
+
+        <div className="shopTab" data-tab="bank" style={{ display: "none" }}>
+          <h3>🏦 Banque</h3>
+          <div id="bankBox" />
+        </div>
+
+        <div className="shopTab" data-tab="manage" style={{ display: "none" }}>
+          <h3>Mission</h3>
+          <div id="questBox" />
+          <div id="log" />
+          <div id="controlsRow">
+            <button className="btn" id="pauseBtn" type="button">
+              ⏸ Pause
+            </button>
+            <button className="btn" id="closedBtn" type="button">
+              🚪 Fermer le club
+            </button>
+            <button className="btn" id="scoreBtn" type="button">
+              🏆 Score
+            </button>
+            <button className="btn pink" id="resetBtn" type="button">
+              ↺ Reset
+            </button>
+          </div>
         </div>
       </div>
+
 
       <div id="machineMenu">
         <div className="mTitle" id="mmTitle">
