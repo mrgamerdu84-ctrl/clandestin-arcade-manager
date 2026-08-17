@@ -3457,12 +3457,42 @@ function spawnGrime(){
     const cx = (i*3+1) % cols, cz = (i*2+1) % rows;
     const p = cellToWorld(cx, cz, cols, rows);
     const pile = group();
-    const heap = box(0.7,0.22,0.6,'#4b4436'); heap.position.y=0.11; pile.add(heap);
-    const crate = box(0.35,0.3,0.3,'#6b5836'); crate.position.set(0.2,0.28,-0.1); crate.rotation.y=0.4; pile.add(crate);
-    const bag = sphere(0.18,'#2c2b30'); bag.position.set(-0.22,0.2,0.15); pile.add(bag);
+    const kind = i % 4;
+    if(kind===0){
+      // tas de gravats + sacs
+      const heap = box(0.7,0.22,0.6,'#4b4436'); heap.position.y=0.11; pile.add(heap);
+      const bag = sphere(0.18,'#2c2b30'); bag.position.set(-0.22,0.2,0.15); pile.add(bag);
+      const bag2 = sphere(0.14,'#3a3630'); bag2.position.set(0.18,0.16,0.2); pile.add(bag2);
+    } else if(kind===1){
+      // pile de cartons éventrés
+      const c1 = box(0.42,0.34,0.36,'#8a6b3f'); c1.position.set(0,0.17,0); c1.rotation.y=0.3; pile.add(c1);
+      const c2 = box(0.34,0.28,0.3,'#7a5d34'); c2.position.set(0.22,0.45,0.08); c2.rotation.y=-0.5; pile.add(c2);
+      const c3 = box(0.3,0.24,0.26,'#95784a'); c3.position.set(-0.26,0.12,0.2); c3.rotation.y=0.9; pile.add(c3);
+    } else if(kind===2){
+      // planches de bois en vrac
+      for(let k=0;k<5;k++){
+        const pl = box(1.05,0.06,0.16, k%2 ? '#6b5231' : '#7d6039');
+        pl.position.set((Math.random()-0.5)*0.3, 0.04 + k*0.07, (Math.random()-0.5)*0.4);
+        pl.rotation.y = (Math.random()-0.5)*1.4;
+        pl.rotation.z = (Math.random()-0.5)*0.08;
+        pile.add(pl);
+      }
+    } else {
+      // tente de fortune abandonnée (vide) + bâche
+      const tent = group();
+      const a = box(0.9,0.06,0.7,'#2f6a52'); a.position.set(0,0.42,0); a.rotation.z=0.85; a.position.x=-0.2; tent.add(a);
+      const b = box(0.9,0.06,0.7,'#275944'); b.position.set(0.2,0.42,0); b.rotation.z=-0.85; tent.add(b);
+      const backw = box(0.06,0.5,0.7,'#245040'); backw.position.set(0,0.25,-0.34); tent.add(backw);
+      tent.rotation.y = (i*0.7)%Math.PI;
+      pile.add(tent);
+      const tarp = box(0.7,0.05,0.5,'#3a3f4a'); tarp.position.set(0.45,0.03,0.4); tarp.rotation.y=0.6; pile.add(tarp);
+      const bottle = cyl(0.05,0.05,0.22,'#5d7a3a',10); bottle.position.set(-0.45,0.11,0.3); bottle.rotation.z=1.4; pile.add(bottle);
+    }
     pile.position.set(p.x, 0, p.z);
+    pile.rotation.y = (i*1.3)%6.28;
     grimeGroup.add(pile);
   }
+
   roomGroup.add(grimeGroup);
 }
 function cleanOne(){
