@@ -523,3 +523,32 @@ body.hoodEdit #camPad{ display:none !important; }
   #hoodPanel, #stylePanel, #sidebar{ right:96px; }
   #hoodArrows{ bottom:112px; }
 }
+
+/* ---- modales toujours au-dessus des panneaux + dock neutralisé ---- */
+#storyModal,#eventModal,#loadModal{ z-index:300 !important; }
+body.modalOpen #dock,
+body.modalOpen #hoodBar,
+body.modalOpen #hoodArrows,
+body.modalOpen #camPad{ pointer-events:none; opacity:.25; }
+body.modalOpen #sidebar{ transform:translateY(120%) !important; }
+
+/* ---- panneaux Déco / Quartier : plus hauts et bien défilables ---- */
+#hoodPanel, #stylePanel{
+  max-height:min(58vh, 520px) !important;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+@media (max-width:820px){
+  #hoodPanel, #stylePanel{
+    left:8px; right:8px; width:auto; max-height:min(52vh, 430px) !important;
+  }
+  #sidebar{ height:min(68vh, 520px) !important; }
+}
+
+/* ---- boutons d'enseigne (même style que les détails de mur) ---- */
+#brandSigns{ display:flex; flex-wrap:wrap; gap:5px; margin:4px 0 6px; }
+#brandSigns .styleDet{
+  font-family:inherit; font-size:11px; background:rgba(30,16,58,.9); color:#ffe9ff;
+  border:1px solid #4a2a86; border-radius:7px; padding:7px 9px; min-height:38px; cursor:pointer;
+}
+#brandSigns .styleDet.on{ background:#ff3ea5; border-color:#ff8ccb; color:#12061c; font-weight:700; }
+#brandSigns .styleDet.locked{ border-style:dashed; color:#ffe36e; }
