@@ -3782,7 +3782,7 @@ function renderBankPanel(){
 /* ============================================================
    BOÎTE ABANDONNÉE — nettoyage des gravats
    ============================================================ */
-const GRIME_TOTAL = 8;
+const GRIME_TOTAL = 12;
 let grimeGroup = null;
 function spawnGrime(){
   if(grimeGroup){ roomGroup.remove(grimeGroup); grimeGroup = null; }
@@ -3790,9 +3790,13 @@ function spawnGrime(){
   if(left<=0) return;
   grimeGroup = group();
   const {cols, rows} = state.dims || roomSize(state.stage);
+  // positions stables : on garde toujours les mêmes emplacements, on n'affiche que
+  // les `left` premiers => nettoyer fait bien disparaître un tas
   for(let i=0;i<left;i++){
-    const cx = (i*3+1) % cols, cz = (i*2+1) % rows;
+    const cx = (i*5+2) % cols, cz = (i*3+1) % rows;
     const p = cellToWorld(cx, cz, cols, rows);
+    p.x += ((i*37)%7 - 3) * 0.06;
+    p.z += ((i*53)%7 - 3) * 0.06;
     const pile = group();
     const kind = i % 4;
     if(kind===0){
