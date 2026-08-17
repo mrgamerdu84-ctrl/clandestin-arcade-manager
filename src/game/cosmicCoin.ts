@@ -3846,16 +3846,26 @@ function bankBorrow(amount){
   state.won = false;
   log(`🏦 Emprunt accordé : +${take}¢ (dette ${Math.round(state.debt)}¢).`);
   updateHUD();
+  renderBankPanel();
   if(typeof writeSave === 'function') writeSave();
 }
+const CASH_RESERVE = 25;            // jetons qu'on garde toujours en caisse pour continuer à jouer
 function bankRepay(amount){
   if(state.debt<=0){ log("Tu n'as plus rien à rembourser."); return; }
-  const pay = Math.min(amount, state.debt, state.money);
-  if(pay < 1){ log("Pas assez de jetons en caisse pour rembourser."); return; }
+  // on ne vide jamais complètement la caisse : sinon la partie est bloquée.
+  // seule exception : le versement qui solde définitivement la dette.
+  const canClearAll = state.money >= state.debt;
+  const spendable = canClearAll ? state.money : Math.max(0, state.money - CASH_RESERVE);
+  const pay = Math.min(amount, state.debt, spendable);
+  if(pay < 1){
+    log(`Pas assez de jetons : la banque te laisse garder ${CASH_RESERVE}¢ en caisse pour faire tourner la boîte.`);
+    return;
+  }
   state.money -= pay; state.debt -= pay;
-  log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢).`);
+  log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢, caisse ${Math.round(state.money)}¢).`);
   checkDebtCleared();
   updateHUD();
+  renderBankPanel();
   if(typeof writeSave === 'function') writeSave();
 }
 function checkDebtCleared(){
@@ -3885,9 +3895,10 @@ function renderBankPanel(){
   box.appendChild(row);
   const row2 = document.createElement('div');
   row2.className = 'bankRow';
-  [[50,'-50¢'],[200,'-200¢'],[999999,'Tout']].forEach(([v,lab])=>{
+  [[50,'-50¢'],[200,'-200¢'],[999999,`Max (garde ${CASH_RESERVE}¢)`]].forEach(([v,lab])=>{
     const b = document.createElement('button');
     b.type='button'; b.innerText = lab;
+    b.title = "La caisse n'est jamais vidée : on garde de quoi faire tourner la boîte.";
     b.disabled = state.debt<=0 || state.money<1;
     b.onclick = ()=>{ bankRepay(v); };
     row2.appendChild(b);
@@ -5272,8 +5283,8 @@ function newDay(){
   questEvent('day');
   if(state.debt>0){
     state.debt += state.debt * LOAN_RATE;   // intérêts du jour
-    const payment = Math.min(state.debt, 20+state.rep*3);
-    if(state.money>=payment){ state.money-=payment; state.debt-=payment; log(`Jour ${state.day} — Remboursement banque : -${Math.round(payment)}¢.`); }
+    const payment = Math.min(state.debt, 20+state.rep*3, Math.max(0, state.money - CASH_RESERVE));
+    if(payment >= 1){ state.money-=payment; state.debt-=payment; log(`Jour ${state.day} — Remboursement banque : -${Math.round(payment)}¢.`); }
     else log(`Jour ${state.day} — Pas assez pour rembourser la banque ce jour-ci...`);
   }
   checkDebtCleared();
