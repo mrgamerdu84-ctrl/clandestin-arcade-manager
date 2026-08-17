@@ -3441,6 +3441,25 @@ canvas.addEventListener('click', (e)=>{
   if(hits.length) openIntroLetter();
 });
 
+/* clic sur la banque du quartier (hors mode éditeur) : ouvre le guichet */
+canvas.addEventListener('click', (e)=>{
+  if(!exteriorMode || hoodEdit) return;
+  if(dragMoved){ dragMoved = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObjects(hoodGroup.children, true);
+  for(const h of hits){
+    const w = hoodFromObject(h.object);
+    if(w && w.userData.hood && w.userData.hood.id === 'bank'){
+      log('🏦 Guichet de la banque ouvert.');
+      openShopTab('bank');
+      return;
+    }
+  }
+});
+
 canvas.addEventListener('click', (e)=>{
   if(!exteriorMode || !hoodEdit) return;
   if(dragMoved){ dragMoved = false; return; }
