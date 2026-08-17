@@ -4968,6 +4968,7 @@ function serializeSave(){
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
     extraCols: state.extraCols||0, extraRows: state.extraRows||0, grime: state.grime|0,
+    cosmetics: state.cosmetics||[],
 
     staff: state.staff, dayTimer: state.dayTimer, dayLength: state.dayLength, won: state.won,
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
