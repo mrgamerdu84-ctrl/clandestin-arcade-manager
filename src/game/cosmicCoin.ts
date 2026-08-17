@@ -4573,7 +4573,7 @@ function standSpotFor(m, cust){
   for(let q=0;q<4;q++){
     const a = ry + q*(Math.PI/2);
     const front = (q%2===0);
-    const off = (front ? depth : width)/2 + 0.72;
+    const off = (front ? depth : width)/2 + 0.95;
     const lat = multi ? sideSign * ((front ? width : depth)/2 + 0.15) : 0;
     cands.push(new THREE.Vector3(
       m.mesh.position.x + Math.sin(a)*off + Math.cos(a)*lat,
