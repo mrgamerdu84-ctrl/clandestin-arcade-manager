@@ -6066,6 +6066,8 @@ function applySave(data){
     });
   });
   setHidden(false);
+  // le nom validé de l'enseigne doit réapparaître partout après un chargement
+  try{ writeBrand(); rebuildExteriorSign(); refreshBrandUI(); }catch(e){}
   document.getElementById('log').innerHTML = state.logMsgs.map(m=>`<div>${m}</div>`).join('');
 }
 addWin('beforeunload', ()=>{ writeSave(); });
