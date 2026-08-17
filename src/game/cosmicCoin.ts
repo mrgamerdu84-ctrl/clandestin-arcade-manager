@@ -358,7 +358,7 @@ addWin('pointermove', e=>{
 
 function releasePointer(e){
   pointers.delete(e.pointerId);
-  if(pointers.size===0){ dragging=false; panning=false; pinchStartDist=0; pinchMid=null; }
+  if(pointers.size===0){ dragging=false; panning=false; pinchStartDist=0; pinchMid=null; tapStart=null; }
   else if(pointers.size===1){
     dragging=true;
     const [id,pt]=[...pointers.entries()][0];
@@ -4704,6 +4704,7 @@ preloadModels(()=>{
   initHoodEditor();
   initHoodArrows();
   initBigScreen();
+  initTapPlace();
   initStyleUI();
   initWallUI();
 
