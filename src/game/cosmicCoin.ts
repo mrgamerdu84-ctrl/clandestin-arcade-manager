@@ -6309,7 +6309,50 @@ preloadModels(()=>{
         smCont.disabled = true;
       }
       if(smMus) smMus.firstChild.nodeValue = disco.isOn && disco.isOn() ? '🔊 Musique : activée' : '🔈 Musique : coupée';
+      const smRes = document.getElementById('smResume');
+      const smResInfo = document.getElementById('smResumeInfo');
+      const best = latestSave();
+      if(smRes){
+        smRes.disabled = !best;
+        if(smResInfo){
+          if(best){
+            const s = saveSummary(best.data);
+            smResInfo.innerText = `${best.label} · ${s.when}\n${s.line}`;
+          } else smResInfo.innerText = "Aucune sauvegarde disponible";
+        }
+      }
     };
+
+    /* dernière sauvegarde toutes sources confondues (auto + emplacements) */
+    function latestSave(){
+      const cands = [];
+      const auto = readSave();
+      if(auto) cands.push({data:auto, label:'Sauvegarde auto', slot:0});
+      for(let i=1;i<=SLOT_COUNT;i++){
+        const d = readSlot(i);
+        if(d) cands.push({data:d, label:`Emplacement ${i}`, slot:i});
+      }
+      if(!cands.length) return null;
+      cands.sort((a,b)=>(b.data.ts||0)-(a.data.ts||0));
+      return cands[0];
+    }
+
+    const smRes0 = document.getElementById('smResume');
+    if(smRes0) smRes0.onclick = ()=>{
+      const best = latestSave();
+      if(!best) return;
+      try {
+        state.scored = false;
+        applySave(best.data);
+        loaded = true;
+        writeSave();
+        renderShop(); updateHUD();
+        try{ renderQuestPanel(); }catch(e){}
+        log(`⏩ Reprise : ${best.label} — jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+        closeMenu();
+      } catch(e){ log("⚠️ Impossible de reprendre cette sauvegarde."); }
+    };
+
 
     smCont.onclick = ()=>{ closeMenu(); };
     smNew.onclick  = ()=>{ startNewGame(); loaded = false; closeMenu(); };
