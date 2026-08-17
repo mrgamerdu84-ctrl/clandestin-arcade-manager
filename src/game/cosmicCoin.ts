@@ -3755,7 +3755,7 @@ function freshState(){
     // ---- couche clandestine ----
     backroom:false, suspicion:0, hidden:false, busts:0, raid:null, raidsSurvived:0,
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
-    danger:0, doorTimer:0,
+    danger:0, doorTimer:0, playMs:0,
     unlocks:[], storyDone:[],
     questIdx:0, questProgress:{}, questsDone:[],
     stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
@@ -5505,7 +5505,7 @@ function serializeSave(){
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
-    danger: state.danger, closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
+    danger: state.danger, playMs: Math.round(state.playMs||0), closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
@@ -5856,6 +5856,7 @@ function animate(ts){
   if(_disposed) return;
   if(lastTime===null) lastTime=ts;
   const dt = Math.min(80, ts-lastTime); lastTime=ts;
+  if(!state.paused) state.playMs = (state.playMs||0) + dt;
   if(ts - saveTimer > 5000){ saveTimer = ts; writeSave(); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
 
@@ -6124,10 +6125,15 @@ preloadModels(()=>{
     };
     const refreshMenu = ()=>{
       if(loaded){
-        smInfo.innerText = `Jour ${state.day} · ${Math.round(state.money)}¢ · dette ${Math.round(state.debt)}¢`;
+        const sum = saveSummary(readSave()) || {
+          when: saveAgeLabel(lastSaveAt),
+          line: `Jour ${state.day} · ${Math.round(state.money)}¢ · dette ${Math.round(state.debt)}¢`,
+          line2: `${state.machines.length} machine(s) · réputation ${Math.round(state.rep)} · ${playedLabel(state.playMs)}`,
+        };
+        smInfo.innerText = `Sauvegarde du ${sum.when}\n${sum.line}\n${sum.line2}`;
         smCont.disabled = false;
       } else {
-        smInfo.innerText = "Aucune sauvegarde trouvée";
+        smInfo.innerText = "Aucune sauvegarde trouvée — lance une nouvelle partie";
         smCont.disabled = true;
       }
       if(smMus) smMus.firstChild.nodeValue = disco.isOn && disco.isOn() ? '🔊 Musique : activée' : '🔈 Musique : coupée';
