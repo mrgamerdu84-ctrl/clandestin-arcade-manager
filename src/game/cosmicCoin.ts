@@ -5210,7 +5210,7 @@ function resolveRaid(){
     log(`Descente ratée : -${Math.round(fine)}¢ d'amende, ${seized.def.name} saisie.`);
     if(state.busts>=3){
       state.gameOver = true;
-      recordRun('scellés'); clearSave();
+      recordRun('scellés'); writeSave();
       showEvent("SCELLÉS SUR LA PORTE", "Troisième descente ratée. Le juge ferme le Cosmic Coin et la dette de Rosa passe au liquidateur. Fin de l'histoire — appuie sur Reset pour retenter ta chance.");
     } else {
       showEvent("DESCENTE RATÉE", `Les agents trouvent ${exposed.length} machine(s) clandestine(s). Amende de ${Math.round(fine)}¢, "${seized.def.name}" part à la fourrière. Encore ${3-state.busts} avertissement(s) avant la fermeture.`);
