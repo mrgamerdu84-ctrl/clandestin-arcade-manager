@@ -177,7 +177,9 @@ function GamePage() {
           <button id="hoodErase" type="button" title="Supprimer">🧨 Retirer</button>
           <button id="hoodUndo" type="button" title="Annuler le dernier">↩︎</button>
           <button id="hoodClear" type="button" title="Tout effacer">🗑️</button>
+          <button id="hoodWipe" type="button" title="Raser tout le quartier">🧹 Tout raser</button>
           <button id="hoodRestore" type="button" title="Remettre le décor d'origine">↺ Tout remettre</button>
+
         </div>
         <div id="hoodArrows" style={{ display: "none" }}>
           <button id="hoodUp" type="button" title="Décaler vers le haut">▲</button>
@@ -210,7 +212,18 @@ function GamePage() {
           <button className="btn pink" id="expandBtn" type="button">
             AGRANDIR
           </button>
+          <div className="hoodHead">Murs de la salle</div>
+          <div id="wallGrid">
+            <button id="wallColMinus" type="button" title="Enlever un mur (largeur)">◀−</button>
+            <span id="wallColVal">6</span>
+            <button id="wallColPlus" type="button" title="Pousser le mur (largeur)">+▶</button>
+            <button id="wallRowMinus" type="button" title="Enlever un mur (profondeur)">▲−</button>
+            <span id="wallRowVal">5</span>
+            <button id="wallRowPlus" type="button" title="Pousser le mur (profondeur)">+▼</button>
+          </div>
+          <div id="wallInfo" />
         </div>
+
         <div id="log" />
         <div id="controlsRow">
           <button className="btn" id="pauseBtn" type="button">

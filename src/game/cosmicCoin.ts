@@ -1112,10 +1112,19 @@ function zoneAllows(def, zone){
   return zone !== 'back';
 }
 
+function roomSize(stageIdx){
+  const st = STAGES[stageIdx];
+  const ex = (typeof state !== 'undefined' && state) ? state : null;
+  return {
+    cols: Math.max(4, Math.min(20, st.cols + (ex?.extraCols || 0))),
+    rows: Math.max(4, Math.min(18, st.rows + (ex?.extraRows || 0))),
+  };
+}
 function buildRoom(stageIdx){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]);
   const st = STAGES[stageIdx];
-  const cols=st.cols, rows=st.rows;
+  const {cols, rows} = roomSize(stageIdx);
+
   const casino = st.theme==='casino';
   const floorA = casino ? '#4a1830' : PAL.floorA;
   const floorB = casino ? '#3a1226' : PAL.floorB;
@@ -2447,6 +2456,19 @@ function initHoodEditor(){
     updateHoodGrid();
     log("Décor d'origine du quartier remis en place.");
   };
+  const wp = document.getElementById('hoodWipe');
+  if(wp) wp.onclick = ()=>{
+    eachStreetWrap(w=>{
+      streetOvr[w.userData.sid] = {del:true};
+      w.visible = false; w.userData.hidden = true;
+    });
+    writeOvr();
+    hoodPick = null; hoodCarry = null;
+    hoodData = []; writeHood(); rebuildHood();
+    updateHoodGrid();
+    log("Quartier rasé : terrain vide, à toi de tout reconstruire (↺ Tout remettre pour annuler).");
+  };
+
   const u = document.getElementById('hoodUndo');
   if(u) u.onclick = ()=>{
     if(!hoodData.length) return;
@@ -2901,6 +2923,8 @@ function freshState(){
   return {
     money:170, rep:0, day:1, debt:400, paused:false, stage:0,
     grid:null, dims:null, machines:[], customers:[], selected:null,
+    extraCols:0, extraRows:0,
+
     staff:{tech:false,host:false,security:false},
     logMsgs:[], dayTimer:0, dayLength:26000, spawnTimer:0, spawnEvery:2400, won:false,
     // ---- couche clandestine ----
@@ -2922,6 +2946,57 @@ function initGrid(){
   state.grid = Array.from({length:dims.rows},()=>Array(dims.cols).fill(null));
   buildExteriorBuilding(state.stage, dims.cols, dims.rows);
 }
+
+/* ---------- murs déplaçables : agrandir / rétrécir la pièce ---------- */
+const WALL_COST = 130;      // prix pour pousser un mur d'une case
+const WALL_REFUND = 45;     // récupéré en retirant un mur
+function rebuildRoomKeepMachines(){
+  const dims = buildRoom(state.stage);
+  state.dims = dims;
+  const old = state.machines;
+  state.grid = Array.from({length:dims.rows},()=>Array(dims.cols).fill(null));
+  state.machines = [];
+  old.forEach(m=>{
+    if(m.x < dims.cols && m.z < dims.rows){
+      const p = cellToWorld(m.x, m.z, dims.cols, dims.rows);
+      m.mesh.position.set(p.x, m.mesh.position.y, p.z);
+      state.grid[m.z][m.x] = m;
+      state.machines.push(m);
+    } else {
+      machinesGroup.remove(m.mesh);
+    }
+  });
+  buildExteriorBuilding(state.stage, dims.cols, dims.rows);
+  renderExpandBox();
+}
+function moveWall(axis, delta){
+  const st = STAGES[state.stage];
+  const cur = axis==='cols' ? (state.extraCols||0) : (state.extraRows||0);
+  const base = axis==='cols' ? st.cols : st.rows;
+  const next = base + cur + delta;
+  const max = axis==='cols' ? 20 : 18;
+  if(next < 4 || next > max){ log("Impossible de pousser le mur plus loin."); return; }
+  if(delta > 0){
+    if(state.money < WALL_COST){ log("Pas assez de jetons pour poser un mur."); return; }
+    state.money -= WALL_COST;
+    state.stats.spent += WALL_COST;
+  } else {
+    // refuse si des machines occupent la dernière rangée
+    const occupied = state.machines.some(m=> axis==='cols' ? m.x >= next : m.z >= next);
+    if(occupied){ log("Libère d'abord la rangée près du mur."); return; }
+    state.money += WALL_REFUND;
+  }
+  if(axis==='cols') state.extraCols = (state.extraCols||0) + delta;
+  else state.extraRows = (state.extraRows||0) + delta;
+  rebuildRoomKeepMachines();
+  log(delta>0 ? "Tu casses le mur et gagnes une rangée de plus." : "Tu remontes un mur : la salle rétrécit.");
+}
+function initWallUI(){
+  const bind = (id, axis, d)=>{ const el = document.getElementById(id); if(el) el.onclick = ()=>moveWall(axis, d); };
+  bind('wallColPlus','cols',1); bind('wallColMinus','cols',-1);
+  bind('wallRowPlus','rows',1); bind('wallRowMinus','rows',-1);
+}
+
 
 /* ---------- shop UI ---------- */
 function renderItemInto(container, def){
@@ -2973,9 +3048,20 @@ function renderShop(){
   renderExpandBox();
 }
 
+function renderWallBox(){
+  const info = document.getElementById('wallInfo');
+  const cv = document.getElementById('wallColVal');
+  const rv = document.getElementById('wallRowVal');
+  const dims = state.dims || roomSize(state.stage);
+  if(cv) cv.innerText = String(dims.cols);
+  if(rv) rv.innerText = String(dims.rows);
+  if(info) info.innerHTML = `Pousse les murs : +1 rangée = ${WALL_COST}¢ · retirer = +${WALL_REFUND}¢`;
+}
+
 function renderExpandBox(){
   const box = document.getElementById('expandText');
   const btn = document.getElementById('expandBtn');
+  renderWallBox();
   if(state.stage >= STAGES.length-1){
     box.innerHTML = `<b>${STAGES[state.stage].name}</b><br>Étape maximale atteinte !`;
     btn.style.display='none';
@@ -2986,6 +3072,7 @@ function renderExpandBox(){
   btn.style.display='block';
   btn.disabled = !(state.money>=next.cost && state.rep>=next.unlockRep);
 }
+
 
 document.getElementById('expandBtn').onclick = ()=>{
   const next = STAGES[state.stage+1];
@@ -4137,6 +4224,8 @@ function serializeSave(){
   return {
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
+    extraCols: state.extraCols||0, extraRows: state.extraRows||0,
+
     staff: state.staff, dayTimer: state.dayTimer, dayLength: state.dayLength, won: state.won,
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
@@ -4164,6 +4253,8 @@ function readSave(){
 function applySave(data){
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
+    extraCols:data.extraCols||0, extraRows:data.extraRows||0,
+
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,
     backroom:!!data.backroom, suspicion:data.suspicion||0, hidden:false,
@@ -4581,6 +4672,8 @@ preloadModels(()=>{
   initHoodArrows();
   initBigScreen();
   initStyleUI();
+  initWallUI();
+
   updateCamera();
   renderShop();
   updateHUD();
