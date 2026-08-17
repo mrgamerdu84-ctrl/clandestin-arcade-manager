@@ -1167,7 +1167,7 @@ const SIGN_STYLES = [
   {id:'violet',   label:'Violet UV',   color:'#8b5cf6', price:120},
 ];
 const RENAME_COST = 30;
-const BRAND_DEFAULT = {name:'COSMIC COIN', sign:'neonpink', owned:['neonpink']};
+const BRAND_DEFAULT = {name:'COSMIC COIN', sign:'neonpink', owned:['neonpink'], named:false};
 let clubBrand = {...BRAND_DEFAULT};
 try{
   const raw = localStorage.getItem(BRAND_KEY);
@@ -1181,7 +1181,10 @@ try{
 Object.defineProperty(clubBrand, 'color', {
   get(){ return (SIGN_STYLES.find(s=>s.id===clubBrand.sign) || SIGN_STYLES[0]).color; },
 });
-function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned})); }catch(e){} }
+// le tout premier baptême de la boîte est gratuit (sinon on est bloqué en début de partie)
+function renameCost(){ return clubBrand.named ? RENAME_COST : 0; }
+function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned, named:!!clubBrand.named})); }catch(e){} }
+
 
 /* ---------- décorations achetables (rien n'est offert au départ) ---------- */
 const COSMETICS = [
