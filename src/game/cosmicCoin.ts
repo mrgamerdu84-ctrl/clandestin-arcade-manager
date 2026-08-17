@@ -1167,7 +1167,7 @@ const SIGN_STYLES = [
   {id:'violet',   label:'Violet UV',   color:'#8b5cf6', price:120},
 ];
 const RENAME_COST = 30;
-const BRAND_DEFAULT = {name:'COSMIC COIN', sign:'neonpink', owned:['neonpink']};
+const BRAND_DEFAULT = {name:'COSMIC COIN', sign:'neonpink', owned:['neonpink'], named:false};
 let clubBrand = {...BRAND_DEFAULT};
 try{
   const raw = localStorage.getItem(BRAND_KEY);
@@ -1181,7 +1181,10 @@ try{
 Object.defineProperty(clubBrand, 'color', {
   get(){ return (SIGN_STYLES.find(s=>s.id===clubBrand.sign) || SIGN_STYLES[0]).color; },
 });
-function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned})); }catch(e){} }
+// le tout premier baptême de la boîte est gratuit (sinon on est bloqué en début de partie)
+function renameCost(){ return clubBrand.named ? RENAME_COST : 0; }
+function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned, named:!!clubBrand.named})); }catch(e){} }
+
 
 /* ---------- décorations achetables (rien n'est offert au départ) ---------- */
 const COSMETICS = [
@@ -3282,8 +3285,11 @@ function refreshBrandUI(){
     const sign = hasCos('facadesign')
       ? "L'enseigne de la façade affiche ce nom."
       : "⚠️ Achète l'enseigne de façade (déco ci-dessus) pour voir ce nom en néon dehors.";
-    info.innerText = `${cur} ${sign} Renommer : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+    const cost = renameCost();
+    const price = cost ? `${cost}¢` : 'gratuit (1er baptême)';
+    info.innerText = `${cur} ${sign} Renommer : ${price} — jetons : ${Math.round(state.money)}¢`;
   }
+
 }
 function initBrandUI(){
   const list = document.getElementById('brandSigns');
@@ -3305,23 +3311,30 @@ function initBrandUI(){
   const save = document.getElementById('brandSave');
   const input = document.getElementById('brandName');
   if(save && input){
+    let typed = input.value || '';
+    input.oninput = ()=>{ typed = input.value || ''; };
     const doRename = ()=>{
-      const val = (input.value || '').trim().slice(0,14);
+      const val = ((input.value || typed) || '').trim().slice(0,14);
       if(!val){ log("Tape d'abord un nom dans la case avant de valider."); refreshBrandUI(); return; }
       if(val.toUpperCase() === clubBrand.name.toUpperCase()){
         log(`La boîte s'appelle déjà « ${clubBrand.name} ».`); refreshBrandUI(); return;
       }
-      if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
+      const cost = renameCost();
+      if(!payFor(cost, 'un changement de nom')){ refreshBrandUI(); return; }
       clubBrand.name = val.toUpperCase();
+      clubBrand.named = true;
+      typed = clubBrand.name;
       input.value = clubBrand.name;
       writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       log(`✅ La boîte s'appelle maintenant « ${clubBrand.name} ».`);
       if(!hasCos('facadesign')) log("Pense à acheter l'enseigne de façade pour afficher ce nom en néon dehors.");
-
     };
-    save.onclick = doRename;
-    input.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); input.blur(); doRename(); } };
+    // pointerdown : évite que le clavier mobile (blur + reflow) avale le clic
+    save.onpointerdown = (e)=>{ e.preventDefault(); doRename(); };
+    save.onclick = (e)=>{ e.preventDefault(); };
+    input.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); doRename(); input.blur(); } };
   }
+
   applyBrandToTitle();
   refreshBrandUI();
 }
@@ -5790,7 +5803,7 @@ function serializeSave(){
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
     style: {...roomStyle},
-    brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
+    brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned, named: !!clubBrand.named},
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken,
       tint:m.tint||null, priceMult:machinePriceMult(m), rigged:!!m.rigged})),
     // clients en train de jouer : on note la machine (cellule), l'avancement et la couleur du perso
@@ -5994,6 +6007,7 @@ function applySave(data){
     clubBrand.name = data.brand.name || BRAND_DEFAULT.name;
     clubBrand.sign = data.brand.sign || BRAND_DEFAULT.sign;
     clubBrand.owned = Array.isArray(data.brand.owned) ? data.brand.owned.slice() : ['neonpink'];
+    clubBrand.named = !!data.brand.named;
     if(!clubBrand.owned.includes('neonpink')) clubBrand.owned.push('neonpink');
     writeBrand();
   }
