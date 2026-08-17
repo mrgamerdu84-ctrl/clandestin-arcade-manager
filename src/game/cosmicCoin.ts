@@ -5471,7 +5471,8 @@ function startNewGame(){
   refreshClosedBtn();
   renderShop(); updateHUD();
   log("Nouvelle partie : te voilà devant une boîte condamnée. Une enveloppe dépasse sous la porte — clique dessus.");
-};
+}
+document.getElementById('resetBtn').onclick = startNewGame;
 
 /* ============================================================
    SAUVEGARDE AUTOMATIQUE
