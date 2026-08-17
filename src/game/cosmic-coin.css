@@ -278,3 +278,28 @@
 #questBox .qObj.ok b{color:#7dffd0;}
 #questBox .qBar{grid-column:1 / -1; height:4px; border-radius:4px; background:rgba(255,255,255,0.12); overflow:hidden;}
 #questBox .qBar i{display:block; height:100%; background:linear-gradient(90deg,var(--neon2),var(--neon1));}
+
+/* ---------- éditeur de quartier ---------- */
+#hoodBar{
+  position:absolute; left:10px; bottom:104px; z-index:24;
+  display:flex; flex-wrap:wrap; gap:6px; max-width:calc(100% - 20px);
+}
+#hoodBar button{
+  font-family:inherit; font-size:11px; letter-spacing:.5px;
+  background:rgba(12,8,28,.85); color:#ffe9ff;
+  border:1px solid #7a3bd6; border-radius:8px; padding:6px 9px; cursor:pointer;
+}
+#hoodBar button.on{ background:#ff3ea5; border-color:#ff8ccb; color:#12061c; font-weight:700; }
+#hoodPanel{
+  position:absolute; left:10px; bottom:150px; z-index:24;
+  width:min(320px, calc(100% - 20px)); max-height:38vh; overflow:auto;
+  background:rgba(10,6,24,.92); border:1px solid #7a3bd6; border-radius:10px; padding:8px;
+  box-shadow:0 0 18px rgba(122,59,214,.4);
+}
+#hoodPanel .hoodHead{ font-size:10px; color:#9ad9ff; margin-bottom:6px; letter-spacing:.5px; }
+#hoodList{ display:flex; flex-wrap:wrap; gap:5px; }
+#hoodList .hoodItem{
+  font-family:inherit; font-size:10.5px; background:rgba(30,16,58,.9); color:#ffe9ff;
+  border:1px solid #4a2a86; border-radius:7px; padding:5px 7px; cursor:pointer;
+}
+#hoodList .hoodItem.on{ background:#2fd4c8; border-color:#9ffff5; color:#04201e; font-weight:700; }
