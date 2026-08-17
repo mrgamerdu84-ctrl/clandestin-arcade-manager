@@ -6326,7 +6326,27 @@ preloadModels(()=>{
     openMenu();
     const mmBtn = document.getElementById('menuBtn');
     if(mmBtn) mmBtn.onclick = ()=>{ refreshMenu(); openMenu(); };
+
+    // sauvegarde manuelle : badge + ligne de journal, pour quitter l'esprit tranquille
+    const saveNowBtn = document.getElementById('saveNowBtn');
+    if(saveNowBtn) saveNowBtn.onclick = ()=>{
+      writeSave(true);
+      log("💾 Partie sauvegardée.");
+    };
+
+    // quitter le jeu : on enregistre, puis on ferme (ou on revient au menu si le navigateur refuse)
+    const quitBtn = document.getElementById('quitBtn');
+    if(quitBtn) quitBtn.onclick = ()=>{
+      writeSave(true);
+      state.paused = true;
+      try { window.close(); } catch(e){}
+      setTimeout(()=>{
+        refreshMenu(); openMenu();
+        log("💾 Partie sauvegardée — tu peux fermer la fenêtre.");
+      }, 220);
+    };
   }
+
 
   _raf = requestAnimationFrame(animate);
 });
