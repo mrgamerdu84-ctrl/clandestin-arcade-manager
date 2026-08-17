@@ -3956,10 +3956,79 @@ function freshState(){
     questIdx:0, questProgress:{}, questsDone:[],
     stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
            passed:0, refused:0, searched:0, timeMs:0},
+    // journal des mouvements de caisse (anti-triche) : tout entre/sort par ici
+    ledger:{in:0, out:0, loan:0, repay:0, day:1, dayIn:0},
     scored:false,
   };
 }
 let state = freshState();
+
+/* ============================================================
+   TRÉSORERIE VÉRIFIÉE — journal des transactions + plafonds
+   Toute écriture de caisse passe par earnMoney/spendMoney :
+   on garde la trace de ce qui est entré et sorti pour pouvoir
+   recalculer un solde plausible (sauvegarde bidouillée, double gain…).
+   ============================================================ */
+const START_MONEY = 140;
+function ledger(){
+  if(!state.ledger) state.ledger = {in:0, out:0, loan:0, repay:0, day:state.day||1, dayIn:0};
+  return state.ledger;
+}
+/* plafond de gains sur une journée : large pour le jeu normal, infranchissable pour un script */
+function dailyEarnCap(){
+  return 500 + (state.day|0)*150 + (state.machines?state.machines.length:0)*220 + (state.stage|0)*350;
+}
+/* borne haute du solde, reconstruite depuis le journal */
+function maxPlausibleMoney(){
+  const l = ledger();
+  return START_MONEY + l.in + l.loan - l.out - l.repay;
+}
+/* entrée d'argent — kind: 'play' | 'illegal' | 'quest' | 'refund' | 'loan' */
+function earnMoney(amount, kind){
+  let a = Math.round(Math.max(0, Number(amount) || 0));
+  if(!a) return 0;
+  const l = ledger();
+  if(l.day !== state.day){ l.day = state.day; l.dayIn = 0; }
+  const capped = (kind !== 'loan' && kind !== 'refund');
+  if(capped){
+    const cap = dailyEarnCap();
+    if(l.dayIn + a > cap){
+      a = Math.max(0, cap - l.dayIn);
+      if(a <= 0){
+        log("⚠️ Recette du jour plafonnée : la caisse ne peut plus encaisser aujourd'hui.");
+        return 0;
+      }
+    }
+    l.dayIn += a;
+  }
+  state.money += a;
+  if(kind === 'loan') l.loan += a;
+  else { l.in += a; state.stats.earned += a; }
+  return a;
+}
+/* sortie d'argent — kind: 'buy' (défaut) | 'repay' ; refuse si la caisse ne suit pas */
+function spendMoney(amount, kind){
+  const a = Math.round(Math.max(0, Number(amount) || 0));
+  if(a > Math.round(state.money)) return false;
+  state.money -= a;
+  const l = ledger();
+  if(kind === 'repay') l.repay += a;
+  else { l.out += a; state.stats.spent += a; }
+  return true;
+}
+/* contrôle de cohérence : un solde supérieur au journal = sauvegarde trafiquée */
+function auditMoney(silent){
+  const max = maxPlausibleMoney();
+  if(state.money > max + 1){
+    state.money = Math.max(0, Math.round(max));
+    if(!silent) log("⚠️ Caisse incohérente : le solde a été recalculé depuis le journal des transactions.");
+    return false;
+  }
+  if(state.money < 0) state.money = 0;
+  return true;
+}
+
+
 
 function initGrid(){
   const dims = buildRoom(state.stage);
