@@ -10,7 +10,7 @@ import brand from "./brand.config.json";
 const config: CapacitorConfig = {
   appId: brand.appId,
   appName: brand.name,
-  webDir: "public",
+  webDir: ".output/public",
   server: {
     url: process.env["CAP_SERVER_URL"] ?? "https://8581d91b-588d-45ac-8445-54604eed2926.lovableproject.com",
     cleartext: false,
