@@ -3692,8 +3692,10 @@ canvas.addEventListener('click', (e)=>{
   } else {
     log(`Nouvelle machine installée : ${def.name}.`);
   }
+  if(['dancefloor','discoball','djdeck'].includes(def.id)) rebuildRoomKeepMachines();
   state.selected=null;
   renderShop();
+
 });
 
 /* ---------- machine context menu (rotate / sell) ---------- */
