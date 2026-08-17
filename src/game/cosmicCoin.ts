@@ -2228,7 +2228,8 @@ document.getElementById('exteriorBtn').onclick = ()=> setExteriorMode(!exteriorM
    ============================================================ */
 const HOOD_KEY = 'cc_hood_v1';
 const HOOD_ITEMS = [
-  {id:'road',      label:'🛣️ Route',       key:'ROAD_STRAIGHT',    spec:{mode:'footprint',target:2.3}, snap:2.3},
+  {id:'roadauto',  label:'🛣️ Route auto',   key:'ROAD_STRAIGHT',    spec:{mode:'footprint',target:2.3}, snap:2.3, auto:true},
+  {id:'road',      label:'➖ Route droite', key:'ROAD_STRAIGHT',    spec:{mode:'footprint',target:2.3}, snap:2.3},
   {id:'roadcross', label:'🚸 Passage',      key:'ROAD_CROSS',       spec:{mode:'footprint',target:2.3}, snap:2.3},
   {id:'roadbend',  label:'↩️ Virage',       key:'ROAD_BEND',        spec:{mode:'footprint',target:2.3}, snap:2.3},
   {id:'roadinter', label:'✚ Carrefour',     key:'ROAD_INTERSECTION',spec:{mode:'footprint',target:2.3}, snap:2.3},
