@@ -3635,27 +3635,48 @@ function pointerToGround(e){
   raycaster.setFromCamera(mouseNDC, camera);
   return raycaster.ray.intersectPlane(hoodPlane, hoodHit) ? hoodHit : null;
 }
+let roadLastCell = null;
+function roadPaintCell(cx, cz){
+  const k = cx+'|'+cz;
+  if(roadDragCells.has(k)) return;
+  roadDragCells.add(k);
+  if(placeHoodAt(cx*HOOD_TILE, cz*HOOD_TILE, {defer:true})) roadDragAdded++;
+}
+/* on relie la dernière case peinte à la nouvelle en L (droite puis virage),
+   comme ça un glissé rapide ou en diagonale ne laisse jamais de trou */
+function roadPaintTo(cx, cz){
+  if(!roadLastCell){ roadPaintCell(cx, cz); roadLastCell = [cx, cz]; return; }
+  let [px, pz] = roadLastCell;
+  let guard = 0;
+  while((px !== cx || pz !== cz) && guard++ < 200){
+    if(px !== cx) px += Math.sign(cx - px);
+    else pz += Math.sign(cz - pz);
+    roadPaintCell(px, pz);
+  }
+  roadLastCell = [cx, cz];
+}
 function roadPaintAt(e){
   const p = pointerToGround(e);
   if(!p) return;
-  const k = roadCellKey(p.x, p.z);
-  if(roadDragCells.has(k)) return;
-  roadDragCells.add(k);
-  if(placeHoodAt(p.x, p.z, {defer:true})) roadDragAdded++;
+  const before = roadDragAdded;
+  roadPaintTo(Math.round(p.x/HOOD_TILE), Math.round(p.z/HOOD_TILE));
+  // aperçu vivant : les virages et carrefours se recalculent pendant le tracé
+  if(roadDragAdded !== before && hoodData.length < 500) rebuildHood();
 }
 canvas.addEventListener('pointerdown', (e)=>{
   if(e.button !== 0 && e.pointerType === 'mouse') return;
   if(!roadPaintable()) return;
   if(pointers.size > 1) return;
-  roadDrag = true; roadDragCells = new Set(); roadDragAdded = 0;
+  roadDrag = true; roadDragCells = new Set(); roadDragAdded = 0; roadLastCell = null;
   dragging = false; panning = false;         // la caméra ne tourne pas pendant le tracé
   if(tapStart) tapStart.locked = true;
   roadPaintAt(e);
 });
 addWin('pointermove', (e)=>{ if(roadDrag) roadPaintAt(e); });
+
 function endRoadDrag(){
   if(!roadDrag) return;
-  roadDrag = false; roadDragCells = null;
+  roadDrag = false; roadDragCells = null; roadLastCell = null;
   if(roadDragAdded > 0){
     rebuildHood();
     writeHood();
