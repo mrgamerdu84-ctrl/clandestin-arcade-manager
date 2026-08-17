@@ -4523,7 +4523,12 @@ function endCinematic(){
     showEvent('NOUVEAU DANS LA SALLE', `${beat.unlock.label} est disponible dans la boutique.`);
     return; // showEvent gère la pause
   }
+  if(beat && beat.id === 'intro' && state.dims){
+    // la lettre est ramassée et les planches arrachées
+    buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
+  }
   if(cine.wasExterior !== exteriorMode) setExteriorMode(cine.wasExterior);
+
   else if(cine.restore){
     orbit.theta = cine.restore.theta; orbit.phi = cine.restore.phi;
     orbit.radius = cine.restore.radius; orbit.target.copy(cine.restore.target);
