@@ -3848,14 +3848,23 @@ function bankBorrow(amount){
   updateHUD();
   if(typeof writeSave === 'function') writeSave();
 }
+const CASH_RESERVE = 25;            // jetons qu'on garde toujours en caisse pour continuer à jouer
 function bankRepay(amount){
   if(state.debt<=0){ log("Tu n'as plus rien à rembourser."); return; }
-  const pay = Math.min(amount, state.debt, state.money);
-  if(pay < 1){ log("Pas assez de jetons en caisse pour rembourser."); return; }
+  // on ne vide jamais complètement la caisse : sinon la partie est bloquée.
+  // seule exception : le versement qui solde définitivement la dette.
+  const canClearAll = state.money >= state.debt;
+  const spendable = canClearAll ? state.money : Math.max(0, state.money - CASH_RESERVE);
+  const pay = Math.min(amount, state.debt, spendable);
+  if(pay < 1){
+    log(`Pas assez de jetons : la banque te laisse garder ${CASH_RESERVE}¢ en caisse pour faire tourner la boîte.`);
+    return;
+  }
   state.money -= pay; state.debt -= pay;
-  log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢).`);
+  log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢, caisse ${Math.round(state.money)}¢).`);
   checkDebtCleared();
   updateHUD();
+  renderBankPanel();
   if(typeof writeSave === 'function') writeSave();
 }
 function checkDebtCleared(){
