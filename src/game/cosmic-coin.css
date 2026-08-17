@@ -543,3 +543,12 @@ body.modalOpen #sidebar{ transform:translateY(120%) !important; }
   }
   #sidebar{ height:min(68vh, 520px) !important; }
 }
+
+/* ---- boutons d'enseigne (même style que les détails de mur) ---- */
+#brandSigns{ display:flex; flex-wrap:wrap; gap:5px; margin:4px 0 6px; }
+#brandSigns .styleDet{
+  font-family:inherit; font-size:11px; background:rgba(30,16,58,.9); color:#ffe9ff;
+  border:1px solid #4a2a86; border-radius:7px; padding:7px 9px; min-height:38px; cursor:pointer;
+}
+#brandSigns .styleDet.on{ background:#ff3ea5; border-color:#ff8ccb; color:#12061c; font-weight:700; }
+#brandSigns .styleDet.locked{ border-style:dashed; color:#ffe36e; }
