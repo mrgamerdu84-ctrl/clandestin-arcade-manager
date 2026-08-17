@@ -4899,7 +4899,12 @@ document.getElementById('resetBtn').onclick=()=>{
   closeMachineMenu();
   state = freshState();
   document.getElementById('raidBanner').classList.remove('on');
+  // on repart d'un quartier vierge : plus que le sol, la rue principale et le trottoir
+  hoodData = []; writeHood();
+  streetOvr = {}; writeOvr();
   initGrid();
+  buildExteriorStreet(16);
+  rebuildHood();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
   document.getElementById('storyModal').style.display='flex';
   setModalOpen(true);
