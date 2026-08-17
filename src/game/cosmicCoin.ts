@@ -2925,12 +2925,10 @@ function applyStyle(){
 function refreshStyleUI(){
   const panel = document.getElementById('stylePanel');
   if(!panel) return;
-  panel.style.display = (!exteriorMode && styleOpen) ? 'block' : 'none';
+  panel.style.display = 'block'; // le panneau vit maintenant dans l'onglet Déco de la boutique
   const btn = document.getElementById('styleToggle');
-  if(btn){
-    btn.style.display = exteriorMode ? 'none' : 'inline-block';
-    btn.classList.toggle('on', styleOpen);
-  }
+  if(btn) btn.style.display = 'none';
+
   const w = document.getElementById('styleWall'); if(w) w.value = roomStyle.wall;
   const t1 = document.getElementById('styleTrim'); if(t1) t1.value = roomStyle.trim;
   const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
