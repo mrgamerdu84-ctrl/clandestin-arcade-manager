@@ -192,6 +192,13 @@ function GamePage() {
           <button id="hoodRight" type="button" title="Décaler à droite">▶</button>
           <button id="hoodDown" type="button" title="Décaler vers le bas">▼</button>
         </div>
+        <div id="camPad">
+          <button id="camUp" type="button" title="Caméra vers le haut">▲</button>
+          <button id="camLeft" type="button" title="Caméra à gauche">◀</button>
+          <button id="camCenter" type="button" title="Recentrer la caméra">◎</button>
+          <button id="camRight" type="button" title="Caméra à droite">▶</button>
+          <button id="camDown" type="button" title="Caméra vers le bas">▼</button>
+        </div>
         <div id="hoodPanel" style={{ display: "none" }}>
           <div className="hoodHead">Pose ce que tu veux : clique une case au sol. ✋ Déplacer et 🧨 Retirer marchent aussi sur le décor d'origine.</div>
           <div id="hoodMoney" className="costLine" />

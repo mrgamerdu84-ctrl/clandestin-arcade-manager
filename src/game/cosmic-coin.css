@@ -355,6 +355,26 @@
 #hoodDown{ grid-column:2; grid-row:2; }
 #hoodRight{ grid-column:3; grid-row:2; }
 
+/* ---- pad de déplacement caméra (gauche/droite, haut/bas) ---- */
+#camPad{
+  position:absolute; left:12px; bottom:96px; z-index:25;
+  display:grid; grid-template-columns:repeat(3,40px); grid-template-rows:repeat(3,40px);
+  gap:4px; pointer-events:auto; touch-action:manipulation; opacity:.9;
+}
+#camPad button{
+  background:rgba(10,4,20,.82); color:#ffb0f2; border:1px solid #ff5bd6; border-radius:9px;
+  font-size:15px; cursor:pointer; padding:0; touch-action:manipulation;
+}
+#camPad button:active{ background:#ff5bd6; color:#1a0018; }
+#camUp{ grid-column:2; grid-row:1; }
+#camLeft{ grid-column:1; grid-row:2; }
+#camCenter{ grid-column:2; grid-row:2; font-size:13px; }
+#camRight{ grid-column:3; grid-row:2; }
+#camDown{ grid-column:2; grid-row:3; }
+@media (max-width:820px){
+  #camPad{ grid-template-columns:repeat(3,44px); grid-template-rows:repeat(3,44px); bottom:110px; }
+}
+
 /* ---- mode grand écran : la boutique se replie, le viewport prend tout ---- */
 body.bigscreen #sidebar{ display:none; }
 body.bigscreen #app{ grid-template-columns:1fr; }

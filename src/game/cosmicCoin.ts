@@ -270,6 +270,31 @@ function panCamera(dx, dy){
 }
 function resetCameraTarget(){ orbit.target.set(0,0,0); updateCamera(); }
 
+/* pad écran : bouger la vue gauche/droite et haut/bas, maintien = défilement continu */
+function initCamPad(){
+  const pad = document.getElementById('camPad');
+  if(!pad) return;
+  const dirs = [
+    ['camLeft', -1, 0], ['camRight', 1, 0],
+    ['camUp', 0, -1], ['camDown', 0, 1],
+  ];
+  for(const [id, sx, sy] of dirs){
+    const b = document.getElementById(id);
+    if(!b) continue;
+    let raf = 0;
+    const step = ()=>{ panCamera(sx*14, sy*14); raf = requestAnimationFrame(step); };
+    const start = (e)=>{ e.preventDefault(); if(raf) return; step(); };
+    const stop = ()=>{ if(raf){ cancelAnimationFrame(raf); raf = 0; } };
+    b.addEventListener('pointerdown', start);
+    b.addEventListener('pointerup', stop);
+    b.addEventListener('pointercancel', stop);
+    b.addEventListener('pointerleave', stop);
+    b.addEventListener('contextmenu', (e)=>e.preventDefault());
+  }
+  const c = document.getElementById('camCenter');
+  if(c) c.onclick = ()=> resetCameraTarget();
+}
+
 // unified mouse + touch handling via Pointer Events (1 doigt = pivoter, 2 doigts = zoom + déplacer)
 const pointers = new Map(); // pointerId -> {x,y}
 let dragging=false, dragMoved=false, panning=false;
@@ -4776,6 +4801,7 @@ preloadModels(()=>{
   initHoodArrows();
   initBigScreen();
   initTapPlace();
+  initCamPad();
   initStyleUI();
   initWallUI();
 
