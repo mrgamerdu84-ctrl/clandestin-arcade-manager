@@ -5210,7 +5210,7 @@ function resolveRaid(){
     log(`Descente ratée : -${Math.round(fine)}¢ d'amende, ${seized.def.name} saisie.`);
     if(state.busts>=3){
       state.gameOver = true;
-      recordRun('scellés'); clearSave();
+      recordRun('scellés'); writeSave();
       showEvent("SCELLÉS SUR LA PORTE", "Troisième descente ratée. Le juge ferme le Cosmic Coin et la dette de Rosa passe au liquidateur. Fin de l'histoire — appuie sur Reset pour retenter ta chance.");
     } else {
       showEvent("DESCENTE RATÉE", `Les agents trouvent ${exposed.length} machine(s) clandestine(s). Amende de ${Math.round(fine)}¢, "${seized.def.name}" part à la fourrière. Encore ${3-state.busts} avertissement(s) avant la fermeture.`);
@@ -5500,10 +5500,12 @@ function serializeSave(){
   };
 }
 function writeSave(){
-  if(state.gameOver || state.won) { clearSave(); return; }
+  // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
+  // seul le bouton Reset remet à zéro.
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave())); } catch(e){}
 }
 function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+
 function readSave(){
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -5963,14 +5965,24 @@ preloadModels(()=>{
   document.getElementById('loadModal').style.display='none';
   resize();
   const saved = readSave();
+  let loaded = false;
   if(saved){
-    state.scored = false;
-    applySave(saved);
-  } else {
+    try {
+      state.scored = false;
+      applySave(saved);
+      loaded = true;
+    } catch(e){
+      // sauvegarde illisible : on repart proprement SANS l'effacer (elle reste récupérable)
+      console.error('[CosmicCoin] sauvegarde illisible', e);
+      loaded = false;
+    }
+  }
+  if(!loaded){
     initGrid();
     setExteriorMode(true);
     frameAbandonedClub();
   }
+
   buildExteriorStreet(16);
   initHoodEditor();
   initHoodArrows();
@@ -5989,7 +6001,7 @@ preloadModels(()=>{
   renderShop();
   updateHUD();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
-  if(saved) log(`Partie rechargée automatiquement : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+  if(loaded) log(`Partie rechargée automatiquement : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
   else log("Une boîte de nuit condamnée, des planches sur la porte… et une enveloppe qui dépasse en dessous. Clique dessus.");
   if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
   else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
