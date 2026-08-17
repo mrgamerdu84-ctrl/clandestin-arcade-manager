@@ -288,6 +288,17 @@ export default function GameShell() {
           ✋ Déplacer
         </button>
 
+        <div className="mmLabel">Couleur</div>
+        <div id="mmTints" className="tintRow" />
+
+        <div className="mmLabel">Tarif</div>
+        <input id="mmPrice" type="range" min={50} max={250} step={5} defaultValue={100} />
+        <div id="mmPriceVal" className="mmHint" />
+        <button id="mmRig" type="button">
+          🎲 Truquer la machine
+        </button>
+
+
         <button id="mmSell" className="sell" type="button">
           💰 Vendre
         </button>
