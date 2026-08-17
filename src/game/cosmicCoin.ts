@@ -2292,6 +2292,9 @@ function refreshHoodUI(){
   panel.querySelectorAll('.hoodItem').forEach(b=>{
     b.classList.toggle('on', b.dataset.id===hoodSel && !hoodErase);
   });
+  const arrows = document.getElementById('hoodArrows');
+  if(arrows) arrows.style.display = (exteriorMode && hoodEdit) ? 'grid' : 'none';
+  if(typeof updateHoodGrid === 'function') updateHoodGrid();
 }
 
 function buildHoodPalette(){
@@ -2327,13 +2330,13 @@ function initHoodEditor(){
   const u = document.getElementById('hoodUndo');
   if(u) u.onclick = ()=>{
     if(!hoodData.length) return;
-    hoodData.pop(); writeHood(); rebuildHood();
+    hoodPick = null; hoodData.pop(); writeHood(); rebuildHood(); updateHoodGrid();
     log("Dernier élément du quartier retiré.");
   };
   const c = document.getElementById('hoodClear');
   if(c) c.onclick = ()=>{
     if(!hoodData.length) return;
-    hoodData = []; writeHood(); rebuildHood();
+    hoodPick = null; hoodData = []; writeHood(); rebuildHood(); updateHoodGrid();
     log("Quartier personnalisé effacé.");
   };
   refreshHoodUI();
@@ -2520,6 +2523,7 @@ canvas.addEventListener('click', (e)=>{
       const wrap = hoodFromObject(hits[0].object);
       if(!wrap) return;
       hoodCarry = wrap.userData.hood;
+      hoodPick = hoodCarry;
       hoodRot = hoodCarry.rot || 0;
       refreshHoodUI();
       log("Objet attrapé : clique où tu veux le reposer.");
@@ -2532,6 +2536,7 @@ canvas.addEventListener('click', (e)=>{
     hoodCarry.x = Math.round(hoodHit.x/msnap)*msnap;
     hoodCarry.z = Math.round(hoodHit.z/msnap)*msnap;
     hoodCarry.rot = hoodRot;
+    hoodPick = hoodCarry;
     hoodCarry = null;
     writeHood(); rebuildHood(); refreshHoodUI();
     return;
@@ -2542,6 +2547,7 @@ canvas.addEventListener('click', (e)=>{
     if(!hits.length) return;
     const wrap = hoodFromObject(hits[0].object);
     if(!wrap) return;
+    if(hoodPick === wrap.userData.hood) hoodPick = null;
     hoodData = hoodData.filter(d=>d !== wrap.userData.hood);
     hoodGroup.remove(wrap);
     writeHood();
@@ -2561,7 +2567,9 @@ canvas.addEventListener('click', (e)=>{
   if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
   hoodData.push(entry);
   spawnHood(entry);
+  hoodPick = entry;
   writeHood();
+  updateHoodGrid();
 });
 
 
@@ -4354,6 +4362,8 @@ preloadModels(()=>{
   }
   buildExteriorStreet(16);
   initHoodEditor();
+  initHoodArrows();
+  initBigScreen();
   initStyleUI();
   updateCamera();
   renderShop();
