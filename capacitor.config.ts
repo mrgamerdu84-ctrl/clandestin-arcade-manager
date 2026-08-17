@@ -2,20 +2,15 @@ import type { CapacitorConfig } from "@capacitor/cli";
 import brand from "./brand.config.json";
 
 /**
- * Cosmic Coin — Android (Capacitor)
+ * Android (Capacitor)
  *
- * Nom, couleurs et typo viennent de brand.config.json (source unique partagée
- * avec la PWA et l'app Electron).
+ * L'application Android charge le bundle local construit dans dist.
+ * Aucun serveur Lovable distant n'est nécessaire au démarrage.
  */
 const config: CapacitorConfig = {
   appId: brand.appId,
   appName: brand.name,
   webDir: "dist",
-  server: {
-    url: process.env["CAP_SERVER_URL"] ?? "https://8581d91b-588d-45ac-8445-54604eed2926.lovableproject.com",
-    cleartext: false,
-    androidScheme: "https",
-  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1800,
