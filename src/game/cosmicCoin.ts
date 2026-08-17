@@ -976,6 +976,7 @@ function buildMachineMesh(defId){
         }
       });
     }
+    addScreenGlow(wrapper, clone, defId);
     return wrapper;
 
   }
