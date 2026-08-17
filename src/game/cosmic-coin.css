@@ -438,3 +438,18 @@ body.bigscreen #title{ opacity:.5; }
   background:#ff5bd6; color:#1a0018; border:0; border-radius:8px; padding:6px 10px;
   font-weight:700; cursor:pointer; min-height:34px;
 }
+
+/* --- banque & nettoyage --- */
+#bankBox, #cleanBox { margin-bottom: 8px; }
+.bankRow { display: flex; gap: 6px; margin-top: 6px; }
+.bankRow button {
+  flex: 1; min-height: 34px; cursor: pointer;
+  background: rgba(20, 10, 30, 0.85);
+  border: 1px solid var(--neon, #ff2e88);
+  color: #ffe9f5; border-radius: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.4px;
+  touch-action: manipulation;
+}
+.bankRow button:disabled { opacity: 0.35; cursor: not-allowed; }
+.bankRow button:active:not(:disabled) { background: rgba(255, 46, 136, 0.3); }
+#cleanBox .btn { width: 100%; margin-top: 6px; }

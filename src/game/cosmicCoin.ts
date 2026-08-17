@@ -3275,7 +3275,8 @@ function freshState(){
   return {
     money:170, rep:0, day:1, debt:400, paused:false, stage:0,
     grid:null, dims:null, machines:[], customers:[], selected:null,
-    extraCols:0, extraRows:0,
+    extraCols:0, extraRows:0, grime:8,
+
 
     staff:{tech:false,host:false,security:false},
     logMsgs:[], dayTimer:0, dayLength:26000, spawnTimer:0, spawnEvery:2400, won:false,
@@ -3297,7 +3298,9 @@ function initGrid(){
   state.dims = dims;
   state.grid = Array.from({length:dims.rows},()=>Array(dims.cols).fill(null));
   buildExteriorBuilding(state.stage, dims.cols, dims.rows);
+  spawnGrime();
 }
+
 
 /* ---------- murs déplaçables : agrandir / rétrécir la pièce ---------- */
 const WALL_COST = 130;      // prix pour pousser un mur d'une case
@@ -3319,6 +3322,7 @@ function rebuildRoomKeepMachines(){
     }
   });
   buildExteriorBuilding(state.stage, dims.cols, dims.rows);
+  spawnGrime();
   renderExpandBox();
 }
 function moveWall(axis, delta){
@@ -3348,6 +3352,119 @@ function initWallUI(){
   bind('wallColPlus','cols',1); bind('wallColMinus','cols',-1);
   bind('wallRowPlus','rows',1); bind('wallRowMinus','rows',-1);
 }
+
+/* ============================================================
+   BANQUE — emprunt & remboursement progressif
+   ============================================================ */
+const LOAN_RATE = 0.015;            // intérêt journalier sur la dette
+function creditLimit(){
+  return Math.round(600 + state.stage*450 + state.rep*35 + state.stats.earned*0.05);
+}
+function bankBorrow(amount){
+  const room = creditLimit() - state.debt;
+  if(room < 40){ log("La banque refuse : ta ligne de crédit est déjà au maximum."); return; }
+  const take = Math.min(amount, room);
+  state.debt += take;
+  state.money += take;
+  state.won = false;
+  log(`🏦 Emprunt accordé : +${take}¢ (dette ${Math.round(state.debt)}¢).`);
+  updateHUD();
+}
+function bankRepay(amount){
+  if(state.debt<=0){ log("Tu n'as plus rien à rembourser."); return; }
+  const pay = Math.min(amount, state.debt, state.money);
+  if(pay < 1){ log("Pas assez de jetons en caisse pour rembourser."); return; }
+  state.money -= pay; state.debt -= pay;
+  log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢).`);
+  checkDebtCleared();
+  updateHUD();
+}
+function checkDebtCleared(){
+  if(state.debt<=0 && !state.won){
+    state.debt = 0; state.won = true;
+    recordRun('dette remboursée');
+    showEvent("DETTE REMBOURSÉE 🎉", "La banque est remboursée, jeton par jeton. La boîte est à toi — continue de l'agrandir comme tu veux.");
+  }
+}
+function renderBankPanel(){
+  const box = document.getElementById('bankBox');
+  if(!box) return;
+  const lim = creditLimit();
+  const room = Math.max(0, lim - Math.round(state.debt));
+  const daily = Math.round(state.debt * LOAN_RATE);
+  box.innerHTML = `<div class="costLine">Dette : <b>${Math.round(state.debt)}¢</b> — intérêts ${daily}¢/jour<br>
+    Crédit disponible : <b>${room}¢</b> / ${lim}¢</div>`;
+  const row = document.createElement('div');
+  row.className = 'bankRow';
+  [100,300,600].forEach(v=>{
+    const b = document.createElement('button');
+    b.type='button'; b.innerText = `+${v}¢`;
+    b.disabled = room < 40;
+    b.onclick = ()=>{ bankBorrow(v); };
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  const row2 = document.createElement('div');
+  row2.className = 'bankRow';
+  [[50,'-50¢'],[200,'-200¢'],[999999,'Tout']].forEach(([v,lab])=>{
+    const b = document.createElement('button');
+    b.type='button'; b.innerText = lab;
+    b.disabled = state.debt<=0 || state.money<1;
+    b.onclick = ()=>{ bankRepay(v); };
+    row2.appendChild(b);
+  });
+  box.appendChild(row2);
+}
+
+/* ============================================================
+   BOÎTE ABANDONNÉE — nettoyage des gravats
+   ============================================================ */
+const GRIME_TOTAL = 8;
+let grimeGroup = null;
+function spawnGrime(){
+  if(grimeGroup){ roomGroup.remove(grimeGroup); grimeGroup = null; }
+  const left = state.grime|0;
+  if(left<=0) return;
+  grimeGroup = group();
+  const {cols, rows} = state.dims || roomSize(state.stage);
+  for(let i=0;i<left;i++){
+    const cx = (i*3+1) % cols, cz = (i*2+1) % rows;
+    const p = cellToWorld(cx, cz, cols, rows);
+    const pile = group();
+    const heap = box(0.7,0.22,0.6,'#4b4436'); heap.position.y=0.11; pile.add(heap);
+    const crate = box(0.35,0.3,0.3,'#6b5836'); crate.position.set(0.2,0.28,-0.1); crate.rotation.y=0.4; pile.add(crate);
+    const bag = sphere(0.18,'#2c2b30'); bag.position.set(-0.22,0.2,0.15); pile.add(bag);
+    pile.position.set(p.x, 0, p.z);
+    grimeGroup.add(pile);
+  }
+  roomGroup.add(grimeGroup);
+}
+function cleanOne(){
+  if((state.grime|0)<=0){ log("La salle est déjà nickel."); return; }
+  state.grime -= 1;
+  state.rep = Math.min(30, state.rep + 0.2);
+  spawnGrime();
+  if(state.grime<=0){
+    log("🧹 Dernier tas de gravats dehors : la boîte est propre, les clients paient plein tarif !");
+    showEvent("SALLE REMISE À NEUF ✨", "Plus de poussière, plus de gravats. La vieille boîte abandonnée redevient un lieu où l'on a envie d'entrer. Les recettes ne sont plus pénalisées.");
+  } else {
+    log(`🧹 Tu déblaies un tas de gravats (${state.grime} restants).`);
+  }
+  updateHUD();
+}
+function renderCleanPanel(){
+  const box = document.getElementById('cleanBox');
+  if(!box) return;
+  const left = state.grime|0;
+  if(left<=0){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML = `<div class="costLine">Boîte rachetée en ruine : <b>${left}</b> tas de gravats.<br>Recettes réduites de 40 % tant que ce n'est pas nettoyé.</div>`;
+  const b = document.createElement('button');
+  b.type='button'; b.className='btn pink'; b.innerText = `🧹 Nettoyer un tas (${left})`;
+  b.onclick = ()=>cleanOne();
+  box.appendChild(b);
+}
+
 
 
 /* ---------- shop UI ---------- */
@@ -3685,7 +3802,7 @@ function updateCustomers(dt){
         const [lo,hi]=c.target.def.earn;
         const ticketCounters = state.machines.filter(m=>m.def.id==='ticket').length;
         const ticketMult = 1 + Math.min(0.4, ticketCounters*0.08); // +8%/counter, capped +40%
-        let gain = Math.round((lo+Math.random()*(hi-lo)) * ticketMult);
+        let gain = Math.round((lo+Math.random()*(hi-lo)) * ticketMult * ((state.grime|0)>0 ? 0.6 : 1));
         if(c.target.def.illegal){
           gain = Math.round(gain * 2.3);
           state.illegalEarned += gain;
@@ -4453,17 +4570,12 @@ function newDay(){
   state.day+=1;
   questEvent('day');
   if(state.debt>0){
+    state.debt += state.debt * LOAN_RATE;   // intérêts du jour
     const payment = Math.min(state.debt, 20+state.rep*3);
     if(state.money>=payment){ state.money-=payment; state.debt-=payment; log(`Jour ${state.day} — Remboursement banque : -${Math.round(payment)}¢.`); }
     else log(`Jour ${state.day} — Pas assez pour rembourser la banque ce jour-ci...`);
   }
-  if(state.debt<=0 && !state.won){
-    state.won=true;
-    recordRun('dette remboursée'); clearSave();
-    showEvent("DETTE REMBOURSÉE 🎉", state.illegalEarned>500
-      ? "La banque est remboursée — avec l'argent de l'arrière-salle. Le Cosmic Coin est à toi, et la moitié du quartier sait déjà pour la porte du fond. Continue : empire clandestin ou blanchiment total, à toi de voir."
-      : "La banque est remboursée, jeton par jeton, à la loyale. Rosa serait fière. Rien ne t'empêche maintenant de rouvrir la porte du fond… ou de la murer pour de bon.");
-  }
+  checkDebtCleared();
   const safes = state.machines.filter(m=>m.def.id==='safe').length;
   if(safes) state.suspicion = Math.max(0, state.suspicion - safes*3);
   // suspicion : décroît les nuits calmes, monte si la salle secrète tourne à découvert
@@ -4505,6 +4617,8 @@ function updateHUD(){
   if(typeof refreshStyleUI === 'function' && styleOpen) refreshStyleUI();
   renderDoorPanel();
   renderExpandBox();
+  renderBankPanel();
+  renderCleanPanel();
   renderBackroom();
   renderQuestPanel();
 }
@@ -4578,7 +4692,7 @@ function serializeSave(){
   return {
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
-    extraCols: state.extraCols||0, extraRows: state.extraRows||0,
+    extraCols: state.extraCols||0, extraRows: state.extraRows||0, grime: state.grime|0,
 
     staff: state.staff, dayTimer: state.dayTimer, dayLength: state.dayLength, won: state.won,
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
@@ -4607,7 +4721,7 @@ function readSave(){
 function applySave(data){
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
-    extraCols:data.extraCols||0, extraRows:data.extraRows||0,
+    extraCols:data.extraCols||0, extraRows:data.extraRows||0, grime:(data.grime===undefined?0:data.grime|0),
 
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,

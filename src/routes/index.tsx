@@ -218,7 +218,12 @@ function GamePage() {
         <div id="dragHandle">▲ BOUTIQUE ▲</div>
         <h3>Mission</h3>
         <div id="questBox" />
+        <h3>🧹 Remise en état</h3>
+        <div id="cleanBox" />
+        <h3>🏦 Banque</h3>
+        <div id="bankBox" />
         <h3>Arrière-salle</h3>
+
 
         <div id="backroomList" />
         <h3>🕹️ Boutique intérieur — machines</h3>
