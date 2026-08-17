@@ -3299,6 +3299,26 @@ function initBigScreen(){
 }
 
 
+// clic sur l'enveloppe de Rosa : lance la cinématique d'ouverture
+function openIntroLetter(){
+  if(!introLetter) return;
+  const beat = STORY.find(b=>b.id==='intro');
+  if(introLetter.parent) introLetter.parent.remove(introLetter);
+  introLetter = null;
+  if(!state.storyDone.includes('intro')) state.storyDone.push('intro');
+  if(beat) playCinematic(beat);
+}
+canvas.addEventListener('click', (e)=>{
+  if(!exteriorMode || hoodEdit || !introLetter) return;
+  if(dragMoved){ dragMoved = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObject(introLetter, true);
+  if(hits.length) openIntroLetter();
+});
+
 canvas.addEventListener('click', (e)=>{
   if(!exteriorMode || !hoodEdit) return;
   if(dragMoved){ dragMoved = false; return; }
