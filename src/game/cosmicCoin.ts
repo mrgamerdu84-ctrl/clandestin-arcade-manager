@@ -1442,26 +1442,29 @@ function buildRoom(stageIdx){
   backHalo.position.set(backCx, 2.0, backCz); roomGroup.add(backHalo);
 
 
-  // cloison courbe qui sépare l'arrière-salle (avec passage caché)
-  const partition = group();
-  const segCount = Math.max(3, backW*2);
-  for(let i=0;i<segCount;i++){
-    const t = i/(segCount-1);
-    const px = danceX0 + t*backW*CELL;
-    const bulge = Math.sin(t*Math.PI)*0.45; // courbure => moins carré
-    const segH = 1.45; // assez bas pour voir la piste par-dessus
-    const seg = box(backW*CELL/segCount + 0.12, segH, 0.22, casino?'#2a1420':'#221630');
-    seg.position.set(px + (backW*CELL/segCount)/2, segH/2, danceZ1 + bulge);
-    seg.rotation.y = Math.cos(t*Math.PI)*0.18;
-    if(i === Math.floor(segCount/2)) continue; // passage
-    partition.add(seg);
-    const strip = box(backW*CELL/segCount + 0.1, 0.08, 0.24, '#ff2e88');
-    strip.material.emissive = new THREE.Color(0xff2e88); strip.material.emissiveIntensity = 0.8;
-    strip.position.set(seg.position.x, 1.4, seg.position.z);
-    strip.rotation.y = seg.rotation.y;
-    partition.add(strip);
+  // cloison courbe qui sépare l'arrière-salle (décor payant)
+  if(hasCos('partition')){
+    const partition = group();
+    const segCount = Math.max(3, backW*2);
+    for(let i=0;i<segCount;i++){
+      const t = i/(segCount-1);
+      const px = danceX0 + t*backW*CELL;
+      const bulge = Math.sin(t*Math.PI)*0.45; // courbure => moins carré
+      const segH = 1.45; // assez bas pour voir la piste par-dessus
+      const seg = box(backW*CELL/segCount + 0.12, segH, 0.22, casino?'#2a1420':'#221630');
+      seg.position.set(px + (backW*CELL/segCount)/2, segH/2, danceZ1 + bulge);
+      seg.rotation.y = Math.cos(t*Math.PI)*0.18;
+      if(i === Math.floor(segCount/2)) continue; // passage
+      partition.add(seg);
+      const strip = box(backW*CELL/segCount + 0.1, 0.08, 0.24, '#ff2e88');
+      strip.material.emissive = new THREE.Color(0xff2e88); strip.material.emissiveIntensity = 0.8;
+      strip.position.set(seg.position.x, 1.4, seg.position.z);
+      strip.rotation.y = seg.rotation.y;
+      partition.add(strip);
+    }
+    roomGroup.add(partition);
   }
-  roomGroup.add(partition);
+
 
 
 
