@@ -2761,6 +2761,7 @@ function refreshStyleUI(){
   });
   const bill = document.getElementById('styleCost');
   if(bill) bill.innerText = `Repeindre une surface : ${PAINT_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+  if(typeof refreshBrandUI === 'function') refreshBrandUI();
 }
 let styleOpen = false;
 function initStyleUI(){
@@ -2807,6 +2808,67 @@ function initStyleUI(){
   refreshStyleUI();
 }
 
+
+
+/* ---------- boutique enseigne : nom de la boîte + couleurs d'enseigne ---------- */
+function applyBrandToTitle(){
+  const t = document.getElementById('title');
+  if(t && t.firstChild) t.firstChild.nodeValue = (clubBrand.name || 'COSMIC COIN').toUpperCase();
+}
+function rebuildExteriorSign(){
+  if(state.dims) buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
+  if(typeof rebuildHood === 'function') rebuildHood();
+  applyBrandToTitle();
+}
+function refreshBrandUI(){
+  const input = document.getElementById('brandName');
+  if(input && document.activeElement !== input) input.value = clubBrand.name;
+  const list = document.getElementById('brandSigns');
+  if(list){
+    list.querySelectorAll('.styleDet').forEach(b=>{
+      const def = SIGN_STYLES.find(s=>s.id===b.dataset.sign);
+      const owned = clubBrand.owned.includes(def.id);
+      b.classList.toggle('on', clubBrand.sign===def.id);
+      b.classList.toggle('locked', !owned);
+      b.innerText = owned ? def.label : `${def.label} · ${def.price}¢`;
+      b.style.borderColor = def.color;
+    });
+  }
+  const info = document.getElementById('brandInfo');
+  if(info) info.innerText = `Renommer la boîte : ${RENAME_COST}¢ — jetons : ${Math.round(state.money)}¢`;
+}
+function initBrandUI(){
+  const list = document.getElementById('brandSigns');
+  if(list){
+    list.innerHTML = SIGN_STYLES.map(s=>`<button type="button" class="styleDet" data-sign="${s.id}">${s.label}</button>`).join('');
+    list.querySelectorAll('.styleDet').forEach(b=>{
+      b.onclick = ()=>{
+        const def = SIGN_STYLES.find(s=>s.id===b.dataset.sign);
+        if(!clubBrand.owned.includes(def.id)){
+          if(!payFor(def.price, `l'enseigne « ${def.label} »`)) { refreshBrandUI(); return; }
+          clubBrand.owned.push(def.id);
+          log(`Nouvelle enseigne débloquée : ${def.label}.`);
+        }
+        clubBrand.sign = def.id;
+        writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+      };
+    });
+  }
+  const save = document.getElementById('brandSave');
+  const input = document.getElementById('brandName');
+  if(save && input){
+    save.onclick = ()=>{
+      const val = (input.value || '').trim().slice(0,14);
+      if(!val || val.toUpperCase() === clubBrand.name.toUpperCase()){ refreshBrandUI(); return; }
+      if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
+      clubBrand.name = val.toUpperCase();
+      writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+      log(`La boîte s'appelle maintenant « ${clubBrand.name} ».`);
+    };
+  }
+  applyBrandToTitle();
+  refreshBrandUI();
+}
 
 /* ---------- retouches du décor d'origine (déplacer / retirer / remettre) ---------- */
 const OVR_KEY = 'cc_hood_ovr_v1';
@@ -4965,6 +5027,7 @@ preloadModels(()=>{
   initBigScreen();
   initTapPlace();
   initCamPad();
+  initBrandUI();
   initStyleUI();
   initWallUI();
 
