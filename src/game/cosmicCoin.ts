@@ -1092,6 +1092,21 @@ Object.defineProperty(clubBrand, 'color', {
 });
 function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned})); }catch(e){} }
 
+/* ---------- décorations achetables (rien n'est offert au départ) ---------- */
+const COSMETICS = [
+  {id:'posters',    label:'🖼️ Affiches murales',   price:35,  zone:'in'},
+  {id:'columns',    label:'🏛️ Colonnes d\u2019angle', price:60, zone:'in'},
+  {id:'innerneon',  label:'💡 Barre néon intérieure', price:55, zone:'in'},
+  {id:'facadesign', label:'🪧 Enseigne du nom',    price:120, zone:'out'},
+  {id:'roofneon',   label:'📛 Néon de toit',       price:90,  zone:'out'},
+  {id:'entryneons', label:'🈺 Enseignes d\u2019entrée', price:75, zone:'out'},
+  {id:'marquee',    label:'✨ Marquise & auvent',  price:65,  zone:'out'},
+  {id:'showcase',   label:'🪟 Vitrines éclairées', price:80,  zone:'out'},
+];
+function hasCos(id){ return !!(state && Array.isArray(state.cosmetics) && state.cosmetics.includes(id)); }
+
+
+
 const STYLE_KEY = 'cc_style_v1';
 const STYLE_DEFAULT = {wall:'#2b2438', trim:'#f4a13c', trim2:'#6b4e9e', floor:'#ffffff', detail:'stripes'};
 const WALL_DETAILS = [
@@ -1511,20 +1526,22 @@ function buildRoom(stageIdx){
       wallSeg(pW.x-CELL/2, pW.z, -Math.PI/2, CELL);
     }
   }
-  // posters along the north wall (the one without a door), for a decorated look
-  const posterKinds = ['logo','score','pad'];
-  const northZ = cellToWorld(0,0,cols,rows).z - CELL/2;
-  let pk = 0;
-  for(let x=0.7; x<cols-0.5; x+=1.7){
-    const worldX = -(cols*CELL/2) + x*CELL;
-    const tex = makePosterTexture(posterKinds[pk % posterKinds.length], casino);
-    pk++;
-    const poster = new THREE.Mesh(new THREE.PlaneGeometry(0.75,1.0), new THREE.MeshStandardMaterial({map:tex, roughness:0.6}));
-    poster.position.set(worldX, 1.35, northZ+0.06);
-    roomGroup.add(poster);
+  // posters along the north wall — décor payant
+  if(hasCos('posters')){
+    const posterKinds = ['logo','score','pad'];
+    const northZ = cellToWorld(0,0,cols,rows).z - CELL/2;
+    let pk = 0;
+    for(let x=0.7; x<cols-0.5; x+=1.7){
+      const worldX = -(cols*CELL/2) + x*CELL;
+      const tex = makePosterTexture(posterKinds[pk % posterKinds.length], casino);
+      pk++;
+      const poster = new THREE.Mesh(new THREE.PlaneGeometry(0.75,1.0), new THREE.MeshStandardMaterial({map:tex, roughness:0.6}));
+      poster.position.set(worldX, 1.35, northZ+0.06);
+      roomGroup.add(poster);
+    }
   }
-  // columns at corners for bigger stages
-  if(stageIdx>0){
+  // colonnes d'angle — décor payant
+  if(hasCos('columns')){
     const corners = [[0,0],[cols-1,0],[0,rows-1],[cols-1,rows-1]];
     corners.forEach(([cx,cz])=>{
       const p = cellToWorld(cx,cz,cols,rows);
@@ -1542,22 +1559,26 @@ function buildRoom(stageIdx){
       }
     });
   }
-  // enseigne néon intérieure : pas de sprite texte (il masquait la salle),
-  // juste une barre lumineuse discrète au-dessus du mur nord.
-  const northMid = cellToWorld(cols/2-0.5,0,cols,rows);
-  const signBar = new THREE.Mesh(
-    new THREE.BoxGeometry(CELL*2.2, 0.12, 0.12),
-    new THREE.MeshStandardMaterial({
-      color: casino?0xffd23f:0xff2e88,
-      emissive: casino?0xffd23f:0xff2e88, emissiveIntensity:1.4, roughness:0.4
-    })
-  );
-  signBar.position.set(northMid.x, wallH*0.9, northMid.z-CELL/2+0.08);
-  roomGroup.add(signBar);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 0.8, 7, 2);
-  signGlow.position.set(northMid.x, wallH*0.8, northMid.z-CELL/2+0.6);
-  roomGroup.add(signGlow);
-  roomGroup.userData.signHalo = signBar;
+  // barre néon intérieure — achetable
+  if(hasCos('innerneon')){
+    const northMid = cellToWorld(cols/2-0.5,0,cols,rows);
+    const signBar = new THREE.Mesh(
+      new THREE.BoxGeometry(CELL*2.2, 0.12, 0.12),
+      new THREE.MeshStandardMaterial({
+        color: casino?0xffd23f:0xff2e88,
+        emissive: casino?0xffd23f:0xff2e88, emissiveIntensity:1.4, roughness:0.4
+      })
+    );
+    signBar.position.set(northMid.x, wallH*0.9, northMid.z-CELL/2+0.08);
+    roomGroup.add(signBar);
+    const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 0.8, 7, 2);
+    signGlow.position.set(northMid.x, wallH*0.8, northMid.z-CELL/2+0.6);
+    roomGroup.add(signGlow);
+    roomGroup.userData.signHalo = signBar;
+  } else {
+    roomGroup.userData.signHalo = null;
+  }
+
 
 
   // door — a proper detailed doorway (frame, glass panels, handles, canopy)
@@ -2185,16 +2206,11 @@ function buildExteriorStreet(maxSpan){
   const alleyFloor = box(3.4, 0.06, (zMax-zMin)*0.8, '#1d1a26');
   alleyFloor.position.set(alleyX, 0.03, 0); alleyFloor.receiveShadow = true;
   exteriorStreetGroup.add(alleyFloor);
-  // mur du fond de la ruelle, avec graffitis néon
-  const alleyWall = box(0.35, 4.2, (zMax-zMin)*0.8, '#241f31');
-  alleyWall.position.set(alleyX+1.9, 2.1, 0);
-  exteriorStreetGroup.add(alleyWall);
+  // (plus de mur de fond isolé : il flottait à côté du bâtiment)
+
   if(decor){
-  ['#ff2e88','#2fd4c8','#ffd23f'].forEach((c,i)=>{
-    const tag = box(0.04, 0.9, 1.6, c, {emissive:new THREE.Color(c).getHex(), emissiveIntensity:0.5});
-    tag.position.set(alleyX+1.7, 1.5+ (i%2)*0.9, -5 + i*4.5);
-    exteriorStreetGroup.add(tag);
-  });
+  // (graffitis retirés avec le mur : ils flottaient dans le vide)
+
   placeExt(exteriorStreetGroup, 'DUMPSTER', {mode:'height',target:0.9}, alleyX-0.4, -3.2, Math.PI/2);
   placeExt(exteriorStreetGroup, 'DUMPSTER', {mode:'height',target:0.9}, alleyX+0.6, 4.1, -Math.PI/2);
   [[-2.2,-1.4],[0.6,2.6],[1.2,-5.4]].forEach(([dx,z])=>{
@@ -2352,15 +2368,17 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const sky = box(1.8, 0.06, 1.2, '#7fd6ff', {emissive:0x2a6a88, emissiveIntensity:0.35, opacity:0.85, transparent:true});
   sky.position.set(w*0.05, roofTop+0.06, -d*0.05);
   exteriorBuildingGroup.add(sky);
-  // enseigne néon sur le toit
-  const neonBar = box(w*0.5, 0.16, 0.16, casino?PAL.casinoGold:PAL.pink, {emissive: casino?0xffcc55:0xff2f8e, emissiveIntensity:1.1});
-  neonBar.position.set(0, roofTop+1.05, -d/2+0.5);
-  exteriorBuildingGroup.add(neonBar);
-  [-w*0.22, w*0.22].forEach(px=>{
-    const mast = cyl(0.05,0.05,1.0,'#2b2438');
-    mast.position.set(px, roofTop+0.5, -d/2+0.5);
-    exteriorBuildingGroup.add(mast);
-  });
+  // enseigne néon sur le toit — achetable
+  if(hasCos('roofneon')){
+    const neonBar = box(w*0.5, 0.16, 0.16, casino?PAL.casinoGold:PAL.pink, {emissive: casino?0xffcc55:0xff2f8e, emissiveIntensity:1.1});
+    neonBar.position.set(0, roofTop+1.05, -d/2+0.5);
+    exteriorBuildingGroup.add(neonBar);
+    [-w*0.22, w*0.22].forEach(px=>{
+      const mast = cyl(0.05,0.05,1.0,'#2b2438');
+      mast.position.set(px, roofTop+0.5, -d/2+0.5);
+      exteriorBuildingGroup.add(mast);
+    });
+  }
 
 
   // facade windows on the street-facing (west) wall, skipping the doorway
@@ -2377,16 +2395,29 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     exteriorBuildingGroup.add(glass);
   }
 
-  // ---- vitrines d'entrée : grandes baies vitrées de chaque côté de la porte
+  // ---- vitrines d'entrée : vitres condamnées tant qu'elles ne sont pas rénovées
   const winColors = ['#ff2e88','#00f3ff','#ffd23f','#8b5cf6'];
+  const lit = hasCos('showcase');
   [doorZ-1.55, doorZ+1.55].forEach((wz, side)=>{
     // encadrement
     const frame = box(0.14, 1.9, 2.5, casino?'#3a2010':'#1b1030');
     frame.position.set(-w/2-0.05, 1.25, wz);
     exteriorBuildingGroup.add(frame);
-    const glass = box(0.05, 1.65, 2.25, '#9fe9ff', {transparent:true, opacity:0.24, roughness:0.05, metalness:0.5});
+    const glass = lit
+      ? box(0.05, 1.65, 2.25, '#9fe9ff', {transparent:true, opacity:0.24, roughness:0.05, metalness:0.5})
+      : box(0.05, 1.65, 2.25, '#2a2438', {transparent:true, opacity:0.9, roughness:0.9});
     glass.position.set(-w/2-0.13, 1.25, wz);
     exteriorBuildingGroup.add(glass);
+    if(!lit){
+      // planches clouées sur la vitrine du local abandonné
+      [-0.35, 0.3].forEach((py,k)=>{
+        const plank = box(0.06, 0.2, 2.3, k? '#6b5231':'#7d6039');
+        plank.position.set(-w/2-0.19, 1.25+py, wz);
+        plank.rotation.x = k ? 0.06 : -0.05;
+        exteriorBuildingGroup.add(plank);
+      });
+      return;
+    }
     // bornes d'arcade visibles derrière la vitre
     for(let i=0;i<3;i++){
       const cz = wz - 0.75 + i*0.75;
@@ -2419,7 +2450,7 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     }
   });
 
-  // ---- petites enseignes néon animées autour de l'entrée
+  // ---- petites enseignes néon animées autour de l'entrée (achetables)
   const neonSigns = [];
   const addNeonSign = (text, color, wdt, hgt, y, z, freq)=>{
     const backer = box(0.07, hgt+0.16, wdt+0.16, '#12081c');
@@ -2434,23 +2465,28 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     exteriorBuildingGroup.add(halo);
     neonSigns.push({panel, halo, freq, phase: Math.random()*6.28});
   };
-  addNeonSign('OPEN', '#2fd4c8', 1.2, 0.42, 2.15, doorZ-1.6, 1.4);
-  addNeonSign('JEUX', '#ffd23f', 1.2, 0.42, 2.15, doorZ+1.6, 1.9);
-  addNeonSign('25c', '#ff2e88', 0.8, 0.36, 0.85, doorZ-2.9, 2.6);
-  addNeonSign(casino?'VIP':'TOKENS', '#8b5cf6', 1.1, 0.36, 0.85, doorZ+2.9, 2.2);
+  if(hasCos('entryneons')){
+    addNeonSign('OPEN', '#2fd4c8', 1.2, 0.42, 2.15, doorZ-1.6, 1.4);
+    addNeonSign('JEUX', '#ffd23f', 1.2, 0.42, 2.15, doorZ+1.6, 1.9);
+    addNeonSign('25c', '#ff2e88', 0.8, 0.36, 0.85, doorZ-2.9, 2.6);
+    addNeonSign(casino?'VIP':'TOKENS', '#8b5cf6', 1.1, 0.36, 0.85, doorZ+2.9, 2.2);
+  }
   exteriorBuildingGroup.userData.neonSigns = neonSigns;
 
-  // ampoules de marquise au-dessus de l'entrée
+
+  // ampoules de marquise au-dessus de l'entrée (achetables)
   const bulbs = [];
-  for(let i=0;i<9;i++){
-    const bz = doorZ - 1.6 + i*0.4;
-    const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.055, 8, 8),
-      new THREE.MeshStandardMaterial({color:0xfff0c0, emissive:0xffcc66, emissiveIntensity:1.4})
-    );
-    bulb.position.set(-w/2-0.42, 2.62, bz);
-    exteriorBuildingGroup.add(bulb);
-    bulbs.push(bulb);
+  if(hasCos('marquee')){
+    for(let i=0;i<9;i++){
+      const bz = doorZ - 1.6 + i*0.4;
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.055, 8, 8),
+        new THREE.MeshStandardMaterial({color:0xfff0c0, emissive:0xffcc66, emissiveIntensity:1.4})
+      );
+      bulb.position.set(-w/2-0.42, 2.62, bz);
+      exteriorBuildingGroup.add(bulb);
+      bulbs.push(bulb);
+    }
   }
   exteriorBuildingGroup.userData.marqueeBulbs = bulbs;
 
@@ -2460,12 +2496,14 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   doorway.position.set(-w/2, 0.2, doorZ);
   doorway.rotation.y = -Math.PI/2;
   exteriorBuildingGroup.add(doorway);
-  // small canopy roof jutting out over the entrance
-  const doorCanopy = box(0.5, 0.08, 1.3, casino?PAL.casinoGold:PAL.pink);
-  doorCanopy.position.set(-w/2-0.3, 2.55, doorZ);
-  exteriorBuildingGroup.add(doorCanopy);
-  const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
-  const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
+  // auvent d'entrée : fait partie du lot marquise
+  if(hasCos('marquee')){
+    const doorCanopy = box(0.5, 0.08, 1.3, casino?PAL.casinoGold:PAL.pink);
+    doorCanopy.position.set(-w/2-0.3, 2.55, doorZ);
+    exteriorBuildingGroup.add(doorCanopy);
+    const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
+    const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
+  }
   // lettre glissée sous la porte : point de départ de l'histoire
   if(!(state && state.storyDone && state.storyDone.includes('intro'))){
     const letter = group();
@@ -2485,24 +2523,28 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   }
 
 
-  // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
-  // qui traverse le mur comme le faisait le sprite billboard)
-  const signText = (clubBrand.name || 'COSMIC COIN').slice(0,14).toUpperCase();
-  const signColor = clubBrand.color;
-  const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
-  signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
-  signPanel.rotation.y = -Math.PI/2;
-  exteriorBuildingGroup.add(signPanel);
-  const signBack = box(0.08, 1.15, 4.3, '#150a1e');
-  signBack.position.set(-w/2-0.06, bodyH*0.75+0.2, 0);
-  exteriorBuildingGroup.add(signBack);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.2, 10, 2);
-  signGlow.position.set(-w/2-0.8, bodyH*0.75+0.2, 0);
-  exteriorBuildingGroup.add(signGlow);
-  const signHalo = registerNightHalo(makeGlowSprite(signColor, 2.6), 0.8);
-  signHalo.position.set(-w/2-0.5, bodyH*0.75+0.2, 0);
-  exteriorBuildingGroup.add(signHalo);
-  exteriorBuildingGroup.userData.signHalo = signHalo;
+  // grande enseigne néon du nom — uniquement une fois achetée
+  if(hasCos('facadesign')){
+    const signText = (clubBrand.name || 'COSMIC COIN').slice(0,14).toUpperCase();
+    const signColor = clubBrand.color;
+    const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
+    signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
+    signPanel.rotation.y = -Math.PI/2;
+    exteriorBuildingGroup.add(signPanel);
+    const signBack = box(0.08, 1.15, 4.3, '#150a1e');
+    signBack.position.set(-w/2-0.06, bodyH*0.75+0.2, 0);
+    exteriorBuildingGroup.add(signBack);
+    const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.2, 10, 2);
+    signGlow.position.set(-w/2-0.8, bodyH*0.75+0.2, 0);
+    exteriorBuildingGroup.add(signGlow);
+    const signHalo = registerNightHalo(makeGlowSprite(signColor, 2.6), 0.8);
+    signHalo.position.set(-w/2-0.5, bodyH*0.75+0.2, 0);
+    exteriorBuildingGroup.add(signHalo);
+    exteriorBuildingGroup.userData.signHalo = signHalo;
+  } else {
+    exteriorBuildingGroup.userData.signHalo = null;
+  }
+
 
   // warm porch light over the door
   const doorGlow = new THREE.PointLight(0xffd9a0, 0.8, 4, 2);
@@ -2871,8 +2913,49 @@ function refreshStyleUI(){
   const bill = document.getElementById('styleCost');
   if(bill) bill.innerText = `Repeindre une surface : ${PAINT_COST}¢ — jetons : ${Math.round(state.money)}¢`;
   if(typeof refreshBrandUI === 'function') refreshBrandUI();
+  refreshCosmeticsUI();
+}
+
+/* ---------- déco achetable (rien n'est offert : néons, enseignes, affiches) ---------- */
+function refreshCosmeticsUI(){
+  const list = document.getElementById('cosmoList');
+  if(!list) return;
+  list.querySelectorAll('.styleDet').forEach(b=>{
+    const def = COSMETICS.find(c=>c.id===b.dataset.cos); if(!def) return;
+    const owned = hasCos(def.id);
+    b.classList.toggle('on', owned);
+    b.classList.toggle('locked', !owned);
+    b.innerText = owned ? `${def.label} ✓` : `${def.label} · ${def.price}¢`;
+  });
+  const info = document.getElementById('cosmoInfo');
+  if(info){
+    const left = COSMETICS.filter(c=>!hasCos(c.id)).length;
+    info.innerText = left
+      ? `${left} décoration(s) encore à acheter — jetons : ${Math.round(state.money)}¢`
+      : `Tout est décoré ! jetons : ${Math.round(state.money)}¢`;
+  }
+}
+function initCosmeticsUI(){
+  const list = document.getElementById('cosmoList');
+  if(!list) return;
+  list.innerHTML = COSMETICS.map(c=>
+    `<button type="button" class="styleDet" data-cos="${c.id}">${c.label}</button>`).join('');
+  list.querySelectorAll('.styleDet').forEach(b=>{
+    b.onclick = ()=>{
+      const def = COSMETICS.find(c=>c.id===b.dataset.cos); if(!def) return;
+      if(hasCos(def.id)){ log(`« ${def.label} » est déjà installé.`); return; }
+      if(!payFor(def.price, `« ${def.label} »`)) { refreshCosmeticsUI(); return; }
+      state.cosmetics.push(def.id);
+      log(`Déco installée : ${def.label}.`);
+      buildRoom(state.stage);
+      if(state.dims) buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
+      refreshCosmeticsUI();
+    };
+  });
+  refreshCosmeticsUI();
 }
 let styleOpen = false;
+
 function initStyleUI(){
   const list = document.getElementById('styleDetails');
   if(list){
@@ -3386,7 +3469,7 @@ function freshState(){
   return {
     money:140, rep:0, day:1, debt:400, paused:false, closed:false, stage:0, cityDecor:false,
     grid:null, dims:null, machines:[], customers:[], selected:null,
-    extraCols:0, extraRows:0, grime:4,
+    extraCols:0, extraRows:0, grime:4, cosmetics:[],
 
 
     staff:{tech:false,host:false,security:false},
@@ -4926,6 +5009,7 @@ function serializeSave(){
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
     extraCols: state.extraCols||0, extraRows: state.extraRows||0, grime: state.grime|0,
+    cosmetics: state.cosmetics||[],
 
     staff: state.staff, dayTimer: state.dayTimer, dayLength: state.dayLength, won: state.won,
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
@@ -4959,6 +5043,8 @@ function applySave(data){
     extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, ([6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
     extraRows:(data.extraRows||0) + (data.baseRoom ? 0 : Math.max(0, ([5,7,9][data.stage||0] ?? BASE_ROWS) - BASE_ROWS)),
     cityDecor: data.baseRoom ? !!data.cityDecor : true, grime:(data.grime===undefined?0:data.grime|0),
+    // anciennes parties : la déco était offerte, on la leur laisse
+    cosmetics: Array.isArray(data.cosmetics) ? data.cosmetics : COSMETICS.map(c=>c.id),
 
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,
@@ -5390,6 +5476,7 @@ preloadModels(()=>{
   initDock();
   initBrandUI();
   initStyleUI();
+  initCosmeticsUI();
   initWallUI();
 
   updateCamera();
