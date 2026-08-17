@@ -5587,7 +5587,9 @@ preloadModels(()=>{
   initBigScreen();
   initTapPlace();
   initCamPad();
+  initShopTabs();
   initDock();
+
   initBrandUI();
   initStyleUI();
   initCosmeticsUI();
