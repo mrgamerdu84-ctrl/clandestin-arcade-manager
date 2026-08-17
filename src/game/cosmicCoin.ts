@@ -2949,6 +2949,7 @@ function initHoodEditor(){
 /* ---------- panneau STYLE : couleurs des murs, détail, sol ---------- */
 function applyStyle(){
   writeStyle();
+  if(typeof writeSave === 'function') writeSave();
   buildRoom(state.stage);
   refreshStyleUI();
 }
@@ -3106,7 +3107,7 @@ function initBrandUI(){
           log(`Nouvelle enseigne débloquée : ${def.label}.`);
         }
         clubBrand.sign = def.id;
-        writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+        writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       };
     });
   }
@@ -3118,7 +3119,7 @@ function initBrandUI(){
       if(!val || val.toUpperCase() === clubBrand.name.toUpperCase()){ refreshBrandUI(); return; }
       if(!payFor(RENAME_COST, 'un changement de nom')){ refreshBrandUI(); return; }
       clubBrand.name = val.toUpperCase();
-      writeBrand(); rebuildExteriorSign(); refreshBrandUI();
+      writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       log(`La boîte s'appelle maintenant « ${clubBrand.name} ».`);
     };
   }
