@@ -3743,18 +3743,29 @@ function cleanOne(){
   }
   updateHUD();
 }
+let cleanBtnEl = null, cleanTextEl = null;
 function renderCleanPanel(){
   const box = document.getElementById('cleanBox');
   if(!box) return;
   const left = state.grime|0;
   if(left<=0){ box.style.display='none'; return; }
   box.style.display='block';
-  box.innerHTML = `<div class="costLine">Boîte rachetée en ruine : <b>${left}</b> tas de gravats.<br>Recettes réduites de 40 % tant que ce n'est pas nettoyé.</div>`;
-  const b = document.createElement('button');
-  b.type='button'; b.className='btn pink'; b.innerText = `🧹 Nettoyer un tas (${left})`;
-  b.onclick = ()=>cleanOne();
-  box.appendChild(b);
+  // le bouton est créé une seule fois : le recréer à chaque tick annulait les taps
+  if(!cleanTextEl || cleanTextEl.parentNode !== box){
+    box.innerHTML = '';
+    cleanTextEl = document.createElement('div');
+    cleanTextEl.className = 'costLine';
+    box.appendChild(cleanTextEl);
+    cleanBtnEl = document.createElement('button');
+    cleanBtnEl.type='button'; cleanBtnEl.className='btn pink';
+    cleanBtnEl.onclick = ()=>cleanOne();
+    box.appendChild(cleanBtnEl);
+  }
+  cleanTextEl.innerHTML = `Boîte rachetée en ruine : <b>${left}</b> tas de gravats.<br>Recettes réduites de 40 % tant que ce n'est pas nettoyé.`;
+  const label = `🧹 Nettoyer un tas (${left})`;
+  if(cleanBtnEl.innerText !== label) cleanBtnEl.innerText = label;
 }
+
 
 
 
