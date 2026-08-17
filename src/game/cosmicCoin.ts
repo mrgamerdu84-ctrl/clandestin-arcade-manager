@@ -2751,6 +2751,7 @@ function updateCustomers(dt){
         dir.normalize();
         c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
         c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+        stepCharacter(c.mesh, performance.now()/150);
         c.mesh.lookAt(c.targetPos.x, c.mesh.position.y, c.targetPos.z);
         // anti-blocage : si on n'avance plus, on rejoint directement la machine
         c.stuck = (c.prevDist!==undefined && dist > c.prevDist-0.002) ? (c.stuck||0)+dt : 0;
@@ -2765,6 +2766,7 @@ function updateCustomers(dt){
       if(c.target) c.mesh.lookAt(c.target.mesh.position.x, c.mesh.position.y, c.target.mesh.position.z);
       const t = performance.now();
       c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
+        stepCharacter(c.mesh, t/220, 0.35);
       c.mesh.rotation.z = Math.sin(t/120)*0.06;
       c.playTimer += dt;
 
@@ -2798,6 +2800,7 @@ function updateCustomers(dt){
       dir.normalize();
       c.mesh.position.addScaledVector(dir,(1.8*dt/1000));
       c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      stepCharacter(c.mesh, performance.now()/150);
       c.mesh.lookAt(c.doorPos.x, c.mesh.position.y, c.doorPos.z);
       // filet : un client qui traîne trop longtemps dehors est retiré
       c.outTimer = (c.outTimer||0) + dt;
@@ -3101,6 +3104,7 @@ function updateDoor(dt){
       dir.normalize();
       v.mesh.position.addScaledVector(dir, 1.5*dt/1000);
       v.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      stepCharacter(v.mesh, performance.now()/150);
       v.mesh.lookAt(goal.x, v.mesh.position.y, goal.z);
     } else if(v.phase==='walk'){
       v.phase='wait'; renderDoorPanel();
@@ -4007,6 +4011,7 @@ function animate(ts){
       if(p.z>p.zMax){ p.z=p.zMax; p.dir=-1; p.wrap.rotation.y=Math.PI; }
       if(p.z<p.zMin){ p.z=p.zMin; p.dir=1; p.wrap.rotation.y=0; }
       p.wrap.position.z = p.z;
+      stepCharacter(p.wrap, performance.now()/170*Math.max(0.6,p.speed*1.6));
     });
     cars.forEach(c=>{
       c.z += c.dir*c.speed*dt/1000;
