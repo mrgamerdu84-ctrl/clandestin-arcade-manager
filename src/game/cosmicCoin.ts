@@ -6034,6 +6034,51 @@ preloadModels(()=>{
   renderQuestPanel();
   { const q0 = activeQuest(); if(q0) log(`🎯 Mission : ${q0.title}. ${q0.intro}`); }
 
+  /* ---- menu de démarrage (façon jeu PC) ---- */
+  const smEl = document.getElementById('startMenu');
+  if(smEl){
+    const smCont = document.getElementById('smContinue');
+    const smInfo = document.getElementById('smSaveInfo');
+    const smNew  = document.getElementById('smNew');
+    const smSc   = document.getElementById('smScores');
+    const smMus  = document.getElementById('smMusic');
+    const smCred = document.getElementById('smCredits');
+    let menuWasPaused = state.paused;
+
+    const openMenu = ()=>{
+      menuWasPaused = state.paused;
+      state.paused = true;
+      smEl.style.display = 'flex';
+    };
+    const closeMenu = ()=>{
+      smEl.style.display = 'none';
+      state.paused = menuWasPaused && state.gameOver ? true : false;
+      document.getElementById('pauseBtn').innerText = state.paused ? '▶ Reprendre' : '⏸ Pause';
+    };
+    const refreshMenu = ()=>{
+      if(loaded){
+        smInfo.innerText = `Jour ${state.day} · ${Math.round(state.money)}¢ · dette ${Math.round(state.debt)}¢`;
+        smCont.disabled = false;
+      } else {
+        smInfo.innerText = "Aucune sauvegarde trouvée";
+        smCont.disabled = true;
+      }
+      if(smMus) smMus.firstChild.nodeValue = disco.isOn && disco.isOn() ? '🔊 Musique : activée' : '🔈 Musique : coupée';
+    };
+
+    smCont.onclick = ()=>{ closeMenu(); };
+    smNew.onclick  = ()=>{ startNewGame(); loaded = false; closeMenu(); };
+    smSc.onclick   = ()=>{ openScorePanel(); };
+    if(smMus) smMus.onclick = ()=>{ disco.toggle(); refreshMusicUI(); refreshMenu(); };
+    if(smCred) smCred.onclick = ()=>{
+      showEvent('CRÉDITS', "Cosmic Coin — simulation de boîte de nuit clandestine, été 1988. Conception, code et néons : toi et Lovable. Musique disco générée en temps réel. Merci de tenir la porte.");
+    };
+
+    refreshMenu();
+    openMenu();
+    const mmBtn = document.getElementById('menuBtn');
+    if(mmBtn) mmBtn.onclick = ()=>{ refreshMenu(); openMenu(); };
+  }
 
   _raf = requestAnimationFrame(animate);
 });
