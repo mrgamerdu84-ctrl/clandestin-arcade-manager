@@ -5604,15 +5604,16 @@ function flashSaveBadge(){
   clearTimeout(el._t);
   el._t = setTimeout(()=>{ el.classList.remove('on'); }, 1400);
 }
-function writeSave(){
+function writeSave(loud){
   // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
   // seul le bouton Reset remet à zéro.
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave()));
     lastSaveAt = Date.now();
-    flashSaveBadge();
+    if(loud) flashSaveBadge();   // badge discret : seulement autosave 10 min + sauvegarde manuelle
   } catch(e){}
 }
+
 function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
 
 /* enregistrement immédiat quand on quitte / masque l'onglet : rien n'est perdu */
