@@ -5890,8 +5890,26 @@ var saveReady = false; // eslint-disable-line no-var
 
 const AUTOSAVE_MS = 600000; // sauvegarde automatique toutes les 10 minutes
 
+/* ---- signature locale des sauvegardes (détection de bidouille) ---- */
+const SAVE_SALT = 'cosmic-coin-1988';
+function saveSignature(d){
+  const src = SAVE_SALT + '|' + [d.money, d.debt, d.day, d.rep, d.stage,
+    (d.ledger&&d.ledger.in)|0, (d.ledger&&d.ledger.out)|0, (d.ledger&&d.ledger.loan)|0,
+    (d.ledger&&d.ledger.repay)|0, (d.machines||[]).length, (d.stats&&d.stats.earned)|0].join('|');
+  let h1 = 0x811c9dc5, h2 = 0x1000193;
+  for(let i=0;i<src.length;i++){
+    const c = src.charCodeAt(i);
+    h1 = (h1 ^ c) >>> 0; h1 = Math.imul(h1, 16777619) >>> 0;
+    h2 = (h2 + c * (i+7)) >>> 0; h2 = Math.imul(h2, 2246822519) >>> 0;
+  }
+  return h1.toString(36) + '-' + h2.toString(36);
+}
+function signSave(d){ d.sig = saveSignature(d); return d; }
+/* true si la sauvegarde n'a pas été modifiée à la main */
+function saveTrusted(d){ return !!d && typeof d.sig === 'string' && d.sig === saveSignature(d); }
+
 function serializeSave(){
-  return {
+  return signSave({
     v: SAVE_VERSION, ts: Date.now(),
     money: state.money, rep: state.rep, day: state.day, debt: state.debt, stage: state.stage,
     extraCols: state.extraCols||0, extraRows: state.extraRows||0, grime: state.grime|0,
@@ -5903,7 +5921,7 @@ function serializeSave(){
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
     danger: state.danger, playMs: Math.round(state.playMs||0), closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
-    stats: state.stats, logMsgs: state.logMsgs.slice(-14),
+    stats: state.stats, ledger: ledger(), logMsgs: state.logMsgs.slice(-14),
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
     style: {...roomStyle},
     brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned, named: !!clubBrand.named},
@@ -5913,7 +5931,7 @@ function serializeSave(){
     players: state.customers
       .filter(c=>c.phase==='playing' && c.target && !c.illegal)
       .map(c=>({mx:c.target.x, mz:c.target.z, t:Math.round(c.playTimer||0), shirt:c.shirt||null})),
-  };
+  });
 }
 let lastSaveAt = 0;         // horodatage réel du dernier enregistrement réussi
 function flashSaveBadge(){
@@ -5984,6 +6002,7 @@ function readSave(){
     if(!raw) return null;
     const data = JSON.parse(raw);
     if(!data || data.v !== SAVE_VERSION) return null;
+    data.__untrusted = !saveTrusted(data);
     return data;
   } catch(e){ return null; }
 }
@@ -6011,6 +6030,7 @@ function readSlot(i){
     if(!raw) return null;
     const d = JSON.parse(raw);
     if(!d || d.v !== SAVE_VERSION) return null;
+    d.__untrusted = !saveTrusted(d);
     return d;
   } catch(e){ return null; }
 }
@@ -6112,8 +6132,22 @@ function applySave(data){
     unlocks:data.unlocks||[], storyDone:data.storyDone||[],
     questIdx:data.questIdx??0, questProgress:data.questProgress||{}, questsDone:data.questsDone||[],
     stats:{...state.stats, ...(data.stats||{})},
+    ledger: (data.ledger && typeof data.ledger === 'object')
+      ? {in:data.ledger.in|0, out:data.ledger.out|0, loan:data.ledger.loan|0,
+         repay:data.ledger.repay|0, day:data.ledger.day|0, dayIn:data.ledger.dayIn|0}
+      // vieille sauvegarde sans journal : on le reconstruit depuis les statistiques
+      : {in:(data.stats&&data.stats.earned)|0, out:(data.stats&&data.stats.spent)|0,
+         loan:Math.max(0,(data.debt||0)), repay:0, day:data.day||1, dayIn:0},
     logMsgs:data.logMsgs||[],
   });
+  // sauvegarde retouchée à la main ? on recale le solde sur le journal des transactions
+  if(data.__untrusted){
+    const max = maxPlausibleMoney();
+    if(state.money > max + 1){
+      state.money = Math.max(0, Math.round(max));
+      log("⚠️ Sauvegarde modifiée détectée : la caisse a été recalculée depuis le journal.");
+    }
+  } else auditMoney(true);
   // ---- personnalisations restaurées avant la construction de la salle ----
   if(data.style && typeof data.style === 'object'){
     roomStyle = {...STYLE_DEFAULT, ...data.style};
