@@ -1218,6 +1218,8 @@ function buildRoom(stageIdx){
 const exteriorGroup = group(); exteriorGroup.visible = false; scene.add(exteriorGroup);
 const exteriorStreetGroup = group(); exteriorGroup.add(exteriorStreetGroup);
 const exteriorBuildingGroup = group(); exteriorGroup.add(exteriorBuildingGroup);
+// quartier personnalisé par le joueur (éditeur)
+const hoodGroup = group(); exteriorGroup.add(hoodGroup);
 const pedestrians = [];
 const cars = [];
 const extMovers = [];   // pigeons, chat de ruelle, badauds qui piétinent
