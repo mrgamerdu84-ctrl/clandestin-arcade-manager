@@ -427,3 +427,14 @@ body.bigscreen #title{ opacity:.5; }
   button, input, select{ touch-action:manipulation; }
   #hoodPanel, #stylePanel, #sidebar{ overscroll-behavior:contain; }
 }
+
+/* ---- boutique enseigne : nom + couleurs ---- */
+#brandSigns{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 6px; }
+#brandName{
+  flex:1; min-width:0; background:#160b24; color:#ffe9fb; border:1px solid #ff5bd6;
+  border-radius:8px; padding:6px 8px; font-size:13px; letter-spacing:1px;
+}
+#brandSave{
+  background:#ff5bd6; color:#1a0018; border:0; border-radius:8px; padding:6px 10px;
+  font-weight:700; cursor:pointer; min-height:34px;
+}
