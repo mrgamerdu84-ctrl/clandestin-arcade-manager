@@ -5809,6 +5809,10 @@ document.getElementById('resetBtn').onclick = startNewGame;
 const SAVE_KEY = 'cc_save_v1';
 const SAVE_VERSION = 1;
 let saveTimer = 0; // horodatage du dernier autosave
+// tant que la partie sauvegardée n'a pas été chargée au démarrage, on n'écrase RIEN
+// (les fonctions d'initialisation appellent writeSave avant que la sauvegarde soit lue)
+var saveReady = false; // eslint-disable-line no-var
+
 const AUTOSAVE_MS = 600000; // sauvegarde automatique toutes les 10 minutes
 
 function serializeSave(){
