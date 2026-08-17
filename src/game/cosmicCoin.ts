@@ -5852,7 +5852,9 @@ function flashSaveBadge(){
 function writeSave(loud){
   // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
   // seul le bouton Reset remet à zéro.
+  if(!saveReady) return;   // démarrage : on ne touche pas à la sauvegarde avant de l'avoir chargée
   try {
+
     localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave()));
     lastSaveAt = Date.now();
     if(loud) flashSaveBadge();   // badge discret : seulement autosave 10 min + sauvegarde manuelle
