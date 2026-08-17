@@ -2400,6 +2400,43 @@ function initStyleUI(){
   refreshStyleUI();
 }
 
+/* ---------- retouches du décor d'origine (déplacer / retirer / remettre) ---------- */
+const OVR_KEY = 'cc_hood_ovr_v1';
+let streetOvr = {};
+try { streetOvr = JSON.parse(localStorage.getItem(OVR_KEY) || '{}') || {}; } catch(e){ streetOvr = {}; }
+function writeOvr(){ try { localStorage.setItem(OVR_KEY, JSON.stringify(streetOvr)); } catch(e){} }
+function eachStreetWrap(fn){
+  exteriorStreetGroup.children.forEach(w=>{ if(w.userData && w.userData.sid) fn(w); });
+}
+function applyStreetOverrides(){
+  eachStreetWrap(w=>{
+    const o = streetOvr[w.userData.sid];
+    if(!o) return;
+    if(o.del){ w.visible = false; w.userData.hidden = true; return; }
+    if(typeof o.x === 'number'){ w.position.x = o.x; w.position.z = o.z; }
+    if(typeof o.rot === 'number') w.rotation.y = o.rot;
+  });
+}
+function streetFromObject(obj){
+  let o = obj;
+  while(o){ if(o.userData && o.userData.sid) return o; o = o.parent; }
+  return null;
+}
+function editableHits(){
+  const hits = raycaster.intersectObjects([hoodGroup, exteriorStreetGroup], true);
+  for(const h of hits){
+    const hw = hoodFromObject(h.object);
+    if(hw) return {kind:'hood', wrap:hw, entry:hw.userData.hood};
+    const sw = streetFromObject(h.object);
+    if(sw && !sw.userData.noEdit && sw.visible) return {kind:'street', wrap:sw};
+  }
+  return null;
+}
+function saveStreetWrap(w){
+  streetOvr[w.userData.sid] = {x:+w.position.x.toFixed(3), z:+w.position.z.toFixed(3), rot:+w.rotation.y.toFixed(3)};
+  writeOvr();
+}
+
 function hoodFromObject(obj){
   let o = obj;
   while(o){ if(o.userData && o.userData.hood) return o; o = o.parent; }
