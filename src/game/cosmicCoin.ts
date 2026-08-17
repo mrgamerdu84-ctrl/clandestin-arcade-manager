@@ -5046,7 +5046,7 @@ document.getElementById('resetBtn').onclick=()=>{
   document.getElementById('pauseBtn').innerText='⏸ Pause';
   refreshClosedBtn();
   renderShop(); updateHUD();
-  log("Nouvelle partie lancée. Bonne chance avec le Cosmic Coin !");
+  log("Nouvelle partie : te voilà devant une boîte condamnée. Une enveloppe dépasse sous la porte — clique dessus.");
 };
 
 /* ============================================================
