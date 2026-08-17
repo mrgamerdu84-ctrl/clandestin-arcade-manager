@@ -2373,15 +2373,17 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   const sky = box(1.8, 0.06, 1.2, '#7fd6ff', {emissive:0x2a6a88, emissiveIntensity:0.35, opacity:0.85, transparent:true});
   sky.position.set(w*0.05, roofTop+0.06, -d*0.05);
   exteriorBuildingGroup.add(sky);
-  // enseigne néon sur le toit
-  const neonBar = box(w*0.5, 0.16, 0.16, casino?PAL.casinoGold:PAL.pink, {emissive: casino?0xffcc55:0xff2f8e, emissiveIntensity:1.1});
-  neonBar.position.set(0, roofTop+1.05, -d/2+0.5);
-  exteriorBuildingGroup.add(neonBar);
-  [-w*0.22, w*0.22].forEach(px=>{
-    const mast = cyl(0.05,0.05,1.0,'#2b2438');
-    mast.position.set(px, roofTop+0.5, -d/2+0.5);
-    exteriorBuildingGroup.add(mast);
-  });
+  // enseigne néon sur le toit — achetable
+  if(hasCos('roofneon')){
+    const neonBar = box(w*0.5, 0.16, 0.16, casino?PAL.casinoGold:PAL.pink, {emissive: casino?0xffcc55:0xff2f8e, emissiveIntensity:1.1});
+    neonBar.position.set(0, roofTop+1.05, -d/2+0.5);
+    exteriorBuildingGroup.add(neonBar);
+    [-w*0.22, w*0.22].forEach(px=>{
+      const mast = cyl(0.05,0.05,1.0,'#2b2438');
+      mast.position.set(px, roofTop+0.5, -d/2+0.5);
+      exteriorBuildingGroup.add(mast);
+    });
+  }
 
 
   // facade windows on the street-facing (west) wall, skipping the doorway
