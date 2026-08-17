@@ -2351,6 +2351,15 @@ const HOOD_ITEMS = [
   {id:'taxi',      label:'🚕 Taxi',         key:'CAR_TAXI',         spec:{mode:'footprint',target:1.05}},
   {id:'van',       label:'🚐 Camionnette',  key:'CAR_VAN',          spec:{mode:'footprint',target:1.05}},
 ];
+/* prix des éléments du quartier : on paie avec les jetons gagnés */
+const HOOD_COST = {
+  roadauto:12, road:10, roadcross:12, roadbend:10, roadinter:14, sidewalk:8,
+  house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
+  city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
+  fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
+};
+function hoodCost(id){ return HOOD_COST[id] ?? 20; }
+function hoodRefund(id){ return Math.round(hoodCost(id)*0.5); }
 let hoodEdit = false;
 let hoodSel = null;
 let hoodRot = 0;
@@ -2455,7 +2464,10 @@ function refreshHoodUI(){
   if(rotLbl) rotLbl.innerText = Math.round(hoodRot*180/Math.PI)+'°';
   panel.querySelectorAll('.hoodItem').forEach(b=>{
     b.classList.toggle('on', b.dataset.id===hoodSel && !hoodErase);
+    b.classList.toggle('tooPoor', state.money < hoodCost(b.dataset.id));
   });
+  const head = document.getElementById('hoodMoney');
+  if(head) head.innerText = `Jetons : ${Math.round(state.money)}¢ — retirer un objet rembourse la moitié.`;
   const arrows = document.getElementById('hoodArrows');
   if(arrows) arrows.style.display = (exteriorMode && hoodEdit) ? 'grid' : 'none';
   if(typeof updateHoodGrid === 'function') updateHoodGrid();
@@ -2464,7 +2476,7 @@ function refreshHoodUI(){
 function buildHoodPalette(){
   const list = document.getElementById('hoodList');
   if(!list) return;
-  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}</button>`).join('');
+  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}<b class="hoodPrice">${hoodCost(i.id)}¢</b></button>`).join('');
   list.querySelectorAll('.hoodItem').forEach(b=>{
     b.onclick = ()=>{
       hoodErase = false;
@@ -2864,6 +2876,10 @@ canvas.addEventListener('click', (e)=>{
       if(hoodPick && hoodPick.entry === pick.entry) hoodPick = null;
       hoodData = hoodData.filter(d=>d !== pick.entry);
       hoodGroup.remove(pick.wrap);
+      const back = hoodRefund(pick.entry.id);
+      state.money += back;
+      if(typeof updateHUD === 'function') updateHUD();
+      log(`Objet retiré : +${back}¢ récupérés.`);
       writeHood();
     } else {
       pick.wrap.visible = false;
@@ -2888,6 +2904,7 @@ canvas.addEventListener('click', (e)=>{
     rot: hoodRot,
   };
   if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
+  if(!payFor(hoodCost(hoodSel), def.label)) return;
   hoodData.push(entry);
   if(ROAD_IDS.includes(entry.id)) rebuildHood(); else spawnHood(entry);
   hoodPick = {kind:'hood', entry};
