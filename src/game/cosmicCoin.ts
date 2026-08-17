@@ -4320,7 +4320,8 @@ function spawnCustomer(){
   for(let k=0;k<free.length;k++){ pick -= weights[k]; if(pick<=0){ ti = k; break; } ti = k; }
   const target = free[ti];
   target.busy = true;
-  const mesh = buildCharacter(SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)]);
+  const shirt = SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)];
+  const mesh = buildCharacter(shirt);
   const {cols,rows,doorRow} = state.dims;
   const doorP = cellToWorld(0,doorRow,cols,rows);
   // apparition dehors, sur le seuil : le client franchit vraiment la porte
@@ -4329,7 +4330,7 @@ function spawnCustomer(){
   const targetP = standSpotFor(target);
   const gate = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
   state.customers.push({
-    mesh, target, targetPos:targetP, gatePos:gate,
+    mesh, target, targetPos:targetP, gatePos:gate, shirt,
     doorPos:new THREE.Vector3(doorP.x-CELL-1.2,0,doorP.z),
     phase:'enter', playTimer:0
   });
@@ -5497,6 +5498,10 @@ function serializeSave(){
     brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken,
       tint:m.tint||null, priceMult:machinePriceMult(m), rigged:!!m.rigged})),
+    // clients en train de jouer : on note la machine (cellule), l'avancement et la couleur du perso
+    players: state.customers
+      .filter(c=>c.phase==='playing' && c.target && !c.illegal)
+      .map(c=>({mx:c.target.x, mz:c.target.z, t:Math.round(c.playTimer||0), shirt:c.shirt||null})),
   };
 }
 function writeSave(){
@@ -5569,6 +5574,26 @@ function applySave(data){
     mesh.userData.machine = machine;
     state.grid[sm.z][sm.x] = machine;
     state.machines.push(machine);
+  });
+  // ---- clients qui étaient en train de jouer : on les remet devant leur machine ----
+  (data.players||[]).forEach(sp=>{
+    const target = state.machines.find(m=>m.x===sp.mx && m.z===sp.mz);
+    if(!target || target.busy || target.broken) return;
+    const shirt = (typeof sp.shirt==='number') ? sp.shirt : SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)];
+    const mesh = buildCharacter(shirt);
+    const spot = standSpotFor(target);
+    mesh.position.set(spot.x, 0, spot.z);
+    customersGroup.add(mesh);
+    target.busy = true;
+    const {cols:cc, rows:rr, doorRow:dr} = state.dims;
+    const doorP = cellToWorld(0, dr, cc, rr);
+    state.customers.push({
+      mesh, target, targetPos:spot.clone(),
+      gatePos:new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z),
+      doorPos:new THREE.Vector3(doorP.x-CELL-1.2, 0, doorP.z),
+      shirt, phase:'playing',
+      playTimer: Math.max(0, Math.min(sp.t||0, target.def.time-200)),
+    });
   });
   setHidden(false);
   document.getElementById('log').innerHTML = state.logMsgs.map(m=>`<div>${m}</div>`).join('');
