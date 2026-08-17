@@ -4,26 +4,34 @@
     <meta charset="utf-8" />
     <title>Cosmic Coin</title>
     <style>
-      html,body{margin:0;height:100%;background:#07060f;overflow:hidden;
-        font-family:"Courier New",monospace;color:#f6e9ff;}
+      :root{
+        --bg:#07060f; --primary:#ff007f; --accent:#00f3ff; --text:#f6e9ff;
+        --display:'Courier New', Courier, monospace; --track:0.22em;
+      }
+      html,body{margin:0;height:100%;background:var(--bg);overflow:hidden;
+        font-family:var(--display);color:var(--text);}
       .wrap{position:absolute;inset:0;display:flex;flex-direction:column;
         align-items:center;justify-content:flex-end;padding-bottom:52px;
         background:url("./splash.jpg") center/cover no-repeat;}
       .wrap::after{content:"";position:absolute;inset:0;
         background:linear-gradient(to bottom,rgba(7,6,15,0) 45%,rgba(7,6,15,.92) 100%);}
+      .name{position:relative;z-index:2;margin-bottom:18px;font-weight:900;font-size:22px;
+        letter-spacing:var(--track);text-transform:uppercase;color:var(--primary);
+        text-shadow:0 0 14px var(--primary);}
       .bar{position:relative;z-index:2;width:220px;height:4px;border-radius:4px;
         background:rgba(255,255,255,.12);overflow:hidden;}
       .bar i{position:absolute;inset:0;width:40%;border-radius:4px;
-        background:linear-gradient(90deg,#ff2d95,#38e8ff);animation:slide 1.2s infinite ease-in-out;}
-      .txt{position:relative;z-index:2;margin-top:14px;font-size:12px;letter-spacing:.22em;
-        text-transform:uppercase;color:#9ff5ea;text-shadow:0 0 12px rgba(56,232,255,.6);}
+        background:linear-gradient(90deg,var(--primary),var(--accent));animation:slide 1.2s infinite ease-in-out;}
+      .txt{position:relative;z-index:2;margin-top:14px;font-size:12px;letter-spacing:var(--track);
+        text-transform:uppercase;color:var(--accent);text-shadow:0 0 12px rgba(0,243,255,.6);}
       @keyframes slide{0%{transform:translateX(-60%)}100%{transform:translateX(210%)}}
     </style>
   </head>
   <body>
     <div class="wrap">
+      <div class="name" id="brandName">Cosmic Coin</div>
       <div class="bar"><i></i></div>
-      <div class="txt">On rallume les néons…</div>
+      <div class="txt" id="brandTagline">On rallume les néons…</div>
     </div>
   </body>
 </html>
