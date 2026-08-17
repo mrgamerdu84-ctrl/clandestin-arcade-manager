@@ -3465,6 +3465,9 @@ function openIntroLetter(){
   if(introLetter.parent) introLetter.parent.remove(introLetter);
   introLetter = null;
   if(!state.storyDone.includes('intro')) state.storyDone.push('intro');
+  try{ writeSave(false); }catch(_e){}
+  // la porte est déclouée : on reconstruit la façade sans planches ni lettre
+  if(state.dims) buildExteriorBuilding(state.stage, state.dims.cols, state.dims.rows);
   if(beat) playCinematic(beat);
 }
 canvas.addEventListener('click', (e)=>{
@@ -3475,7 +3478,12 @@ canvas.addEventListener('click', (e)=>{
   mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouseNDC, camera);
   const hits = raycaster.intersectObject(introLetter, true);
-  if(hits.length) openIntroLetter();
+  if(hits.length){ openIntroLetter(); return; }
+  // tolérance tactile : clic proche de l'enveloppe à l'écran
+  const p = introLetter.getWorldPosition(new THREE.Vector3()).project(camera);
+  const sx = (p.x*0.5+0.5)*rect.width, sy = (-p.y*0.5+0.5)*rect.height;
+  const dx = (e.clientX-rect.left)-sx, dy = (e.clientY-rect.top)-sy;
+  if(Math.hypot(dx,dy) < 90) openIntroLetter();
 });
 
 /* clic sur la banque du quartier (hors mode éditeur) : ouvre le guichet */
