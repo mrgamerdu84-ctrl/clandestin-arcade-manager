@@ -5271,6 +5271,21 @@ function applySave(data){
     stats:{...state.stats, ...(data.stats||{})},
     logMsgs:data.logMsgs||[],
   });
+  // ---- personnalisations restaurées avant la construction de la salle ----
+  if(data.style && typeof data.style === 'object'){
+    roomStyle = {...STYLE_DEFAULT, ...data.style};
+    roomStyle.owned = Array.isArray(data.style.owned) ? data.style.owned.slice() : ['stripes','plain'];
+    if(!roomStyle.owned.includes('stripes')) roomStyle.owned.push('stripes');
+    if(!roomStyle.owned.includes('plain')) roomStyle.owned.push('plain');
+    writeStyle();
+  }
+  if(data.brand && typeof data.brand === 'object'){
+    clubBrand.name = data.brand.name || BRAND_DEFAULT.name;
+    clubBrand.sign = data.brand.sign || BRAND_DEFAULT.sign;
+    clubBrand.owned = Array.isArray(data.brand.owned) ? data.brand.owned.slice() : ['neonpink'];
+    if(!clubBrand.owned.includes('neonpink')) clubBrand.owned.push('neonpink');
+    writeBrand();
+  }
   initGrid();
   (data.machines||[]).forEach(sm=>{
     const def = MACHINES.find(m=>m.id===sm.id) || DECOR.find(d=>d.id===sm.id);
