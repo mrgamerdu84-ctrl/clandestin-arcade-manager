@@ -5688,6 +5688,7 @@ function initShopTabs(){
 function closeAllPanels(except){
   if(except!=='shop') setSidebarOpen(false);
   if(except!=='opts') document.body.classList.remove('optsOn');
+  if(except!=='acts') document.body.classList.remove('actsOn');
   refreshDock();
 }
 function refreshDock(){
@@ -5698,6 +5699,7 @@ function refreshDock(){
   set('dockHood', exteriorMode);
   set('dockCam', document.body.classList.contains('camOn'));
   set('dockOpts', document.body.classList.contains('optsOn'));
+  set('dockActs', document.body.classList.contains('actsOn'));
   const hood = document.getElementById('dockHood');
   if(hood) hood.querySelector('span').innerText = exteriorMode ? 'Intérieur' : 'Quartier';
 }
@@ -5727,9 +5729,31 @@ function initDock(){
     document.body.classList.toggle('optsOn', open);
     refreshDock();
   });
+  on('dockActs', ()=>{
+    const open = !document.body.classList.contains('actsOn');
+    closeAllPanels('acts');
+    document.body.classList.toggle('actsOn', open);
+    refreshDock();
+  });
+  // les actions reprennent exactement les boutons de Gestion
+  const relay = (id, target)=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.onclick = ()=>{
+      document.body.classList.remove('actsOn');
+      refreshDock();
+      const t = document.getElementById(target);
+      if(t) t.click();
+    };
+  };
+  relay('actSave', 'saveNowBtn');
+  relay('actSlots', 'slotsBtn');
+  relay('actMenu', 'menuBtn');
+  relay('actQuit', 'quitBtn');
   if(window.innerWidth > 820) document.body.classList.add('camOn');
   refreshDock();
 }
+
 addWin('orientationchange', ()=>setTimeout(resize,300));
 
 document.getElementById('pauseBtn').onclick=()=>{
