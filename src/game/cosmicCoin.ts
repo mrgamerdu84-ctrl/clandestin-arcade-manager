@@ -2338,6 +2338,50 @@ function initHoodEditor(){
   refreshHoodUI();
 }
 
+/* ---------- panneau STYLE : couleurs des murs, détail, sol ---------- */
+function applyStyle(){
+  writeStyle();
+  buildRoom(state.stage);
+  refreshStyleUI();
+}
+function refreshStyleUI(){
+  const panel = document.getElementById('stylePanel');
+  if(!panel) return;
+  panel.style.display = (!exteriorMode && styleOpen) ? 'block' : 'none';
+  const btn = document.getElementById('styleToggle');
+  if(btn){
+    btn.style.display = exteriorMode ? 'none' : 'block';
+    btn.classList.toggle('on', styleOpen);
+  }
+  const w = document.getElementById('styleWall'); if(w) w.value = roomStyle.wall;
+  const t1 = document.getElementById('styleTrim'); if(t1) t1.value = roomStyle.trim;
+  const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
+  const f = document.getElementById('styleFloor'); if(f) f.value = roomStyle.floor;
+  panel.querySelectorAll('.styleDet').forEach(b=>{
+    b.classList.toggle('on', b.dataset.det === roomStyle.detail);
+  });
+}
+let styleOpen = false;
+function initStyleUI(){
+  const list = document.getElementById('styleDetails');
+  if(list){
+    list.innerHTML = WALL_DETAILS.map(d=>`<button type="button" class="styleDet" data-det="${d.id}">${d.label}</button>`).join('');
+    list.querySelectorAll('.styleDet').forEach(b=>{
+      b.onclick = ()=>{ roomStyle.detail = b.dataset.det; applyStyle(); };
+    });
+  }
+  const bind = (id, key)=>{
+    const el = document.getElementById(id);
+    if(el) el.oninput = ()=>{ roomStyle[key] = el.value; applyStyle(); };
+  };
+  bind('styleWall','wall'); bind('styleTrim','trim'); bind('styleTrim2','trim2'); bind('styleFloor','floor');
+  const tog = document.getElementById('styleToggle');
+  if(tog) tog.onclick = ()=>{ styleOpen = !styleOpen; refreshStyleUI(); };
+  const rst = document.getElementById('styleReset');
+  if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT}; applyStyle(); log("Décoration de la salle remise à zéro."); };
+  refreshStyleUI();
+}
+
 function hoodFromObject(obj){
   let o = obj;
   while(o){ if(o.userData && o.userData.hood) return o; o = o.parent; }
@@ -4194,6 +4238,7 @@ preloadModels(()=>{
   }
   buildExteriorStreet(16);
   initHoodEditor();
+  initStyleUI();
   updateCamera();
   renderShop();
   updateHUD();
