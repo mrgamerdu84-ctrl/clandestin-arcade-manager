@@ -4364,24 +4364,37 @@ function spawnCustomer(){
 // position "devant" la machine : le client se place face à l'écran, jamais dedans
 const _spotBox = new THREE.Box3();
 const _spotSize = new THREE.Vector3();
-function standSpotFor(m){
+function standSpotFor(m, cust){
   const ry = m.mesh.rotation.y || 0;
   // profondeur réelle de la machine : le client reste devant, jamais dedans
   let depth = 0.9, width = 0.9;
   try{
     _spotBox.setFromObject(m.mesh); _spotBox.getSize(_spotSize);
-    depth = Math.max(0.5, _spotSize.z); width = Math.max(0.5, _spotSize.x);
+    depth = Math.max(0.5, Math.min(3.2, _spotSize.z)); width = Math.max(0.5, Math.min(3.2, _spotSize.x));
   }catch(e){}
   const off = depth/2 + 0.62;
-  // machines à plusieurs places : on se met sur un côté au lieu du centre
+  // machines à plusieurs places : on se met sur un côté au lieu du centre (côté fixe par client)
   const multi = ['airhockey','poker','blackjack','roulette','table'].includes(m.def.id);
-  const side = multi ? (Math.random()<0.5 ? -1 : 1) * (width/2 + 0.15) : 0;
-  return new THREE.Vector3(
-    m.mesh.position.x + Math.sin(ry)*off + Math.cos(ry)*side,
+  if(cust && cust.sideSign === undefined) cust.sideSign = Math.random()<0.5 ? -1 : 1;
+  const sideSign = cust ? cust.sideSign : (Math.random()<0.5 ? -1 : 1);
+  const side = multi ? sideSign * (width/2 + 0.15) : 0;
+  const {cols,rows} = state.dims;
+  const hx = cols*CELL/2 - 0.55, hz = rows*CELL/2 - 0.55;
+  const make = (sign)=> new THREE.Vector3(
+    m.mesh.position.x + Math.sin(ry)*off*sign + Math.cos(ry)*side,
     0,
-    m.mesh.position.z + Math.cos(ry)*off - Math.sin(ry)*side
+    m.mesh.position.z + Math.cos(ry)*off*sign - Math.sin(ry)*side
   );
+  const inside = (p)=> Math.abs(p.x)<=hx && Math.abs(p.z)<=hz;
+  let p = make(1);
+  if(!inside(p)){
+    const alt = make(-1);
+    if(inside(alt)) p = alt;
+    else { p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
+  }
+  return p;
 }
+
 
 /* petite barre de progression flottante au-dessus du client qui joue */
 const PLAY_BAR_BG = new THREE.SpriteMaterial({color:0x120a1c, transparent:true, opacity:0.85, depthTest:false});
