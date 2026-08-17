@@ -4253,6 +4253,8 @@ function readSave(){
 function applySave(data){
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
+    extraCols:data.extraCols||0, extraRows:data.extraRows||0,
+
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,
     backroom:!!data.backroom, suspicion:data.suspicion||0, hidden:false,
