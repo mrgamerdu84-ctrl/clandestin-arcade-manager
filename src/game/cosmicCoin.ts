@@ -2400,16 +2400,29 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     exteriorBuildingGroup.add(glass);
   }
 
-  // ---- vitrines d'entrée : grandes baies vitrées de chaque côté de la porte
+  // ---- vitrines d'entrée : vitres condamnées tant qu'elles ne sont pas rénovées
   const winColors = ['#ff2e88','#00f3ff','#ffd23f','#8b5cf6'];
+  const lit = hasCos('showcase');
   [doorZ-1.55, doorZ+1.55].forEach((wz, side)=>{
     // encadrement
     const frame = box(0.14, 1.9, 2.5, casino?'#3a2010':'#1b1030');
     frame.position.set(-w/2-0.05, 1.25, wz);
     exteriorBuildingGroup.add(frame);
-    const glass = box(0.05, 1.65, 2.25, '#9fe9ff', {transparent:true, opacity:0.24, roughness:0.05, metalness:0.5});
+    const glass = lit
+      ? box(0.05, 1.65, 2.25, '#9fe9ff', {transparent:true, opacity:0.24, roughness:0.05, metalness:0.5})
+      : box(0.05, 1.65, 2.25, '#2a2438', {transparent:true, opacity:0.9, roughness:0.9});
     glass.position.set(-w/2-0.13, 1.25, wz);
     exteriorBuildingGroup.add(glass);
+    if(!lit){
+      // planches clouées sur la vitrine du local abandonné
+      [-0.35, 0.3].forEach((py,k)=>{
+        const plank = box(0.06, 0.2, 2.3, k? '#6b5231':'#7d6039');
+        plank.position.set(-w/2-0.19, 1.25+py, wz);
+        plank.rotation.x = k ? 0.06 : -0.05;
+        exteriorBuildingGroup.add(plank);
+      });
+      return;
+    }
     // bornes d'arcade visibles derrière la vitre
     for(let i=0;i<3;i++){
       const cz = wz - 0.75 + i*0.75;
@@ -2442,7 +2455,7 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     }
   });
 
-  // ---- petites enseignes néon animées autour de l'entrée
+  // ---- petites enseignes néon animées autour de l'entrée (achetables)
   const neonSigns = [];
   const addNeonSign = (text, color, wdt, hgt, y, z, freq)=>{
     const backer = box(0.07, hgt+0.16, wdt+0.16, '#12081c');
@@ -2457,11 +2470,14 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     exteriorBuildingGroup.add(halo);
     neonSigns.push({panel, halo, freq, phase: Math.random()*6.28});
   };
-  addNeonSign('OPEN', '#2fd4c8', 1.2, 0.42, 2.15, doorZ-1.6, 1.4);
-  addNeonSign('JEUX', '#ffd23f', 1.2, 0.42, 2.15, doorZ+1.6, 1.9);
-  addNeonSign('25c', '#ff2e88', 0.8, 0.36, 0.85, doorZ-2.9, 2.6);
-  addNeonSign(casino?'VIP':'TOKENS', '#8b5cf6', 1.1, 0.36, 0.85, doorZ+2.9, 2.2);
+  if(hasCos('entryneons')){
+    addNeonSign('OPEN', '#2fd4c8', 1.2, 0.42, 2.15, doorZ-1.6, 1.4);
+    addNeonSign('JEUX', '#ffd23f', 1.2, 0.42, 2.15, doorZ+1.6, 1.9);
+    addNeonSign('25c', '#ff2e88', 0.8, 0.36, 0.85, doorZ-2.9, 2.6);
+    addNeonSign(casino?'VIP':'TOKENS', '#8b5cf6', 1.1, 0.36, 0.85, doorZ+2.9, 2.2);
+  }
   exteriorBuildingGroup.userData.neonSigns = neonSigns;
+
 
   // ampoules de marquise au-dessus de l'entrée
   const bulbs = [];
