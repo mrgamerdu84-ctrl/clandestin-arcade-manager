@@ -2351,7 +2351,7 @@ function refreshStyleUI(){
   panel.style.display = (!exteriorMode && styleOpen) ? 'block' : 'none';
   const btn = document.getElementById('styleToggle');
   if(btn){
-    btn.style.display = exteriorMode ? 'none' : 'block';
+    btn.style.display = exteriorMode ? 'none' : 'inline-block';
     btn.classList.toggle('on', styleOpen);
   }
   const w = document.getElementById('styleWall'); if(w) w.value = roomStyle.wall;
