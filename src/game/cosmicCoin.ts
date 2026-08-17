@@ -3298,7 +3298,9 @@ function initGrid(){
   state.dims = dims;
   state.grid = Array.from({length:dims.rows},()=>Array(dims.cols).fill(null));
   buildExteriorBuilding(state.stage, dims.cols, dims.rows);
+  spawnGrime();
 }
+
 
 /* ---------- murs déplaçables : agrandir / rétrécir la pièce ---------- */
 const WALL_COST = 130;      // prix pour pousser un mur d'une case
