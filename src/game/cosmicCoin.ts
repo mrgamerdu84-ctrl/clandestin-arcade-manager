@@ -1222,7 +1222,7 @@ let roomStyle = {...STYLE_DEFAULT, owned:['stripes','plain']};
 function payFor(cost, label){
   if(!cost || cost<=0) return true;
   if(state.money < cost){ log(`Pas assez de jetons : ${label} coûte ${cost}¢ (tu as ${Math.round(state.money)}¢).`); return false; }
-  state.money -= cost;
+  spendMoney(cost, 'buy');
   if(typeof updateHUD === 'function') updateHUD();
   return true;
 }
@@ -3697,7 +3697,7 @@ canvas.addEventListener('click', (e)=>{
       hoodGroup.remove(pick.wrap);
       const back = hoodRefund(pick.entry.id);
       if(back>0){
-        state.money += back;
+        earnMoney(back, 'refund');
         log(`Objet retiré : +${back}¢ récupérés.`);
       } else log("Élément retiré.");
       if(typeof updateHUD === 'function') updateHUD();
@@ -4075,15 +4075,15 @@ function moveWall(axis, delta){
   if(delta > 0){
     const cost = wallCost();
     if(state.money < cost){ log(`Pas assez de jetons : une rangée coûte ${cost}¢.`); return; }
-    state.money -= cost;
-    state.stats.spent += cost;
+    spendMoney(cost, 'buy');
+
   } else {
     // refuse si des machines occupent la dernière rangée
     const occupied = state.machines.some(m=> axis==='cols' ? m.x >= next : m.z >= next);
     if(occupied){ log("Libère d'abord la rangée près du mur."); return; }
     // on ne rembourse que les rangées réellement achetées (sinon : argent gratuit en rétrécissant la salle d'origine)
     const bought = axis==='cols' ? (state.extraCols||0) : (state.extraRows||0);
-    if(bought > 0){ state.money += WALL_REFUND; state.stats.earned += WALL_REFUND; }
+    if(bought > 0){ earnMoney(WALL_REFUND, 'refund'); }
   }
 
   if(axis==='cols') state.extraCols = (state.extraCols||0) + delta;
@@ -4110,7 +4110,7 @@ function bankBorrow(amount){
   if(room < 40){ log("La banque refuse : ta ligne de crédit est déjà au maximum."); return; }
   const take = Math.min(amount, room);
   state.debt += take;
-  state.money += take;
+  earnMoney(take, 'loan');
   state.won = false;
   log(`🏦 Emprunt accordé : +${take}¢ (dette ${Math.round(state.debt)}¢).`);
   updateHUD();
@@ -4130,7 +4130,7 @@ function bankRepay(amount){
     log(`Pas assez de jetons : la banque te laisse garder ${CASH_RESERVE}¢ en caisse pour faire tourner la boîte.`);
     return;
   }
-  state.money -= pay; state.debt -= pay;
+  spendMoney(pay, 'repay'); state.debt -= pay;
   const summary = `<span class="ev-good">🏦 Remboursement</span><br>
 • Montant versé : <b>${Math.round(pay)}¢</b><br>
 • Dette restante : <b>${Math.max(0, Math.round(state.debt))}¢</b><br>
@@ -4379,7 +4379,7 @@ document.getElementById('expandBtn').onclick = ()=>{
   const next = STAGES[state.stage+1];
   if(!next) return;
   if(state.money<next.cost || state.rep<next.unlockRep) return;
-  state.money -= next.cost;
+  spendMoney(next.cost, 'buy');
   state.stage += 1;
   // clear machines/customers visually and logically (renovation)
   state.machines.forEach(m=>machinesGroup.remove(m.mesh));
@@ -4478,8 +4478,8 @@ canvas.addEventListener('click', (e)=>{
   }
   if(zone === 'back' && !state.backroom){ log("L'arrière-salle est encore murée."); return; }
   if(state.money < def.price){ log("Pas assez de jetons pour cet achat."); return; }
-  state.money -= def.price;
-  state.stats.spent += def.price;
+  spendMoney(def.price, 'buy');
+
   state.stats.machinesBuilt += 1;
   const mesh = buildMachineMesh(def.id);
   const p = cellToWorld(gx,gz,cols,rows);
@@ -4608,7 +4608,7 @@ document.getElementById('mmSell').onclick = ()=>{
   if(!menuMachine || menuMachine.busy) return;
   const m = menuMachine;
   const refund = Math.round(m.def.price*0.5);
-  state.money += refund;
+  earnMoney(refund, 'refund');
   machinesGroup.remove(m.mesh);
   state.grid[m.z][m.x] = null;
   const idx = state.machines.indexOf(m);
@@ -4842,8 +4842,8 @@ function updateCustomers(dt){
         } else {
           state.rep = Math.min(30,state.rep+0.15);
         }
-        state.money += gain;
-        state.stats.earned += gain;
+        gain = earnMoney(gain, 'play');
+
         state.stats.customers += 1;
         if(scammed){
           spawnFloatText(c.mesh.position, `ARNAQUE !`);
@@ -4965,7 +4965,7 @@ function renderBackroom(){
   box.innerHTML = '';
   if(!state.backroom){
     box.appendChild(backAction("Rouvrir l'arrière-salle", "La porte cachée de Rosa. Machines clandestines, gains x2,3.", BACKROOM_COST, state.money>=BACKROOM_COST, ()=>{
-      state.money -= BACKROOM_COST;
+      spendMoney(BACKROOM_COST, 'buy');
       state.backroom = true;
       questEvent('backroom');
       log("Tu descelles la porte du fond. L'arrière-salle de Rosa rouvre ce soir.");
@@ -4981,7 +4981,7 @@ function renderBackroom(){
 
   box.appendChild(backAction("Blanchir la caisse", state.launderDay===state.day?"Déjà fait aujourd'hui.":"-18 suspicion (1×/jour).", LAUNDER_COST,
     state.money>=LAUNDER_COST && state.launderDay!==state.day, ()=>{
-      state.money -= LAUNDER_COST; state.launderDay = state.day;
+      spendMoney(LAUNDER_COST, 'buy'); state.launderDay = state.day;
       state.suspicion = Math.max(0, state.suspicion-18);
       log("Recettes passées dans les jetons d'arcade. La compta redevient présentable.");
       renderBackroom();
@@ -4989,7 +4989,7 @@ function renderBackroom(){
 
   box.appendChild(backAction("Pot-de-vin à l'inspecteur", state.day-state.bribeDay<3?"L'inspecteur se fait discret (3 jours).":"-40 suspicion, risque légal.", BRIBE_COST,
     state.money>=BRIBE_COST && state.day-state.bribeDay>=3, ()=>{
-      state.money -= BRIBE_COST; state.bribeDay = state.day;
+      spendMoney(BRIBE_COST, 'buy'); state.bribeDay = state.day;
       state.suspicion = Math.max(0, state.suspicion-40);
       log("Une enveloppe change de main dans l'arrière-cour. Silence acheté.");
       renderBackroom();
@@ -4997,7 +4997,7 @@ function renderBackroom(){
 
   if(!state.lookout){
     box.appendChild(backAction("Engager un guetteur", "Prévient plus tôt et ralentit la suspicion.", LOOKOUT_COST, state.money>=LOOKOUT_COST, ()=>{
-      state.money -= LOOKOUT_COST; state.lookout = true;
+      spendMoney(LOOKOUT_COST, 'buy'); state.lookout = true;
       log("Momo prend son poste devant la porte. Il siffle deux fois quand ça sent le bleu.");
       renderBackroom();
     }));
@@ -5109,7 +5109,7 @@ function doorPass(){
   } else {
     const [lo,hi] = v.kind.pay;
     const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
-    state.money += gain; state.illegalEarned += gain; state.stats.earned += gain;
+    gain = earnMoney(gain, 'illegal'); state.illegalEarned += gain;
     questEvent('pass_good');
     questEvent('illegal_earn', gain);
     state.rep = Math.min(30, state.rep+0.2);
@@ -5303,7 +5303,7 @@ function questEvent(track, n=1){
 function completeQuest(){
   const q = activeQuest(); if(!q) return;
   const r = q.reward||{};
-  if(r.money){ state.money += r.money; state.stats.earned += r.money; }
+  if(r.money){ earnMoney(r.money, 'quest'); }
   if(r.rep) state.rep = Math.min(30, state.rep + r.rep);
   if(r.danger) addDanger(r.danger);
   state.questsDone.push(q.id);
@@ -5560,7 +5560,7 @@ function resolveRaid(){
     showEvent("RIEN À SIGNALER", "Deux agents traversent la salle, tapotent une borne, repartent. Derrière le faux mur, personne n'ose respirer. Suspicion en forte baisse.");
   } else {
     const fine = Math.min(state.money, 120 + exposed.length*40);
-    state.money -= fine;
+    spendMoney(fine, 'buy');
     state.rep = Math.max(0, state.rep-2);
     state.busts += 1;
     state.stats.busts += 1;
