@@ -3993,6 +3993,7 @@ preloadModels(()=>{
     initGrid();
   }
   buildExteriorStreet(16);
+  initHoodEditor();
   updateCamera();
   renderShop();
   updateHUD();
