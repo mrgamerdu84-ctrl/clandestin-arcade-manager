@@ -5523,10 +5523,9 @@ preloadModels(()=>{
     state.scored = false;
     applySave(saved);
   } else {
-    document.getElementById('storyModal').style.display='flex';
-  setModalOpen(true);
     initGrid();
     setExteriorMode(true);
+    frameAbandonedClub();
   }
   buildExteriorStreet(16);
   initHoodEditor();
