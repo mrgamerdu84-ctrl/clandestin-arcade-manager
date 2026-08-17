@@ -3850,6 +3850,7 @@ function bankBorrow(amount){
   if(typeof writeSave === 'function') writeSave();
 }
 const CASH_RESERVE = 25;            // jetons qu'on garde toujours en caisse pour continuer à jouer
+let pendingRepay = null;              // { amount, label } si l'utilisateur doit confirmer un remboursement
 function bankRepay(amount){
   if(state.debt<=0){ log("Tu n'as plus rien à rembourser."); return; }
   // on ne vide jamais complètement la caisse : sinon la partie est bloquée.
@@ -3888,6 +3889,28 @@ function renderBankPanel(){
   const daily = Math.round(state.debt * LOAN_RATE);
   box.innerHTML = `<div class="costLine">Dette : <b>${Math.round(state.debt)}¢</b> — intérêts ${daily}¢/jour<br>
     Crédit disponible : <b>${room}¢</b> / ${lim}¢</div>`;
+
+  // si une confirmation de remboursement est en attente, on affiche seulement ça
+  if(pendingRepay && state.debt > 0 && state.money >= 1){
+    const confirmRow = document.createElement('div');
+    confirmRow.className = 'bankConfirm';
+    const payNow = Math.min(pendingRepay.amount, state.debt, state.money >= state.debt ? state.money : Math.max(0, state.money - CASH_RESERVE));
+    confirmRow.innerHTML = `<div class="costLine">Confirmer le remboursement de <b>${pendingRepay.label}</b> ?<br>
+      Montant effectif : <b>${Math.round(payNow)}¢</b></div>`;
+    const btns = document.createElement('div');
+    btns.className = 'bankRow';
+    const yes = document.createElement('button');
+    yes.type = 'button'; yes.className = 'pink'; yes.innerText = `✅ Confirmer ${pendingRepay.label}`;
+    yes.onclick = ()=>{ bankRepay(pendingRepay.amount); pendingRepay = null; };
+    const no = document.createElement('button');
+    no.type = 'button'; no.innerText = '❌ Annuler';
+    no.onclick = ()=>{ pendingRepay = null; renderBankPanel(); };
+    btns.appendChild(yes); btns.appendChild(no);
+    box.appendChild(confirmRow);
+    box.appendChild(btns);
+    return;
+  }
+
   const row = document.createElement('div');
   row.className = 'bankRow';
   [100,300,600].forEach(v=>{
@@ -3905,7 +3928,7 @@ function renderBankPanel(){
     b.type='button'; b.innerText = lab;
     b.title = "La caisse n'est jamais vidée : on garde de quoi faire tourner la boîte.";
     b.disabled = state.debt<=0 || state.money<1;
-    b.onclick = ()=>{ bankRepay(v); };
+    b.onclick = ()=>{ pendingRepay = { amount:v, label:lab }; renderBankPanel(); };
     row2.appendChild(b);
   });
   box.appendChild(row2);
