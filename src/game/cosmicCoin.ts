@@ -640,6 +640,8 @@ const CITY_FILES = {
   ROAD_STRAIGHT:'roads/road-straight.glb', ROAD_CROSS:'roads/road-crossing.glb',
   ROAD_BEND:'roads/road-bend.glb', ROAD_SIDE:'roads/road-side.glb',
   ROAD_INTERSECTION:'roads/road-intersection-line.glb',
+  ROAD_TEE:'roads/road-intersection.glb', ROAD_CROSSROAD:'roads/road-crossroad.glb',
+  ROAD_END:'roads/road-end.glb',
   STREETLIGHT:'roads/light-curved.glb',
   BARRIER:'roads/construction-barrier.glb', CONE_WORK:'roads/construction-cone.glb',
 };
