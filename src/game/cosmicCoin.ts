@@ -1596,6 +1596,10 @@ function placeExt(parentGroup, key, spec, x, z, rotY){
   }
   const wrap = group(); wrap.add(obj);
   wrap.position.set(x,0,z); wrap.rotation.y = rotY||0;
+  if(parentGroup === exteriorStreetGroup){
+    wrap.userData.sid = 's' + (extSidCounter++);
+    wrap.userData.extKey = key;
+  }
   parentGroup.add(wrap);
   return wrap;
 }
@@ -1655,8 +1659,10 @@ function placeStreetlight(x, z, roadDir, withPointLight){
 
 // static street dressing — built once, independent of the arcade's stage/size
 
+let extSidCounter = 0;
 function buildExteriorStreet(maxSpan){
   while(exteriorStreetGroup.children.length) exteriorStreetGroup.remove(exteriorStreetGroup.children[0]);
+  extSidCounter = 0;
   pedestrians.length = 0;
   cars.length = 0;
   extMovers.length = 0;
