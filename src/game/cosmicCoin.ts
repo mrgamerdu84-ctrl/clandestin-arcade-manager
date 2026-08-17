@@ -1137,6 +1137,7 @@ const COSMETICS = [
   {id:'entryneons', label:'🈺 Enseignes d\u2019entrée', price:75, zone:'out'},
   {id:'marquee',    label:'✨ Marquise & auvent',  price:65,  zone:'out'},
   {id:'showcase',   label:'🪟 Vitrines éclairées', price:80,  zone:'out'},
+  {id:'floodlights',label:'🔦 Projecteurs de façade', price:70, zone:'out'},
 ];
 function hasCos(id){ return !!(state && Array.isArray(state.cosmetics) && state.cosmetics.includes(id)); }
 
