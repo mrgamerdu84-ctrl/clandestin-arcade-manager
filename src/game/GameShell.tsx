@@ -159,13 +159,22 @@ export default function GameShell() {
           <div id="hoodList" />
         </div>
 
+        <div id="actsBar">
+          <button id="actSave" type="button">💾 Sauvegarder</button>
+          <button id="actSlots" type="button">📁 Charger / emplacements</button>
+          <button id="actMenu" type="button">🎬 Menu principal</button>
+          <button id="actQuit" type="button" className="danger">⏻ Quitter le jeu</button>
+        </div>
+
         <nav id="dock" aria-label="Menu principal">
           <button id="dockShop" type="button"><i>🕹️</i><span>Boutique</span></button>
           <button id="dockDeco" type="button"><i>🎨</i><span>Déco</span></button>
           <button id="dockHood" type="button"><i>🏙️</i><span>Quartier</span></button>
           <button id="dockCam" type="button"><i>🎮</i><span>Caméra</span></button>
           <button id="dockOpts" type="button"><i>⚙️</i><span>Options</span></button>
+          <button id="dockActs" type="button"><i>🎛️</i><span>Actions</span></button>
         </nav>
+
 
       </div>
 
