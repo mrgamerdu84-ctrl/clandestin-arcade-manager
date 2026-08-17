@@ -2679,7 +2679,7 @@ const HOOD_ITEMS = [
 ];
 /* prix des éléments du quartier : on paie avec les jetons gagnés */
 const HOOD_COST = {
-  roadauto:12, road:10, roadcross:12, roadbend:10, roadinter:14, sidewalk:8,
+  roadauto:0, road:0, roadcross:0, roadbend:0, roadinter:0, sidewalk:0,
   house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
   city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
   fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
@@ -2688,6 +2688,7 @@ const HOOD_COST = {
 };
 function hoodCost(id){ return HOOD_COST[id] ?? 20; }
 function hoodRefund(id){ return Math.round(hoodCost(id)*0.5); }
+
 let hoodEdit = false;
 let hoodSel = null;
 let hoodRot = 0;
@@ -2730,17 +2731,28 @@ function autoRoadPiece(x, z, cells){
   const cx = Math.round(x/HOOD_TILE), cz = Math.round(z/HOOD_TILE);
   const links = DIR_VECT.map(([dx,dz]) => cells.has((cx+dx)+'|'+(cz+dz)));
   const n = links.filter(Boolean).length;
+  // isolée : dalle droite nord-sud
   if(n === 0) return {key:'ROAD_STRAIGHT', rot:0};
+  // bout de ligne : on garde une droite alignée sur le voisin (pas de cul-de-sac)
+  if(n === 1){
+    const d = links.indexOf(true);
+    return {key:'ROAD_STRAIGHT', rot:(d % 2 === 0) ? 0 : Math.PI/2};
+  }
+  // deux voisins opposés : droite alignée
+  if(n === 2 && links[0] === links[2]){
+    return {key:'ROAD_STRAIGHT', rot: links[0] ? 0 : Math.PI/2};
+  }
   for(const shape of ROAD_SHAPES){
     if(shape.open.length !== n) continue;
     for(let r=0; r<4; r++){
-      // rotation de +r*90° autour de Y : la direction d passe à (d + r) % 4
-      const ok = shape.open.every(d => links[(d - r + 8) % 4]);
+      // rotation de +r*90° autour de Y : l'ouverture d du modèle vise (d + r) % 4
+      const ok = shape.open.every(d => links[(d + r) % 4]);
       if(ok) return {key:shape.key, rot:r * Math.PI/2};
     }
   }
   return {key:'ROAD_STRAIGHT', rot:0};
 }
+
 
 function spawnHood(entry, cells){
   const def = hoodDef(entry.id);
@@ -2844,7 +2856,11 @@ function refreshHoodUI(){
 function buildHoodPalette(){
   const list = document.getElementById('hoodList');
   if(!list) return;
-  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}<b class="hoodPrice">${hoodCost(i.id)}¢</b></button>`).join('');
+  list.innerHTML = HOOD_ITEMS.map(i=>{
+    const c = hoodCost(i.id);
+    return `<button type="button" class="hoodItem" data-id="${i.id}">${i.label}<b class="hoodPrice">${c>0 ? c+'¢' : 'Gratuit'}</b></button>`;
+  }).join('');
+
   list.querySelectorAll('.hoodItem').forEach(b=>{
     b.onclick = ()=>{
       hoodErase = false;
@@ -3374,13 +3390,19 @@ canvas.addEventListener('click', (e)=>{
     if(!pick) return;
     if(pick.kind==='hood'){
       if(hoodPick && hoodPick.entry === pick.entry) hoodPick = null;
+      const wasRoad = ROAD_IDS.includes(pick.entry.id);
       hoodData = hoodData.filter(d=>d !== pick.entry);
       hoodGroup.remove(pick.wrap);
       const back = hoodRefund(pick.entry.id);
-      state.money += back;
+      if(back>0){
+        state.money += back;
+        log(`Objet retiré : +${back}¢ récupérés.`);
+      } else log("Élément retiré.");
       if(typeof updateHUD === 'function') updateHUD();
-      log(`Objet retiré : +${back}¢ récupérés.`);
       writeHood();
+      // les dalles voisines se rebranchent (virage -> droite, carrefour -> T…)
+      if(wasRoad) rebuildHood();
+
     } else {
       pick.wrap.visible = false;
       pick.wrap.userData.hidden = true;
@@ -3395,22 +3417,88 @@ canvas.addEventListener('click', (e)=>{
 
   if(!hoodSel) return;
   if(!raycaster.ray.intersectPlane(hoodPlane, hoodHit)) return;
+  placeHoodAt(hoodHit.x, hoodHit.z);
+});
+
+/* Pose un élément du quartier sur la case visée.
+   Les routes remplacent la dalle déjà présente au lieu de s'empiler. */
+function placeHoodAt(wx, wz, opts){
+  const o = opts || {};
+  if(!hoodSel) return false;
   const def = hoodDef(hoodSel);
+  if(!def) return false;
   const snap = def.snap || 1.15;
   const entry = {
     id: hoodSel,
-    x: Math.round(hoodHit.x/snap)*snap,
-    z: Math.round(hoodHit.z/snap)*snap,
+    x: Math.round(wx/snap)*snap,
+    z: Math.round(wz/snap)*snap,
     rot: hoodRot,
   };
-  if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
-  if(!payFor(hoodCost(hoodSel), def.label)) return;
+  if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return false;
+  const isRoad = ROAD_IDS.includes(entry.id) || entry.id === 'sidewalk';
+  if(isRoad){
+    const k = roadCellKey(entry.x, entry.z);
+    const dup = hoodData.find(d=>(ROAD_IDS.includes(d.id) || d.id==='sidewalk') && roadCellKey(d.x,d.z)===k);
+    if(dup){
+      if(dup.id === entry.id && !o.replaceSame) return false;   // déjà la bonne dalle
+      hoodData = hoodData.filter(d=>d !== dup);
+    }
+  }
+  if(!payFor(hoodCost(hoodSel), def.label)) return false;
   hoodData.push(entry);
+  if(o.defer) return true;
   if(ROAD_IDS.includes(entry.id)) rebuildHood(); else spawnHood(entry);
   hoodPick = {kind:'hood', entry};
   writeHood();
   updateHoodGrid();
+  return true;
+}
+
+/* ---------- tracé continu des routes : maintiens et glisse ---------- */
+let roadDrag = false, roadDragCells = null, roadDragAdded = 0;
+function roadPaintable(){
+  return exteriorMode && hoodEdit && hoodSel && !hoodErase && !hoodMove
+      && (ROAD_IDS.includes(hoodSel) || hoodSel === 'sidewalk');
+}
+function pointerToGround(e){
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  return raycaster.ray.intersectPlane(hoodPlane, hoodHit) ? hoodHit : null;
+}
+function roadPaintAt(e){
+  const p = pointerToGround(e);
+  if(!p) return;
+  const k = roadCellKey(p.x, p.z);
+  if(roadDragCells.has(k)) return;
+  roadDragCells.add(k);
+  if(placeHoodAt(p.x, p.z, {defer:true})) roadDragAdded++;
+}
+canvas.addEventListener('pointerdown', (e)=>{
+  if(e.button !== 0 && e.pointerType === 'mouse') return;
+  if(!roadPaintable()) return;
+  if(pointers.size > 1) return;
+  roadDrag = true; roadDragCells = new Set(); roadDragAdded = 0;
+  dragging = false; panning = false;         // la caméra ne tourne pas pendant le tracé
+  if(tapStart) tapStart.locked = true;
+  roadPaintAt(e);
 });
+addWin('pointermove', (e)=>{ if(roadDrag) roadPaintAt(e); });
+function endRoadDrag(){
+  if(!roadDrag) return;
+  roadDrag = false; roadDragCells = null;
+  if(roadDragAdded > 0){
+    rebuildHood();
+    writeHood();
+    updateHoodGrid();
+    dragMoved = true;   // le clic qui suit ne repose pas une dalle en double
+    log(roadDragAdded > 1 ? `🛣️ ${roadDragAdded} dalles posées d'un trait.` : '🛣️ Dalle posée.');
+  }
+  roadDragAdded = 0;
+}
+addWin('pointerup', endRoadDrag);
+addWin('pointercancel', endRoadDrag);
 
 
 /* ---------- panneau lumière (jour / nuit / auto + luminosité) ---------- */
