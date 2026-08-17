@@ -1017,6 +1017,13 @@ function buildCharacter(shirtColor){
   return g;
 }
 
+/* oriente un personnage vers un point (le modèle regarde +Z, lookAt regarde -Z) */
+function faceTowards(mesh, x, z){
+  if(!mesh) return;
+  mesh.lookAt(x, mesh.position.y, z);
+  mesh.rotation.y += Math.PI;
+}
+
 /* pas de marche : balancement jambes/bras (amount = amplitude, 0 = repos) */
 function stepCharacter(mesh, t, amount = 1){
   const u = mesh && mesh.userData;
@@ -2107,10 +2114,11 @@ function buildExteriorStreet(maxSpan){
   const pedRoster = [['PED_MALE',-0.55],['PED_FEMALE',-0.15],['PED_MALE2',0.25],['PED_FEMALE2',0.65]];
   pedRoster.forEach(([key,laneOffset],i)=>{
     const startZ = zMin + 2 + i*((zMax-zMin-4)/pedRoster.length);
-    const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, 0);
+    const pDir = i%2===0 ? 1 : -1;
+    const wrap = placeExt(exteriorStreetGroup, key, {mode:'height',target:1.3}, sidewalkX+laneOffset, startZ, pDir>0?0:Math.PI);
     if(wrap){
       wrap.userData.noEdit = true;
-      pedestrians.push({wrap, body:charBody(wrap), z:startZ, dir: i%2===0?1:-1, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
+      pedestrians.push({wrap, body:charBody(wrap), z:startZ, dir: pDir, speed: 0.45+Math.random()*0.35, zMin: zMin+1, zMax: zMax-1});
     }
   });
 
@@ -3858,7 +3866,7 @@ function updateCustomers(dt){
         c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
         c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
         stepCharacter(c.mesh, performance.now()/150);
-        c.mesh.lookAt(c.targetPos.x, c.mesh.position.y, c.targetPos.z);
+        faceTowards(c.mesh, c.targetPos.x, c.targetPos.z);
         // anti-blocage : si on n'avance plus, on rejoint directement la machine
         c.stuck = (c.prevDist!==undefined && dist > c.prevDist-0.002) ? (c.stuck||0)+dt : 0;
         if(c.stuck > 4000){
@@ -3869,7 +3877,7 @@ function updateCustomers(dt){
       c.prevDist = dist;
     } else if(c.phase==='playing'){
       // face à la machine + petite animation de jeu bien visible
-      if(c.target) c.mesh.lookAt(c.target.mesh.position.x, c.mesh.position.y, c.target.mesh.position.z);
+      if(c.target) faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
       const t = performance.now();
       c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
         stepCharacter(c.mesh, t/220, 0.35);
@@ -3907,7 +3915,7 @@ function updateCustomers(dt){
       c.mesh.position.addScaledVector(dir,(1.8*dt/1000));
       c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
       stepCharacter(c.mesh, performance.now()/150);
-      c.mesh.lookAt(c.doorPos.x, c.mesh.position.y, c.doorPos.z);
+      faceTowards(c.mesh, c.doorPos.x, c.doorPos.z);
       // filet : un client qui traîne trop longtemps dehors est retiré
       c.outTimer = (c.outTimer||0) + dt;
       if(c.outTimer > 20000){ customersGroup.remove(c.mesh); state.customers.splice(i,1); continue; }
@@ -4211,7 +4219,7 @@ function updateDoor(dt){
       v.mesh.position.addScaledVector(dir, 1.5*dt/1000);
       v.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
       stepCharacter(v.mesh, performance.now()/150);
-      v.mesh.lookAt(goal.x, v.mesh.position.y, goal.z);
+      faceTowards(v.mesh, goal.x, goal.z);
     } else if(v.phase==='walk'){
       v.phase='wait'; renderDoorPanel();
     } else if(v.phase==='leave'){
