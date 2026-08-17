@@ -10,8 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "electron": "vite build && electron .",
-    "electron:pack": "vite build && electron-packager . \"Cosmic Coin\" --overwrite --out=electron-release --icon=electron/icon --ignore=\"^/src\" --ignore=\"^/public/models\" --ignore=\"^/electron-release\""
+    "build:desktop": "vite build --config vite.desktop.config.ts",
+    "electron": "npm run build:desktop && electron .",
+    "electron:pack": "npm run build:desktop && npx @electron/packager . \"Cosmic Coin\" --overwrite --out=electron-release --icon=electron/icon --ignore=\"^/src\" --ignore=\"^/public/models\" --ignore=\"^/electron-release\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
