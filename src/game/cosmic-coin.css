@@ -273,6 +273,14 @@
   .statRow{display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:5px 8px; border-radius:7px; background:rgba(255,255,255,0.04); margin-bottom:4px;}
   .statRow b{color:var(--neon3);}
   #scoreActions{display:flex; gap:8px; justify-content:flex-end; margin-top:14px;}
+  #slotModal{position:fixed; inset:0; z-index:70; background:rgba(4,2,10,0.86); display:none; align-items:center; justify-content:center; padding:16px;}
+  #slotModal .card{max-height:86vh; overflow-y:auto; width:min(520px,100%);}
+  .slotRow{border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:9px 10px; margin-bottom:9px; background:rgba(255,255,255,0.04);}
+  .slotRow .slotName{color:var(--neon3); font-size:12px; letter-spacing:.08em; margin-bottom:3px;}
+  .slotRow .slotInfo{color:#c7b6ee; font-size:11px; line-height:1.5; white-space:pre-line;}
+  .slotRow .slotActs{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .slotRow .slotActs .btn{flex:1 1 auto; min-width:88px; font-size:11px; padding:8px 6px;}
+
   #scoreStat b{color:#e8b64a!important;}
 
 /* ---------- missions clandestines ---------- */
