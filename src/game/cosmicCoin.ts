@@ -5965,14 +5965,24 @@ preloadModels(()=>{
   document.getElementById('loadModal').style.display='none';
   resize();
   const saved = readSave();
+  let loaded = false;
   if(saved){
-    state.scored = false;
-    applySave(saved);
-  } else {
+    try {
+      state.scored = false;
+      applySave(saved);
+      loaded = true;
+    } catch(e){
+      // sauvegarde illisible : on repart proprement SANS l'effacer (elle reste récupérable)
+      console.error('[CosmicCoin] sauvegarde illisible', e);
+      loaded = false;
+    }
+  }
+  if(!loaded){
     initGrid();
     setExteriorMode(true);
     frameAbandonedClub();
   }
+
   buildExteriorStreet(16);
   initHoodEditor();
   initHoodArrows();
