@@ -2679,7 +2679,7 @@ const HOOD_ITEMS = [
 ];
 /* prix des éléments du quartier : on paie avec les jetons gagnés */
 const HOOD_COST = {
-  roadauto:12, road:10, roadcross:12, roadbend:10, roadinter:14, sidewalk:8,
+  roadauto:0, road:0, roadcross:0, roadbend:0, roadinter:0, sidewalk:0,
   house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
   city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
   fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
@@ -2688,6 +2688,7 @@ const HOOD_COST = {
 };
 function hoodCost(id){ return HOOD_COST[id] ?? 20; }
 function hoodRefund(id){ return Math.round(hoodCost(id)*0.5); }
+
 let hoodEdit = false;
 let hoodSel = null;
 let hoodRot = 0;
