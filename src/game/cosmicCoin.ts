@@ -5570,6 +5570,8 @@ document.getElementById('resetBtn').onclick = startNewGame;
 const SAVE_KEY = 'cc_save_v1';
 const SAVE_VERSION = 1;
 let saveTimer = 0; // horodatage du dernier autosave
+const AUTOSAVE_MS = 600000; // sauvegarde automatique toutes les 10 minutes
+
 function serializeSave(){
   return {
     v: SAVE_VERSION, ts: Date.now(),
@@ -5604,15 +5606,16 @@ function flashSaveBadge(){
   clearTimeout(el._t);
   el._t = setTimeout(()=>{ el.classList.remove('on'); }, 1400);
 }
-function writeSave(){
+function writeSave(loud){
   // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
   // seul le bouton Reset remet à zéro.
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave()));
     lastSaveAt = Date.now();
-    flashSaveBadge();
+    if(loud) flashSaveBadge();   // badge discret : seulement autosave 10 min + sauvegarde manuelle
   } catch(e){}
 }
+
 function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
 
 /* enregistrement immédiat quand on quitte / masque l'onglet : rien n'est perdu */
@@ -6024,7 +6027,7 @@ function animate(ts){
   if(lastTime===null) lastTime=ts;
   const dt = Math.min(80, ts-lastTime); lastTime=ts;
   if(!state.paused) state.playMs = (state.playMs||0) + dt;
-  if(ts - saveTimer > 5000){ saveTimer = ts; writeSave(); }
+  if(ts - saveTimer > AUTOSAVE_MS){ saveTimer = ts; writeSave(true); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
 
   if(!state.paused){
@@ -6323,7 +6326,27 @@ preloadModels(()=>{
     openMenu();
     const mmBtn = document.getElementById('menuBtn');
     if(mmBtn) mmBtn.onclick = ()=>{ refreshMenu(); openMenu(); };
+
+    // sauvegarde manuelle : badge + ligne de journal, pour quitter l'esprit tranquille
+    const saveNowBtn = document.getElementById('saveNowBtn');
+    if(saveNowBtn) saveNowBtn.onclick = ()=>{
+      writeSave(true);
+      log("💾 Partie sauvegardée.");
+    };
+
+    // quitter le jeu : on enregistre, puis on ferme (ou on revient au menu si le navigateur refuse)
+    const quitBtn = document.getElementById('quitBtn');
+    if(quitBtn) quitBtn.onclick = ()=>{
+      writeSave(true);
+      state.paused = true;
+      try { window.close(); } catch(e){}
+      setTimeout(()=>{
+        refreshMenu(); openMenu();
+        log("💾 Partie sauvegardée — tu peux fermer la fenêtre.");
+      }, 220);
+    };
   }
+
 
   _raf = requestAnimationFrame(animate);
 });
