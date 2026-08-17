@@ -3754,9 +3754,11 @@ document.getElementById('mmSell').onclick = ()=>{
   }
   if(movingMachine===m) endMoveMode();
   log(`Machine vendue : ${m.def.name} (+${refund}¢).`);
+  if(['dancefloor','discoball','djdeck'].includes(m.def.id)) rebuildRoomKeepMachines();
   closeMachineMenu();
   renderShop();
 };
+
 
 
 /* ---------- customers ---------- */
