@@ -5500,10 +5500,12 @@ function serializeSave(){
   };
 }
 function writeSave(){
-  if(state.gameOver || state.won) { clearSave(); return; }
+  // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
+  // seul le bouton Reset remet à zéro.
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave())); } catch(e){}
 }
 function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+
 function readSave(){
   try {
     const raw = localStorage.getItem(SAVE_KEY);
