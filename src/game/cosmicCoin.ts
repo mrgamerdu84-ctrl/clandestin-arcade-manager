@@ -1112,10 +1112,19 @@ function zoneAllows(def, zone){
   return zone !== 'back';
 }
 
+function roomSize(stageIdx){
+  const st = STAGES[stageIdx];
+  const ex = (typeof state !== 'undefined' && state) ? state : null;
+  return {
+    cols: Math.max(4, Math.min(20, st.cols + (ex?.extraCols || 0))),
+    rows: Math.max(4, Math.min(18, st.rows + (ex?.extraRows || 0))),
+  };
+}
 function buildRoom(stageIdx){
   while(roomGroup.children.length) roomGroup.remove(roomGroup.children[0]);
   const st = STAGES[stageIdx];
-  const cols=st.cols, rows=st.rows;
+  const {cols, rows} = roomSize(stageIdx);
+
   const casino = st.theme==='casino';
   const floorA = casino ? '#4a1830' : PAL.floorA;
   const floorB = casino ? '#3a1226' : PAL.floorB;
