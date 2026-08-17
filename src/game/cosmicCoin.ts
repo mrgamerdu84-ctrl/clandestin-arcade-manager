@@ -3325,7 +3325,7 @@ const STAFF = [
    ============================================================ */
 function freshState(){
   return {
-    money:170, rep:0, day:1, debt:400, paused:false, stage:0,
+    money:170, rep:0, day:1, debt:400, paused:false, closed:false, stage:0,
     grid:null, dims:null, machines:[], customers:[], selected:null,
     extraCols:0, extraRows:0, grime:8,
 
@@ -3820,6 +3820,7 @@ document.getElementById('mmSell').onclick = ()=>{
 /* ---------- customers ---------- */
 const SHIRT_COLORS=[0xffb4a2,0xe5989b,0xb5838d,0x6d6875,0xffcdb2,0x83c5be,0xf4a261];
 function spawnCustomer(){
+  if(state.closed) return; // club fermé : plus personne n'entre
   const free = state.machines.filter(m=>!m.busy && !m.broken && !m.def.passive && !(m.def.illegal && state.hidden));
   if(free.length===0) return;
   const target = free[Math.floor(Math.random()*free.length)];
@@ -3848,6 +3849,7 @@ function updateCustomers(dt){
   for(let i=state.customers.length-1;i>=0;i--){
     const c = state.customers[i];
     // machine disparue (vendue, saisie, planquée) : le client repart au lieu de rester figé
+    if(c.phase!=='out' && state.closed){ if(c.target) c.target.busy=false; c.target=null; c.phase='out'; }
     if(c.phase!=='out' && (!c.target || state.machines.indexOf(c.target)===-1 || (c.target.def.illegal && state.hidden))){
       if(c.target) c.target.busy = false;
       c.target = null; c.phase = 'out';
@@ -4807,6 +4809,21 @@ document.getElementById('pauseBtn').onclick=()=>{
   state.paused=!state.paused;
   document.getElementById('pauseBtn').innerText = state.paused?'▶ Reprendre':'⏸ Pause';
 };
+const closedBtn = document.getElementById('closedBtn');
+function refreshClosedBtn(){
+  if(!closedBtn) return;
+  closedBtn.innerText = state.closed ? '🔓 Ouvrir le club' : '🚪 Fermer le club';
+  closedBtn.classList.toggle('pink', state.closed);
+  document.body.classList.toggle('clubClosed', !!state.closed);
+}
+if(closedBtn) closedBtn.onclick=()=>{
+  state.closed = !state.closed;
+  refreshClosedBtn();
+  log(state.closed
+    ? "Rideau baissé : personne n'entre, la pression policière retombe doucement. Idéal pour rénover."
+    : "Le club rouvre : les clients reviennent.");
+};
+refreshClosedBtn();
 document.getElementById('resetBtn').onclick=()=>{
   recordRun(state.gameOver ? 'scellés' : 'abandon');
   clearSave();
@@ -4825,6 +4842,7 @@ document.getElementById('resetBtn').onclick=()=>{
   setModalOpen(true);
   setExteriorMode(true);
   document.getElementById('pauseBtn').innerText='⏸ Pause';
+  refreshClosedBtn();
   renderShop(); updateHUD();
   log("Nouvelle partie lancée. Bonne chance avec le Cosmic Coin !");
 };
@@ -4845,7 +4863,7 @@ function serializeSave(){
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
-    danger: state.danger, unlocks: state.unlocks, storyDone: state.storyDone,
+    danger: state.danger, closed: !!state.closed, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken})),
@@ -4866,6 +4884,7 @@ function readSave(){
   } catch(e){ return null; }
 }
 function applySave(data){
+  setTimeout(()=>{ try{ refreshClosedBtn(); }catch(e){} }, 0);
   Object.assign(state, {
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
     extraCols:data.extraCols||0, extraRows:data.extraRows||0, grime:(data.grime===undefined?0:data.grime|0),
@@ -4875,7 +4894,7 @@ function applySave(data){
     backroom:!!data.backroom, suspicion:data.suspicion||0, hidden:false,
     busts:data.busts||0, raidsSurvived:data.raidsSurvived||0, lookout:!!data.lookout,
     launderDay:data.launderDay??-1, bribeDay:data.bribeDay??-99, gameOver:!!data.gameOver,
-    illegalEarned:data.illegalEarned||0, danger:data.danger||0,
+    illegalEarned:data.illegalEarned||0, danger:data.danger||0, closed:!!data.closed,
     unlocks:data.unlocks||[], storyDone:data.storyDone||[],
     questIdx:data.questIdx??0, questProgress:data.questProgress||{}, questsDone:data.questsDone||[],
     stats:{...state.stats, ...(data.stats||{})},
@@ -5105,6 +5124,10 @@ function animate(ts){
     updateParticles(dt);
     updateRaid(dt);
     updateDoor(dt);
+    if(state.closed){
+      state.suspicion = Math.max(0, state.suspicion - dt*0.0018);
+      state.danger = Math.max(0, state.danger - dt*0.0012);
+    }
     state.stats.timeMs += dt;
     state.dayTimer+=dt;
     updateDayNight();

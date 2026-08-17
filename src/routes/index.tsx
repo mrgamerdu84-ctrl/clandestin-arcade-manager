@@ -263,6 +263,9 @@ function GamePage() {
           <button className="btn" id="pauseBtn" type="button">
             ⏸ Pause
           </button>
+          <button className="btn" id="closedBtn" type="button">
+            🚪 Fermer le club
+          </button>
           <button className="btn" id="scoreBtn" type="button">
             🏆 Score
           </button>
