@@ -2479,17 +2479,19 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   exteriorBuildingGroup.userData.neonSigns = neonSigns;
 
 
-  // ampoules de marquise au-dessus de l'entrée
+  // ampoules de marquise au-dessus de l'entrée (achetables)
   const bulbs = [];
-  for(let i=0;i<9;i++){
-    const bz = doorZ - 1.6 + i*0.4;
-    const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.055, 8, 8),
-      new THREE.MeshStandardMaterial({color:0xfff0c0, emissive:0xffcc66, emissiveIntensity:1.4})
-    );
-    bulb.position.set(-w/2-0.42, 2.62, bz);
-    exteriorBuildingGroup.add(bulb);
-    bulbs.push(bulb);
+  if(hasCos('marquee')){
+    for(let i=0;i<9;i++){
+      const bz = doorZ - 1.6 + i*0.4;
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.055, 8, 8),
+        new THREE.MeshStandardMaterial({color:0xfff0c0, emissive:0xffcc66, emissiveIntensity:1.4})
+      );
+      bulb.position.set(-w/2-0.42, 2.62, bz);
+      exteriorBuildingGroup.add(bulb);
+      bulbs.push(bulb);
+    }
   }
   exteriorBuildingGroup.userData.marqueeBulbs = bulbs;
 
@@ -2499,12 +2501,14 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   doorway.position.set(-w/2, 0.2, doorZ);
   doorway.rotation.y = -Math.PI/2;
   exteriorBuildingGroup.add(doorway);
-  // small canopy roof jutting out over the entrance
-  const doorCanopy = box(0.5, 0.08, 1.3, casino?PAL.casinoGold:PAL.pink);
-  doorCanopy.position.set(-w/2-0.3, 2.55, doorZ);
-  exteriorBuildingGroup.add(doorCanopy);
-  const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
-  const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
+  // auvent d'entrée : fait partie du lot marquise
+  if(hasCos('marquee')){
+    const doorCanopy = box(0.5, 0.08, 1.3, casino?PAL.casinoGold:PAL.pink);
+    doorCanopy.position.set(-w/2-0.3, 2.55, doorZ);
+    exteriorBuildingGroup.add(doorCanopy);
+    const canopyPoleA = cyl(0.03,0.03,0.5,'#333333'); canopyPoleA.position.set(-w/2-0.5,2.3,doorZ-0.55); exteriorBuildingGroup.add(canopyPoleA);
+    const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
+  }
   // lettre glissée sous la porte : point de départ de l'histoire
   if(!(state && state.storyDone && state.storyDone.includes('intro'))){
     const letter = group();
@@ -2524,24 +2528,28 @@ function buildExteriorBuilding(stageIdx, cols, rows){
   }
 
 
-  // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
-  // qui traverse le mur comme le faisait le sprite billboard)
-  const signText = (clubBrand.name || 'COSMIC COIN').slice(0,14).toUpperCase();
-  const signColor = clubBrand.color;
-  const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
-  signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
-  signPanel.rotation.y = -Math.PI/2;
-  exteriorBuildingGroup.add(signPanel);
-  const signBack = box(0.08, 1.15, 4.3, '#150a1e');
-  signBack.position.set(-w/2-0.06, bodyH*0.75+0.2, 0);
-  exteriorBuildingGroup.add(signBack);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.2, 10, 2);
-  signGlow.position.set(-w/2-0.8, bodyH*0.75+0.2, 0);
-  exteriorBuildingGroup.add(signGlow);
-  const signHalo = registerNightHalo(makeGlowSprite(signColor, 2.6), 0.8);
-  signHalo.position.set(-w/2-0.5, bodyH*0.75+0.2, 0);
-  exteriorBuildingGroup.add(signHalo);
-  exteriorBuildingGroup.userData.signHalo = signHalo;
+  // grande enseigne néon du nom — uniquement une fois achetée
+  if(hasCos('facadesign')){
+    const signText = (clubBrand.name || 'COSMIC COIN').slice(0,14).toUpperCase();
+    const signColor = clubBrand.color;
+    const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
+    signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
+    signPanel.rotation.y = -Math.PI/2;
+    exteriorBuildingGroup.add(signPanel);
+    const signBack = box(0.08, 1.15, 4.3, '#150a1e');
+    signBack.position.set(-w/2-0.06, bodyH*0.75+0.2, 0);
+    exteriorBuildingGroup.add(signBack);
+    const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 1.2, 10, 2);
+    signGlow.position.set(-w/2-0.8, bodyH*0.75+0.2, 0);
+    exteriorBuildingGroup.add(signGlow);
+    const signHalo = registerNightHalo(makeGlowSprite(signColor, 2.6), 0.8);
+    signHalo.position.set(-w/2-0.5, bodyH*0.75+0.2, 0);
+    exteriorBuildingGroup.add(signHalo);
+    exteriorBuildingGroup.userData.signHalo = signHalo;
+  } else {
+    exteriorBuildingGroup.userData.signHalo = null;
+  }
+
 
   // warm porch light over the door
   const doorGlow = new THREE.PointLight(0xffd9a0, 0.8, 4, 2);
