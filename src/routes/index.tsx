@@ -96,6 +96,10 @@ function GamePage() {
           <button id="lightRenderBtn" type="button" title="Rendu léger (placeholders)">
             ⚡
           </button>
+          <button id="bigScreenBtn" type="button" title="Grand écran">
+            🗖
+          </button>
+
 
 
         </div>
