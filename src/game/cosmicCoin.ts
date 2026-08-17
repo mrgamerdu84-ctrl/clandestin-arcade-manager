@@ -1002,10 +1002,17 @@ function payFor(cost, label){
 function readStyle(){
   try{
     const raw = localStorage.getItem(STYLE_KEY);
-    if(raw) return {...STYLE_DEFAULT, ...JSON.parse(raw)};
+    if(raw){
+      const s = {...STYLE_DEFAULT, ...JSON.parse(raw)};
+      s.owned = Array.isArray(s.owned) ? s.owned : ['stripes','plain'];
+      if(!s.owned.includes('stripes')) s.owned.push('stripes');
+      if(!s.owned.includes('plain')) s.owned.push('plain');
+      return s;
+    }
   }catch(e){}
-  return {...STYLE_DEFAULT};
+  return {...STYLE_DEFAULT, owned:['stripes','plain']};
 }
+
 function writeStyle(){
   try{ localStorage.setItem(STYLE_KEY, JSON.stringify(roomStyle)); }catch(e){}
 }
