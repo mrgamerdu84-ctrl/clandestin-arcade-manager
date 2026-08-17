@@ -1002,6 +1002,32 @@ function danceCharacter(mesh, t, style){
 /* ============================================================
    STYLE PERSONNALISÉ — murs, détails, sol (sauvegardé)
    ============================================================ */
+/* ---------- identité de la boîte : nom + enseigne (achetables) ---------- */
+const BRAND_KEY = 'cc_brand_v1';
+const SIGN_STYLES = [
+  {id:'neonpink', label:'Néon rose',   color:'#ff2e88', price:0},
+  {id:'ice',      label:'Bleu glace',  color:'#00f3ff', price:70},
+  {id:'gold',     label:'Or casino',   color:'#ffd23f', price:110},
+  {id:'emerald',  label:'Vert émeraude', color:'#2fd4c8', price:90},
+  {id:'violet',   label:'Violet UV',   color:'#8b5cf6', price:120},
+];
+const RENAME_COST = 30;
+const BRAND_DEFAULT = {name:'COSMIC COIN', sign:'neonpink', owned:['neonpink']};
+let clubBrand = {...BRAND_DEFAULT};
+try{
+  const raw = localStorage.getItem(BRAND_KEY);
+  if(raw){
+    const b = JSON.parse(raw);
+    clubBrand = {...BRAND_DEFAULT, ...b};
+    clubBrand.owned = Array.isArray(clubBrand.owned) ? clubBrand.owned : ['neonpink'];
+    if(!clubBrand.owned.includes('neonpink')) clubBrand.owned.push('neonpink');
+  }
+}catch(e){}
+Object.defineProperty(clubBrand, 'color', {
+  get(){ return (SIGN_STYLES.find(s=>s.id===clubBrand.sign) || SIGN_STYLES[0]).color; },
+});
+function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned})); }catch(e){} }
+
 const STYLE_KEY = 'cc_style_v1';
 const STYLE_DEFAULT = {wall:'#2b2438', trim:'#f4a13c', trim2:'#6b4e9e', floor:'#ffffff', detail:'stripes'};
 const WALL_DETAILS = [
@@ -2353,8 +2379,8 @@ function buildExteriorBuilding(stageIdx, cols, rows){
 
   // grande enseigne néon, plaquée sur la façade (panneau plat : plus de texte
   // qui traverse le mur comme le faisait le sprite billboard)
-  const signText = casino ? "CASINO" : (stageIdx===1 ? "ARCADE" : "COSMIC COIN");
-  const signColor = casino?'#ffd23f':'#ff2e88';
+  const signText = (clubBrand.name || 'COSMIC COIN').slice(0,14).toUpperCase();
+  const signColor = clubBrand.color;
   const signPanel = makeSignPanel(signText, signColor, 4.2, 1.05);
   signPanel.position.set(-w/2-0.12, bodyH*0.75+0.2, 0);
   signPanel.rotation.y = -Math.PI/2;
@@ -2456,6 +2482,15 @@ const HOOD_ITEMS = [
   {id:'car',       label:'🚗 Voiture',      key:'CAR_SEDAN',        spec:{mode:'footprint',target:1.05}},
   {id:'taxi',      label:'🚕 Taxi',         key:'CAR_TAXI',         spec:{mode:'footprint',target:1.05}},
   {id:'van',       label:'🚐 Camionnette',  key:'CAR_VAN',          spec:{mode:'footprint',target:1.05}},
+  {id:'wallneon',  label:'💗 Néon mural',   key:'WALL_NEON',        spec:{mode:'height',target:2.4}},
+  {id:'neonarrow', label:'➡️ Flèche néon',  key:'NEON_ARROW',       spec:{mode:'height',target:2.4}},
+  {id:'graffiti',  label:'🎨 Graffiti',     key:'GRAFFITI',         spec:{mode:'height',target:1.7}},
+  {id:'bulbs',     label:'✨ Guirlande',    key:'BULB_STRING',      spec:{mode:'height',target:2.4}},
+  {id:'posterext', label:'🖼️ Affiche géante', key:'POSTER_WALL',   spec:{mode:'height',target:1.9}},
+  {id:'awning',    label:'⛱️ Store banne',  key:'AWNING',           spec:{mode:'height',target:2.1}},
+  {id:'rope',      label:'🚩 Cordon VIP',   key:'VELVET_ROPE',      spec:{mode:'height',target:1.0}},
+  {id:'palmneon',  label:'🌴 Palmier néon', key:'PALM_NEON',        spec:{mode:'height',target:2.4}},
+  {id:'marquee',   label:'🪧 Enseigne perso', key:'MARQUEE_SIGN',   spec:{mode:'height',target:2.6}},
 ];
 /* prix des éléments du quartier : on paie avec les jetons gagnés */
 const HOOD_COST = {
@@ -2463,6 +2498,8 @@ const HOOD_COST = {
   house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
   city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
   fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
+  wallneon:70, neonarrow:55, graffiti:30, bulbs:35, posterext:40,
+  awning:60, rope:45, palmneon:65, marquee:150,
 };
 function hoodCost(id){ return HOOD_COST[id] ?? 20; }
 function hoodRefund(id){ return Math.round(hoodCost(id)*0.5); }
