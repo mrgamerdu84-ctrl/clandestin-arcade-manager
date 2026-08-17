@@ -1092,6 +1092,21 @@ Object.defineProperty(clubBrand, 'color', {
 });
 function writeBrand(){ try{ localStorage.setItem(BRAND_KEY, JSON.stringify({name:clubBrand.name, sign:clubBrand.sign, owned:clubBrand.owned})); }catch(e){} }
 
+/* ---------- décorations achetables (rien n'est offert au départ) ---------- */
+const COSMETICS = [
+  {id:'posters',    label:'🖼️ Affiches murales',   price:35,  zone:'in'},
+  {id:'columns',    label:'🏛️ Colonnes d\u2019angle', price:60, zone:'in'},
+  {id:'innerneon',  label:'💡 Barre néon intérieure', price:55, zone:'in'},
+  {id:'facadesign', label:'🪧 Enseigne du nom',    price:120, zone:'out'},
+  {id:'roofneon',   label:'📛 Néon de toit',       price:90,  zone:'out'},
+  {id:'entryneons', label:'🈺 Enseignes d\u2019entrée', price:75, zone:'out'},
+  {id:'marquee',    label:'✨ Marquise & auvent',  price:65,  zone:'out'},
+  {id:'showcase',   label:'🪟 Vitrines éclairées', price:80,  zone:'out'},
+];
+function hasCos(id){ return !!(state && Array.isArray(state.cosmetics) && state.cosmetics.includes(id)); }
+
+
+
 const STYLE_KEY = 'cc_style_v1';
 const STYLE_DEFAULT = {wall:'#2b2438', trim:'#f4a13c', trim2:'#6b4e9e', floor:'#ffffff', detail:'stripes'};
 const WALL_DETAILS = [
