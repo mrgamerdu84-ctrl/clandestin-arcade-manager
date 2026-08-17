@@ -3211,7 +3211,7 @@ function initBrandUI(){
       writeBrand(); if(typeof writeSave === 'function') writeSave(); rebuildExteriorSign(); refreshBrandUI();
       log(`✅ La boîte s'appelle maintenant « ${clubBrand.name} ».`);
       if(!hasCos('facadesign')) log("Pense à acheter l'enseigne de façade pour afficher ce nom en néon dehors.");
-      toast(`Renommée : ${clubBrand.name}`);
+
     };
     save.onclick = doRename;
     input.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); input.blur(); doRename(); } };
