@@ -29,6 +29,7 @@ export default function GameShell() {
         <div id="title">
           COSMIC COIN<span id="stageLabel">SALLE D'ARCADE</span>
         </div>
+        <div id="saveBadge" />
         <div id="hud">
           <div className="stat">
             💰 <b id="money">0</b>¢
