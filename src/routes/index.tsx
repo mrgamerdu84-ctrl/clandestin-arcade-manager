@@ -137,6 +137,19 @@ function GamePage() {
         <button id="exteriorBtn" type="button">
           🏙️ EXTÉRIEUR
         </button>
+        <div id="hoodBar" style={{ display: "none" }}>
+          <button id="hoodToggle" type="button">🏗️ ÉDITER LE QUARTIER</button>
+          <button id="hoodRotate" type="button" title="Pivoter">
+            🔄 <span id="hoodRotVal">0°</span>
+          </button>
+          <button id="hoodErase" type="button" title="Supprimer">🧨 Retirer</button>
+          <button id="hoodUndo" type="button" title="Annuler le dernier">↩︎</button>
+          <button id="hoodClear" type="button" title="Tout effacer">🗑️</button>
+        </div>
+        <div id="hoodPanel" style={{ display: "none" }}>
+          <div className="hoodHead">Pose ce que tu veux : clique une case au sol</div>
+          <div id="hoodList" />
+        </div>
       </div>
 
       <div id="sidebar">
