@@ -1081,10 +1081,11 @@ function buildRoom(stageIdx){
   const casino = st.theme==='casino';
   const floorA = casino ? '#4a1830' : PAL.floorA;
   const floorB = casino ? '#3a1226' : PAL.floorB;
-  const wallCol = casino ? PAL.casinoWallDark : PAL.wallDark;
-  const stripeCol = casino ? PAL.casinoGold : PAL.wallOrange;
-  const stripeCol2 = casino ? PAL.casinoRed : PAL.wallPurple;
-  const wallTint = casino ? '#ffb27a' : '#ffffff';
+  // couleurs choisies par le joueur (panneau 🎨), sinon couleurs du thème
+  const wallCol = roomStyle.wall || (casino ? PAL.casinoWallDark : PAL.wallDark);
+  const stripeCol = roomStyle.trim || (casino ? PAL.casinoGold : PAL.wallOrange);
+  const stripeCol2 = roomStyle.trim2 || (casino ? PAL.casinoRed : PAL.wallPurple);
+  const wallTint = roomStyle.wall || (casino ? '#ffb27a' : '#ffffff');
 
   // carpet floor — a single woven-pattern plane instead of flat tiles, for a
   // proper casino/arcade carpet look instead of bare colored squares
@@ -1092,7 +1093,8 @@ function buildRoom(stageIdx){
   carpetTex.repeat.set(cols, rows);
   const floorPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(cols*CELL, rows*CELL),
-    new THREE.MeshStandardMaterial({map:carpetTex, roughness:0.88, metalness:0.05})
+    new THREE.MeshStandardMaterial({map:carpetTex, roughness:0.88, metalness:0.05,
+      color:new THREE.Color(roomStyle.floor || '#ffffff')})
   );
   floorPlane.rotation.x = -Math.PI/2;
   floorPlane.receiveShadow = true;
