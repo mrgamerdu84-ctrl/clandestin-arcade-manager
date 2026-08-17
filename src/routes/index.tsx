@@ -148,41 +148,7 @@ function GamePage() {
         <button id="styleToggle" type="button">
           🎨 DÉCO DE LA SALLE
         </button>
-        <div id="stylePanel" style={{ display: "none" }}>
-          <div className="hoodHead">Personnalise ta boîte — payé avec tes jetons, sauvegardé auto</div>
-          <div id="styleCost" className="costLine" />
-          <label className="styleRow">
-            <span>Mur</span>
-            <input id="styleWall" type="color" />
-          </label>
-          <label className="styleRow">
-            <span>Détail 1</span>
-            <input id="styleTrim" type="color" />
-          </label>
-          <label className="styleRow">
-            <span>Détail 2</span>
-            <input id="styleTrim2" type="color" />
-          </label>
-          <label className="styleRow">
-            <span>Sol</span>
-            <input id="styleFloor" type="color" />
-          </label>
-          <div className="hoodHead">Style des murs</div>
-          <div id="styleDetails" />
-          <div className="hoodHead">Décorations à acheter (intérieur & façade)</div>
-          <div id="cosmoList" />
-          <div id="cosmoInfo" className="costLine" />
-          <div className="hoodHead">Nom & enseigne de la boîte</div>
-          <div className="styleRow">
-            <input id="brandName" type="text" maxLength={14} placeholder="COSMIC COIN" aria-label="Nom de la boîte" />
-            <button id="brandSave" type="button">Renommer</button>
-          </div>
-          <div id="brandSigns" />
-          <div id="brandInfo" className="costLine" />
-          <button id="styleReset" type="button" className="styleReset">
-            ↺ Réinitialiser
-          </button>
-        </div>
+
         <div id="hoodBar" style={{ display: "none" }}>
           <button id="hoodToggle" type="button">🏗️ ÉDITER LE QUARTIER</button>
           <button id="hoodRotate" type="button" title="Pivoter">
