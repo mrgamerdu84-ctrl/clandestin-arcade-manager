@@ -6208,6 +6208,8 @@ preloadModels(()=>{
   initCamPad();
   initShopTabs();
   initDock();
+  initSlotsUI();
+
 
   initBrandUI();
   initStyleUI();
