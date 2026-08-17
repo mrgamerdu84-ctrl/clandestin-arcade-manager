@@ -2200,6 +2200,7 @@ function setExteriorMode(on){
   }
   updateCamera();
   refreshHoodUI();
+  if(typeof refreshStyleUI === 'function') refreshStyleUI();
 }
 document.getElementById('exteriorBtn').onclick = ()=> setExteriorMode(!exteriorMode);
 
