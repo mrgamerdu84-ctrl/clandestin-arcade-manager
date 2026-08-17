@@ -178,6 +178,12 @@ function GamePage() {
           <button id="hoodUndo" type="button" title="Annuler le dernier">↩︎</button>
           <button id="hoodClear" type="button" title="Tout effacer">🗑️</button>
         </div>
+        <div id="hoodArrows" style={{ display: "none" }}>
+          <button id="hoodUp" type="button" title="Décaler vers le haut">▲</button>
+          <button id="hoodLeft" type="button" title="Décaler à gauche">◀</button>
+          <button id="hoodRight" type="button" title="Décaler à droite">▶</button>
+          <button id="hoodDown" type="button" title="Décaler vers le bas">▼</button>
+        </div>
         <div id="hoodPanel" style={{ display: "none" }}>
           <div className="hoodHead">Pose ce que tu veux : clique une case au sol</div>
           <div id="hoodList" />
