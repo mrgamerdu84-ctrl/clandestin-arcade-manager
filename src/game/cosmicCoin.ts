@@ -909,7 +909,15 @@ Object.assign(BUILDERS, {
     const table = box(0.7,0.06,0.5,'#e8b64a'); table.position.set(0,0.42,0.75); g.add(table);
     return g;
   },
+  'dancefloor': ()=>{
+    const g = group();
+    const cab = box(0.5,0.5,0.4,'#1b1030'); cab.position.y=0.25; g.add(cab);
+    const face = box(0.42,0.12,0.03,'#20e6d0',{emissive:0x20e6d0,emissiveIntensity:1.2}); face.position.set(0,0.34,0.21); g.add(face);
+    const knob = cyl(0.05,0.05,0.04,'#ff2e88',12); knob.rotation.x=Math.PI/2; knob.position.set(0,0.16,0.21); g.add(knob);
+    return g;
+  },
   'discoball': ()=>{
+
     const g = group();
     const pole = cyl(0.03,0.03,0.9,'#3a3a44'); pole.position.y=2.05; g.add(pole);
     const ball = sphere(0.32,'#cfd6e6',{metalness:0.9,roughness:0.15,emissive:0x8899bb,emissiveIntensity:0.5});
