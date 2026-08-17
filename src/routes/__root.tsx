@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { BRAND } from "@/lib/brand";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -77,17 +78,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Cosmic Coin" },
+      { title: BRAND.name },
       {
         name: "description",
-        content: "Jeu de gestion 3D : arcade néon 1988 et arrière-salle clandestine.",
+        content: BRAND.description,
       },
-      { name: "author", content: "Cosmic Coin" },
-      { name: "theme-color", content: "#07060f" },
+      { name: "author", content: BRAND.name },
+      { name: "theme-color", content: BRAND.colors.background },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Cosmic Coin" },
+      { name: "apple-mobile-web-app-title", content: BRAND.shortName },
+      { name: "application-name", content: BRAND.shortName },
       { property: "og:type", content: "website" },
+      { property: "og:title", content: BRAND.fullName },
+      { property: "og:description", content: BRAND.description },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
     ],

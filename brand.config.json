@@ -1,0 +1,20 @@
+{
+  "appId": "app.lovable.cosmiccoin",
+  "name": "Cosmic Coin",
+  "fullName": "Cosmic Coin — Salle d'arcade clandestine",
+  "shortName": "Cosmic Coin",
+  "description": "Jeu de gestion 3D : arcade néon 1988 et arrière-salle clandestine.",
+  "tagline": "On rallume les néons…",
+  "colors": {
+    "primary": "#ff007f",
+    "accent": "#00f3ff",
+    "highlight": "#ffe600",
+    "background": "#07060f",
+    "text": "#f6e9ff"
+  },
+  "typography": {
+    "display": "'Courier New', Courier, monospace",
+    "body": "'Segoe UI', system-ui, sans-serif",
+    "letterSpacing": "0.22em"
+  }
+}

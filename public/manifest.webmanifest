@@ -2,14 +2,30 @@
   "name": "Cosmic Coin — Salle d'arcade clandestine",
   "short_name": "Cosmic Coin",
   "description": "Jeu de gestion 3D : arcade néon 1988 et arrière-salle clandestine.",
+  "id": "/",
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "any",
   "background_color": "#07060f",
   "theme_color": "#07060f",
   "icons": [
-    { "src": "/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/brand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
