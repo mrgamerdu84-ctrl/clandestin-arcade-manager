@@ -2932,6 +2932,57 @@ function initGrid(){
   buildExteriorBuilding(state.stage, dims.cols, dims.rows);
 }
 
+/* ---------- murs déplaçables : agrandir / rétrécir la pièce ---------- */
+const WALL_COST = 130;      // prix pour pousser un mur d'une case
+const WALL_REFUND = 45;     // récupéré en retirant un mur
+function rebuildRoomKeepMachines(){
+  const dims = buildRoom(state.stage);
+  state.dims = dims;
+  const old = state.machines;
+  state.grid = Array.from({length:dims.rows},()=>Array(dims.cols).fill(null));
+  state.machines = [];
+  old.forEach(m=>{
+    if(m.x < dims.cols && m.z < dims.rows){
+      const p = cellToWorld(m.x, m.z, dims.cols, dims.rows);
+      m.mesh.position.set(p.x, m.mesh.position.y, p.z);
+      state.grid[m.z][m.x] = m;
+      state.machines.push(m);
+    } else {
+      machinesGroup.remove(m.mesh);
+    }
+  });
+  buildExteriorBuilding(state.stage, dims.cols, dims.rows);
+  renderExpandBox();
+}
+function moveWall(axis, delta){
+  const st = STAGES[state.stage];
+  const cur = axis==='cols' ? (state.extraCols||0) : (state.extraRows||0);
+  const base = axis==='cols' ? st.cols : st.rows;
+  const next = base + cur + delta;
+  const max = axis==='cols' ? 20 : 18;
+  if(next < 4 || next > max){ log("Impossible de pousser le mur plus loin."); return; }
+  if(delta > 0){
+    if(state.money < WALL_COST){ log("Pas assez de jetons pour poser un mur."); return; }
+    state.money -= WALL_COST;
+    state.stats.spent += WALL_COST;
+  } else {
+    // refuse si des machines occupent la dernière rangée
+    const occupied = state.machines.some(m=> axis==='cols' ? m.x >= next : m.z >= next);
+    if(occupied){ log("Libère d'abord la rangée près du mur."); return; }
+    state.money += WALL_REFUND;
+  }
+  if(axis==='cols') state.extraCols = (state.extraCols||0) + delta;
+  else state.extraRows = (state.extraRows||0) + delta;
+  rebuildRoomKeepMachines();
+  log(delta>0 ? "Tu casses le mur et gagnes une rangée de plus." : "Tu remontes un mur : la salle rétrécit.");
+}
+function initWallUI(){
+  const bind = (id, axis, d)=>{ const el = document.getElementById(id); if(el) el.onclick = ()=>moveWall(axis, d); };
+  bind('wallColPlus','cols',1); bind('wallColMinus','cols',-1);
+  bind('wallRowPlus','rows',1); bind('wallRowMinus','rows',-1);
+}
+
+
 /* ---------- shop UI ---------- */
 function renderItemInto(container, def){
   const stageLocked = state.stage < def.stageReq;
