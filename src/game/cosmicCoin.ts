@@ -3417,22 +3417,43 @@ canvas.addEventListener('click', (e)=>{
 
   if(!hoodSel) return;
   if(!raycaster.ray.intersectPlane(hoodPlane, hoodHit)) return;
+  placeHoodAt(hoodHit.x, hoodHit.z);
+});
+
+/* Pose un élément du quartier sur la case visée.
+   Les routes remplacent la dalle déjà présente au lieu de s'empiler. */
+function placeHoodAt(wx, wz, opts){
+  const o = opts || {};
+  if(!hoodSel) return false;
   const def = hoodDef(hoodSel);
+  if(!def) return false;
   const snap = def.snap || 1.15;
   const entry = {
     id: hoodSel,
-    x: Math.round(hoodHit.x/snap)*snap,
-    z: Math.round(hoodHit.z/snap)*snap,
+    x: Math.round(wx/snap)*snap,
+    z: Math.round(wz/snap)*snap,
     rot: hoodRot,
   };
-  if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
-  if(!payFor(hoodCost(hoodSel), def.label)) return;
+  if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return false;
+  const isRoad = ROAD_IDS.includes(entry.id) || entry.id === 'sidewalk';
+  if(isRoad){
+    const k = roadCellKey(entry.x, entry.z);
+    const dup = hoodData.find(d=>(ROAD_IDS.includes(d.id) || d.id==='sidewalk') && roadCellKey(d.x,d.z)===k);
+    if(dup){
+      if(dup.id === entry.id && !o.replaceSame) return false;   // déjà la bonne dalle
+      hoodData = hoodData.filter(d=>d !== dup);
+    }
+  }
+  if(!payFor(hoodCost(hoodSel), def.label)) return false;
   hoodData.push(entry);
+  if(o.defer) return true;
   if(ROAD_IDS.includes(entry.id)) rebuildHood(); else spawnHood(entry);
   hoodPick = {kind:'hood', entry};
   writeHood();
   updateHoodGrid();
-});
+  return true;
+}
+
 
 
 /* ---------- panneau lumière (jour / nuit / auto + luminosité) ---------- */
