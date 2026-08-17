@@ -2410,9 +2410,19 @@ function buildExteriorStreet(maxSpan){
   }
 
   /* ---------- voiture de patrouille (visible quand la suspicion monte) ---------- */
-  const patrol = placeExt(exteriorStreetGroup, 'CAR_POLICE', {mode:'footprint',target:1.05}, roadX - roadLaneOffset, zMax, Math.PI);
+  // on privilégie le vrai modèle Kenney (city kit) et on lui greffe le gyrophare
+  const patrol = placeExt(exteriorStreetGroup, 'CAR_POLICE_M', {mode:'footprint',target:1.05}, roadX - roadLaneOffset, zMax, Math.PI);
   if(patrol){
     patrol.userData.noEdit = true;
+    const carObj = patrol.children[0];
+    if(carObj && !carObj.userData.beacons){
+      const bb = new THREE.Box3().setFromObject(carObj);
+      const topY = bb.max.y + 0.02;
+      const bar = box(0.5,0.09,0.16,'#101010'); bar.position.set(0,topY+0.05,-0.05); carObj.add(bar);
+      const bl = box(0.2,0.09,0.14,'#3f6fae',{emissive:0x2f6fff,emissiveIntensity:1.4}); bl.position.set(-0.14,topY+0.05,-0.05); carObj.add(bl);
+      const br = box(0.2,0.09,0.14,'#c92a2a',{emissive:0xff2020,emissiveIntensity:1.4}); br.position.set(0.14,topY+0.05,-0.05); carObj.add(br);
+      carObj.userData.beacons = [bl, br];
+    }
     patrolCar = {wrap:patrol, z:zMax, dir:-1, speed:2.2, zMin:zMin-2, zMax:zMax+2};
     patrol.visible = false;
   }
