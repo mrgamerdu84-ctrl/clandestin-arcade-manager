@@ -3871,10 +3871,11 @@ function bankRepay(amount){
 function checkDebtCleared(){
   if(state.debt<=0 && !state.won){
     state.debt = 0; state.won = true;
-    recordRun('dette remboursée');
-    showEvent("DETTE REMBOURSÉE 🎉", "La banque est remboursée, jeton par jeton. La boîte est à toi — continue de l'agrandir comme tu veux.");
+    // plus aucune fenêtre de fin : la partie continue simplement, sans écran de début
+    log("🏦 Dette soldée ! La boîte est à toi — continue de l'agrandir comme tu veux.");
   }
 }
+
 function renderBankPanel(){
   const box = document.getElementById('bankBox');
   if(!box) return;
