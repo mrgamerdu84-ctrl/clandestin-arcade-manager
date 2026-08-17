@@ -388,7 +388,21 @@ export default function GameShell() {
         </div>
       </div>
 
+      <div id="slotModal" style={{ display: "none" }}>
+        <div className="card">
+          <h2>EMPLACEMENTS DE SAUVEGARDE</h2>
+          <p>Enregistre ta partie dans un emplacement, puis recharge-la quand tu veux.</p>
+          <div id="slotList" />
+          <div id="scoreActions">
+            <button className="btn pink" id="slotClose" type="button">
+              FERMER
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div id="scoreModal" style={{ display: "none" }}>
+
         <div className="card">
           <h2>SCORE & CLASSEMENT</h2>
           <p>
