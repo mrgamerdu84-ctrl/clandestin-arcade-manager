@@ -177,6 +177,7 @@ function GamePage() {
           <button id="hoodErase" type="button" title="Supprimer">🧨 Retirer</button>
           <button id="hoodUndo" type="button" title="Annuler le dernier">↩︎</button>
           <button id="hoodClear" type="button" title="Tout effacer">🗑️</button>
+          <button id="hoodRestore" type="button" title="Remettre le décor d'origine">↺ Tout remettre</button>
         </div>
         <div id="hoodArrows" style={{ display: "none" }}>
           <button id="hoodUp" type="button" title="Décaler vers le haut">▲</button>
@@ -185,7 +186,7 @@ function GamePage() {
           <button id="hoodDown" type="button" title="Décaler vers le bas">▼</button>
         </div>
         <div id="hoodPanel" style={{ display: "none" }}>
-          <div className="hoodHead">Pose ce que tu veux : clique une case au sol</div>
+          <div className="hoodHead">Pose ce que tu veux : clique une case au sol. ✋ Déplacer et 🧨 Retirer marchent aussi sur le décor d'origine.</div>
           <div id="hoodList" />
         </div>
 
