@@ -4641,6 +4641,8 @@ preloadModels(()=>{
   initHoodArrows();
   initBigScreen();
   initStyleUI();
+  initWallUI();
+
   updateCamera();
   renderShop();
   updateHUD();
