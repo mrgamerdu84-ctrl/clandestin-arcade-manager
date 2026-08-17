@@ -1471,7 +1471,7 @@ function buildRoom(stageIdx){
   // outer walls (skip a gap on west wall middle for the door)
   const wallH = 2.4;
   const doorRow = Math.floor(rows/2);
-  const DOOR_W = 1.4, DOOR_H = wallH*0.82;
+  const DOOR_W = 0.98, DOOR_H = wallH*0.82; // = largeur de l'encadrement buildDoorway
   function wallSeg(px,pz,rotY,len){
     const detail = roomStyle.detail || 'stripes';
     if(detail === 'model' && MODEL_TEMPLATES.WALL){
