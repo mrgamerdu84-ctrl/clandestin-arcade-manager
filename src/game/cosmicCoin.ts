@@ -6127,6 +6127,13 @@ function animate(ts){
   if(ts - saveTimer > AUTOSAVE_MS){ saveTimer = ts; writeSave(true); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
 
+  // scintillement doux des écrans + purge de ceux dont la machine a été vendue
+  for(let i=screenMats.length-1;i>=0;i--){
+    const s = screenMats[i];
+    if(!s.parent){ screenMats.splice(i,1); continue; }
+    s.material.emissiveIntensity = 1.25 + Math.sin(ts*0.004 + s.userData.flick) * 0.35;
+  }
+
   if(!state.paused){
     state.spawnTimer+=dt;
     if(state.spawnTimer>=state.spawnEvery){ state.spawnTimer=0; spawnCustomer(); }
