@@ -2845,7 +2845,11 @@ function refreshHoodUI(){
 function buildHoodPalette(){
   const list = document.getElementById('hoodList');
   if(!list) return;
-  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}<b class="hoodPrice">${hoodCost(i.id)}¢</b></button>`).join('');
+  list.innerHTML = HOOD_ITEMS.map(i=>{
+    const c = hoodCost(i.id);
+    return `<button type="button" class="hoodItem" data-id="${i.id}">${i.label}<b class="hoodPrice">${c>0 ? c+'¢' : 'Gratuit'}</b></button>`;
+  }).join('');
+
   list.querySelectorAll('.hoodItem').forEach(b=>{
     b.onclick = ()=>{
       hoodErase = false;
