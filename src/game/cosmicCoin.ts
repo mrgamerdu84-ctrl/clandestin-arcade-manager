@@ -256,24 +256,42 @@ function updateCamera(){
   );
   camera.lookAt(orbit.target);
 }
-// unified mouse + touch handling via Pointer Events (supports 1-finger rotate, 2-finger pinch zoom)
+/* déplacement latéral de la caméra (pan) : on garde l'objet en main et on va voir ailleurs */
+const PAN_LIMIT = 70;
+function panCamera(dx, dy){
+  const k = orbit.radius * 0.0016;
+  const t = orbit.theta;
+  // droite écran et "avant" projetés sur le sol
+  const rx = Math.cos(t), rz = -Math.sin(t);
+  const fx = Math.sin(t), fz = Math.cos(t);
+  orbit.target.x = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, orbit.target.x - dx*k*rx + dy*k*fx));
+  orbit.target.z = Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, orbit.target.z - dx*k*rz + dy*k*fz));
+  updateCamera();
+}
+function resetCameraTarget(){ orbit.target.set(0,0,0); updateCamera(); }
+
+// unified mouse + touch handling via Pointer Events (1 doigt = pivoter, 2 doigts = zoom + déplacer)
 const pointers = new Map(); // pointerId -> {x,y}
-let dragging=false, dragMoved=false;
-let pinchStartDist=0, pinchStartRadius=0;
+let dragging=false, dragMoved=false, panning=false;
+let pinchStartDist=0, pinchStartRadius=0, pinchMid=null;
 
 function pointerDist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+function pointerMid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
 
+canvas.addEventListener('contextmenu', e=>e.preventDefault());
 canvas.addEventListener('pointerdown', e=>{
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   dragMoved=false;
   if(pointers.size===1){
     dragging=true;
+    panning = (e.button===1 || e.button===2 || e.shiftKey);
   } else if(pointers.size===2){
-    dragging=false;
+    dragging=false; panning=false;
     const pts=[...pointers.values()];
     pinchStartDist = pointerDist(pts[0],pts[1]);
     pinchStartRadius = orbit.radius;
+    pinchMid = pointerMid(pts[0],pts[1]);
   }
 });
 addWin('pointermove', e=>{
@@ -289,28 +307,46 @@ addWin('pointermove', e=>{
       orbit.radius = Math.min(60, Math.max(7, pinchStartRadius * (pinchStartDist/d)));
       updateCamera();
     }
+    const mid = pointerMid(pts[0],pts[1]);
+    if(pinchMid) panCamera(mid.x - pinchMid.x, mid.y - pinchMid.y);
+    pinchMid = mid;
     dragMoved=true;
     return;
   }
   if(dragging && pointers.size===1){
-    orbit.theta -= dx*0.006;
-    orbit.phi = Math.min(1.45, Math.max(0.35, orbit.phi - dy*0.006));
+    if(panning) panCamera(dx, dy);
+    else {
+      orbit.theta -= dx*0.006;
+      orbit.phi = Math.min(1.45, Math.max(0.35, orbit.phi - dy*0.006));
+      updateCamera();
+    }
     if(Math.abs(dx)+Math.abs(dy) > 3) dragMoved = true;
-    updateCamera();
   }
 });
 function releasePointer(e){
   pointers.delete(e.pointerId);
-  if(pointers.size===0){ dragging=false; pinchStartDist=0; }
+  if(pointers.size===0){ dragging=false; panning=false; pinchStartDist=0; pinchMid=null; }
   else if(pointers.size===1){
     dragging=true;
     const [id,pt]=[...pointers.entries()][0];
     pointers.set(id,pt);
-    pinchStartDist=0;
+    pinchStartDist=0; pinchMid=null;
   }
 }
 addWin('pointerup', releasePointer);
 addWin('pointercancel', releasePointer);
+// clavier : ZQSD / WASD pour se déplacer, R pour recentrer
+addWin('keydown', e=>{
+  if(e.target && /input|textarea/i.test(e.target.tagName||'')) return;
+  const k = e.key.toLowerCase();
+  const step = 28;
+  if(k==='z'||k==='w') panCamera(0, step);
+  else if(k==='s') panCamera(0, -step);
+  else if(k==='q'||k==='a') panCamera(step, 0);
+  else if(k==='d') panCamera(-step, 0);
+  else if(k==='r') resetCameraTarget();
+});
+
 canvas.addEventListener('wheel', e=>{
   e.preventDefault();
   orbit.radius = Math.min(60, Math.max(7, orbit.radius + e.deltaY*0.01));
@@ -2534,6 +2570,35 @@ hoodPickBox.rotation.x = -Math.PI/2;
 hoodPickBox.position.y = 0.07;
 hoodPickBox.visible = false;
 scene.add(hoodPickBox);
+
+/* ---------- aperçu de la case visée à l'intérieur (achat / déplacement) ---------- */
+const roomCell = new THREE.Mesh(
+  new THREE.PlaneGeometry(CELL*0.92, CELL*0.92),
+  new THREE.MeshBasicMaterial({color:0x2fd4c8, transparent:true, opacity:0.3, depthWrite:false})
+);
+roomCell.rotation.x = -Math.PI/2;
+roomCell.position.y = 0.05;
+roomCell.visible = false;
+scene.add(roomCell);
+canvas.addEventListener('pointermove', (e)=>{
+  const active = !exteriorMode && !state.paused && (movingMachine || state.selected);
+  if(!active){ roomCell.visible = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObjects(roomGroup.children, true);
+  if(!hits.length){ roomCell.visible = false; return; }
+  const {cols, rows} = state.dims;
+  const nx = Math.floor(hits[0].point.x/CELL + cols/2);
+  const nz = Math.floor(hits[0].point.z/CELL + rows/2);
+  if(nx<0||nx>=cols||nz<0||nz>=rows){ roomCell.visible = false; return; }
+  const p = cellToWorld(nx,nz,cols,rows);
+  const busy = state.grid[nz][nx] && state.grid[nz][nx] !== movingMachine;
+  roomCell.material.color.setHex(busy ? 0xff3ea5 : 0x2fd4c8);
+  roomCell.position.set(p.x, 0.05, p.z);
+  roomCell.visible = true;
+});
 
 function selPos(sel){
   if(!sel) return null;
