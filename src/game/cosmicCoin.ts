@@ -843,13 +843,65 @@ function buildMachineMesh(defId){
 function buildCharacter(shirtColor){
 
   const g = group();
-  const legs = cyl(0.16,0.18,0.5, PAL.black,10); legs.position.y=0.25; g.add(legs);
-  const body = cyl(0.2,0.24,0.55, shirtColor,10); body.position.y=0.75; g.add(body);
-  const head = sphere(0.17, '#f2c9a0'); head.position.y=1.15; g.add(head);
-  const hair = sphere(0.18, '#3b2a20'); hair.position.y=1.22; hair.scale.set(1,0.7,1); g.add(hair);
+  // hanches : deux jambes articulées + deux bras, pour la marche et la danse
+  const hips = group(); hips.position.y = 0.52; g.add(hips);
+  const mkLimb = (x, color, len, thick)=>{
+    const pivot = group(); pivot.position.set(x, 0, 0);
+    const limb = cyl(thick, thick*0.9, len, color, 8);
+    limb.position.y = -len/2; pivot.add(limb);
+    const foot = box(thick*2.1, 0.07, thick*3.0, '#1b1b26');
+    foot.position.set(0, -len-0.03, 0.04); pivot.add(foot);
+    return pivot;
+  };
+  const legL = mkLimb(-0.1, PAL.black, 0.5, 0.085); hips.add(legL);
+  const legR = mkLimb( 0.1, PAL.black, 0.5, 0.085); hips.add(legR);
+  const body = cyl(0.2,0.24,0.55, shirtColor,10); body.position.y=0.8; g.add(body);
+  const shoulders = group(); shoulders.position.y = 1.0; g.add(shoulders);
+  const mkArm = (x)=>{
+    const pivot = group(); pivot.position.set(x,0,0);
+    const arm = cyl(0.055,0.05,0.42, shirtColor, 8); arm.position.y=-0.21; pivot.add(arm);
+    const hand = sphere(0.06,'#f2c9a0'); hand.position.y=-0.44; pivot.add(hand);
+    return pivot;
+  };
+  const armL = mkArm(-0.24); shoulders.add(armL);
+  const armR = mkArm( 0.24); shoulders.add(armR);
+  const head = sphere(0.17, '#f2c9a0'); head.position.y=1.2; g.add(head);
+  const hair = sphere(0.18, '#3b2a20'); hair.position.y=1.27; hair.scale.set(1,0.7,1); g.add(hair);
   g.userData.bodyMesh = body;
+  g.userData.legL = legL; g.userData.legR = legR;
+  g.userData.armL = armL; g.userData.armR = armR;
   return g;
 }
+
+/* pas de marche : balancement jambes/bras (amount = amplitude, 0 = repos) */
+function stepCharacter(mesh, t, amount = 1){
+  const u = mesh && mesh.userData;
+  if(!u || !u.legL) return;
+  const s = Math.sin(t)*amount;
+  u.legL.rotation.x =  s*0.85;
+  u.legR.rotation.x = -s*0.85;
+  if(u.armL){ u.armL.rotation.x = -s*0.6; u.armR.rotation.x = s*0.6; }
+}
+
+/* pas de danse sur la piste : genoux qui rebondissent + bras en l'air */
+function danceCharacter(mesh, t, style){
+  const u = mesh && mesh.userData;
+  if(!u || !u.legL) return;
+  const s = Math.sin(t);
+  if(style==='jump'){
+    u.legL.rotation.x = -Math.abs(s)*0.5; u.legR.rotation.x = -Math.abs(s)*0.5;
+    if(u.armL){ u.armL.rotation.x = -2.2 - s*0.3; u.armR.rotation.x = -2.2 + s*0.3; }
+  } else if(style==='spin'){
+    u.legL.rotation.x = s*0.5; u.legR.rotation.x = -s*0.5;
+    if(u.armL){ u.armL.rotation.z = 1.1; u.armR.rotation.z = -1.1; }
+  } else if(style==='dj'){
+    if(u.armL){ u.armL.rotation.x = -1.1 + s*0.35; u.armR.rotation.x = -1.1 - s*0.35; }
+  } else {
+    u.legL.rotation.x = s*0.65; u.legR.rotation.x = -s*0.65;
+    if(u.armL){ u.armL.rotation.x = -0.5 + s*0.5; u.armR.rotation.x = -0.5 - s*0.5; }
+  }
+}
+
 
 /* ============================================================
    ROOM / STAGE CONSTRUCTION
