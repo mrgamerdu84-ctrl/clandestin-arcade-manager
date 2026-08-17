@@ -956,6 +956,40 @@ Object.assign(BUILDERS, {
   },
 });
 
+/* ---------- écrans allumés ----------
+   les modèles Kenney ont une dalle d'écran noire : sans lumière frontale elle
+   reste éteinte. On colle un panneau émissif juste devant la face avant pour
+   que chaque jeu ait un écran visible, de jour comme de nuit. */
+const screenMats = [];
+const SCREEN_COLORS = {
+  arcade:'#38e0ff', pinball:'#ff5fa8', claw:'#ffd23f', vending:'#7dff9a',
+  ticket:'#ffb14f', airhockey:'#38e0ff', basket:'#ff7a3f', dance:'#c46bff',
+  gambling:'#ffd23f', wheel:'#ff4f8b', prizes:'#7ef1ff', cashregister:'#9dffcf',
+  roulette:'#4fe07a', poker:'#4fe07a', blackjack:'#4fe07a', vip:'#ffd23f',
+};
+// machines sans écran frontal : pas de panneau
+const NO_SCREEN = new Set(['statue','neon','prizes','basket','airhockey','poker','blackjack','vip']);
+function addScreenGlow(wrapper, clone, defId){
+  if(NO_SCREEN.has(defId)) return;
+  const bb = new THREE.Box3().setFromObject(clone);
+  const size = new THREE.Vector3(); bb.getSize(size);
+  const center = new THREE.Vector3(); bb.getCenter(center);
+  if(size.y < 0.5) return;
+  const col = SCREEN_COLORS[defId] || '#38e0ff';
+  const w = Math.max(0.25, size.x * 0.58);
+  const h = Math.max(0.2, Math.min(size.y * 0.34, w * 0.85));
+  const scr = box(w, h, 0.03, col, {emissive:new THREE.Color(col).getHex(), emissiveIntensity:1.5, roughness:0.35});
+  scr.position.set(center.x, bb.min.y + size.y * 0.68, bb.max.z + 0.02);
+  scr.castShadow = false;
+  wrapper.add(scr);
+  // liseré du fronton pour que la borne ressorte dans le noir
+  const marq = box(w * 1.05, 0.07, 0.03, col, {emissive:new THREE.Color(col).getHex(), emissiveIntensity:1.8});
+  marq.position.set(center.x, bb.min.y + size.y * 0.93, bb.max.z + 0.02);
+  wrapper.add(marq);
+  scr.userData.flick = Math.random() * Math.PI * 2;
+  screenMats.push(scr);
+}
+
 function buildMachineMesh(defId){
   const glbKey = GLB_KEY_MAP[defId];
   if(glbKey && MODEL_TEMPLATES[glbKey]){
@@ -976,6 +1010,7 @@ function buildMachineMesh(defId){
         }
       });
     }
+    addScreenGlow(wrapper, clone, defId);
     return wrapper;
 
   }
@@ -6091,6 +6126,13 @@ function animate(ts){
   if(!state.paused) state.playMs = (state.playMs||0) + dt;
   if(ts - saveTimer > AUTOSAVE_MS){ saveTimer = ts; writeSave(true); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
+
+  // scintillement doux des écrans + purge de ceux dont la machine a été vendue
+  for(let i=screenMats.length-1;i>=0;i--){
+    const s = screenMats[i];
+    if(!s.parent){ screenMats.splice(i,1); continue; }
+    s.material.emissiveIntensity = 1.25 + Math.sin(ts*0.004 + s.userData.flick) * 0.35;
+  }
 
   if(!state.paused){
     state.spawnTimer+=dt;
