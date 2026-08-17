@@ -4920,7 +4920,7 @@ function updateHUD(){
   if(scoreEl) scoreEl.innerText = computeScore().toLocaleString('fr-FR');
   updateDangerHUD();
   if(typeof refreshHoodUI === 'function' && exteriorMode) refreshHoodUI();
-  if(typeof refreshStyleUI === 'function' && styleOpen) refreshStyleUI();
+  if(typeof refreshStyleUI === 'function' && shopTab === 'deco') refreshStyleUI();
   renderDoorPanel();
   renderExpandBox();
   renderBankPanel();
