@@ -1237,11 +1237,12 @@ function buildRoom(stageIdx){
   const wallH = 2.4;
   const doorRow = Math.floor(rows/2);
   function wallSeg(px,pz,rotY,len){
-    if(MODEL_TEMPLATES.WALL){
+    const detail = roomStyle.detail || 'stripes';
+    if(detail === 'model' && MODEL_TEMPLATES.WALL){
       const obj = MODEL_TEMPLATES.WALL.clone(true);
       obj.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
       fitHeight(obj, wallH);
-      if(casino) tintObject(obj, wallTint);
+      tintObject(obj, wallTint);
       const wrap = group(); wrap.add(obj);
       wrap.position.set(px,0,pz); wrap.rotation.y=rotY;
       roomGroup.add(wrap);
@@ -1249,8 +1250,29 @@ function buildRoom(stageIdx){
     }
     const g = group();
     const base = box(len,wallH,0.25, wallCol); base.position.y=wallH/2; g.add(base);
-    const stripe = box(len,0.5,0.27, stripeCol); stripe.position.y=wallH*0.32; g.add(stripe);
-    const stripe2 = box(len,0.3,0.28, stripeCol2); stripe2.position.y=wallH*0.15; g.add(stripe2);
+    if(detail === 'stripes'){
+      const stripe = box(len,0.5,0.27, stripeCol); stripe.position.y=wallH*0.32; g.add(stripe);
+      const stripe2 = box(len,0.3,0.28, stripeCol2); stripe2.position.y=wallH*0.15; g.add(stripe2);
+    } else if(detail === 'bricks'){
+      // appareillage de briques en quinconce
+      const rowsB = 6, bw = len/4;
+      for(let r=0;r<rowsB;r++){
+        const off = (r%2) ? bw/2 : 0;
+        for(let c=0;c<4;c++){
+          const bx = -len/2 + off + bw/2 + c*bw;
+          if(bx > len/2 - 0.05) continue;
+          const brick = box(bw*0.9, wallH/rowsB*0.8, 0.27, r%2 ? stripeCol2 : stripeCol);
+          brick.position.set(bx, (r+0.5)*wallH/rowsB, 0);
+          g.add(brick);
+        }
+      }
+    } else if(detail === 'panels'){
+      for(let c=0;c<3;c++){
+        const panel = box(len/3*0.8, wallH*0.6, 0.27, stripeCol);
+        panel.position.set(-len/3 + c*len/3, wallH*0.5, 0); g.add(panel);
+      }
+      const cornice = box(len, 0.12, 0.3, stripeCol2); cornice.position.y = wallH*0.86; g.add(cornice);
+    }
     g.position.set(px,0,pz); g.rotation.y=rotY;
     roomGroup.add(g);
   }
