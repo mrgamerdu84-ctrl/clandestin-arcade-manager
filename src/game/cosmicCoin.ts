@@ -2957,21 +2957,37 @@ function syncHoodLife(){
     pedestrians.push({wrap, body:charBody(wrap), z:h.z, dir, speed:0.4+Math.random()*0.3, zMin:h.z-4, zMax:h.z+4});
   }
 
-  const roads = hoodData.filter(e=>ROAD_IDS.includes(e.id));
-  const lanesByX = {};
-  roads.forEach(e=>{ const k = Math.round(e.x/HOOD_TILE); (lanesByX[k] = lanesByX[k] || []).push(e); });
-  Object.values(lanesByX).filter(a=>a.length>=3).slice(0,4).forEach((lane,i)=>{
-    const zs = lane.map(e=>e.z);
-    const zMin = Math.min(...zs), zMax = Math.max(...zs);
-    const dir = i%2===0 ? 1 : -1;
-    const laneX = lane[0].x + dir*0.5;
+  // les voitures suivent réellement le tracé des routes (graphe de dalles)
+  const cells = roadCellSet();
+  const list = [...cells].map(k=>{ const [a,b]=k.split('|'); return [Number(a), Number(b)]; });
+  const linked = list.filter(([cx,cz]) => DIR_VECT.some(([dx,dz]) => cells.has((cx+dx)+'|'+(cz+dz))));
+  const nCars = Math.min(4, Math.floor(linked.length/3));
+  for(let i=0;i<nCars;i++){
+    const start = linked[Math.floor(i*linked.length/nCars)];
+    const nexts = DIR_VECT.map(([dx,dz],d)=>[start[0]+dx, start[1]+dz, d]).filter(n=>cells.has(n[0]+'|'+n[1]));
+    if(!nexts.length) continue;
+    const nx = nexts[i % nexts.length];
     const key = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV'][i%4];
-    const wrap = placeExt(hoodLifeGroup, key, {mode:'footprint',target:1.05}, laneX, dir>0?zMin:zMax, dir>0?0:Math.PI);
-    if(!wrap) return;
+    const wrap = placeExt(hoodLifeGroup, key, {mode:'footprint',target:1.05}, start[0]*HOOD_TILE, start[1]*HOOD_TILE, 0);
+    if(!wrap) continue;
     wrap.userData.hoodLife = true; wrap.userData.noEdit = true;
-    cars.push({wrap, z: dir>0?zMin:zMax, dir, speed:2.0+Math.random(), zMin, zMax, x:laneX});
-  });
+    cars.push({wrap, cell:[start[0],start[1]], next:[nx[0],nx[1]], from:(nx[2]+2)%4, t:0, speed:1.6+Math.random()*0.8});
+  }
 }
+
+/* choisit la dalle suivante : tout droit en priorité, demi-tour en cul-de-sac */
+function nextRoadCell(car, cells){
+  const [cx,cz] = car.cell;
+  const opts = DIR_VECT.map(([dx,dz],d)=>({x:cx+dx, z:cz+dz, d}))
+    .filter(o=>cells.has(o.x+'|'+o.z));
+  if(!opts.length) return null;
+  const straight = (car.from + 2) % 4;
+  const fwd = opts.filter(o=>o.d !== car.from);
+  const pool = fwd.length ? fwd : opts;
+  const go = pool.find(o=>o.d === straight && Math.random() < 0.6) || pool[Math.floor(Math.random()*pool.length)];
+  return go;
+}
+
 function writeHood(){
   try { localStorage.setItem(HOOD_KEY, JSON.stringify(hoodData)); } catch(e){}
 }
@@ -3353,6 +3369,47 @@ hoodPickBox.position.y = 0.07;
 hoodPickBox.visible = false;
 scene.add(hoodPickBox);
 
+/* ---------- fantôme de pose : l'objet choisi apparaît avant d'être posé ---------- */
+const hoodGhostGroup = group();
+hoodGhostGroup.visible = false;
+scene.add(hoodGhostGroup);
+let hoodGhostId = null, hoodGhostRot = null;
+function clearHoodGhost(){
+  while(hoodGhostGroup.children.length) hoodGhostGroup.remove(hoodGhostGroup.children[0]);
+  hoodGhostId = null; hoodGhostRot = null;
+  hoodGhostGroup.visible = false;
+}
+function buildHoodGhost(){
+  while(hoodGhostGroup.children.length) hoodGhostGroup.remove(hoodGhostGroup.children[0]);
+  const def = hoodDef(hoodSel);
+  if(!def) return;
+  const wrap = placeExt(hoodGhostGroup, def.key, def.spec, 0, 0, 0);
+  if(!wrap) return;
+  wrap.rotation.y = def.auto ? 0 : hoodRot;
+  wrap.traverse(o=>{
+    if(!o.isMesh) return;
+    o.castShadow = false; o.receiveShadow = false;
+    const src = Array.isArray(o.material) ? o.material[0] : o.material;
+    const m = src ? src.clone() : new THREE.MeshBasicMaterial();
+    m.transparent = true; m.opacity = 0.45; m.depthWrite = false;
+    if(m.emissive) m.emissive.setHex(0x2fd4c8);
+    o.material = m;
+  });
+  hoodGhostId = hoodSel; hoodGhostRot = hoodRot;
+}
+function updateHoodGhost(x, z){
+  const active = exteriorMode && hoodEdit && hoodSel && !hoodErase && !hoodMove;
+  if(!active || x === undefined || x === null){ hoodGhostGroup.visible = false; return; }
+  if(hoodGhostId !== hoodSel || hoodGhostRot !== hoodRot) buildHoodGhost();
+  if(!hoodGhostGroup.children.length){ hoodGhostGroup.visible = false; return; }
+  const def = hoodDef(hoodSel);
+  const snap = (def && def.snap) || 1.15;
+  hoodGhostGroup.position.set(Math.round(x/snap)*snap, 0.03, Math.round(z/snap)*snap);
+  hoodGhostGroup.visible = true;
+}
+let hoodGhostPos = null;
+
+
 /* ---------- aperçu de la case visée à l'intérieur (achat / déplacement) ---------- */
 const roomCell = new THREE.Mesh(
   new THREE.PlaneGeometry(CELL*0.92, CELL*0.92),
@@ -3411,7 +3468,9 @@ function updateHoodGrid(){
     scene.add(hoodGridMesh);
   }
   if(hoodGridMesh) hoodGridMesh.visible = show;
-  if(!show){ hoodCell.visible = false; hoodPickBox.visible = false; return; }
+  if(!show){ hoodCell.visible = false; hoodPickBox.visible = false; hoodGhostGroup.visible = false; return; }
+  updateHoodGhost(hoodGhostPos && hoodGhostPos.x, hoodGhostPos && hoodGhostPos.z);
+
   hoodCell.scale.set(snap*0.94, snap*0.94, 1);
   const p = selPos(hoodPick);
   if(p){
@@ -3429,13 +3488,16 @@ function rayToGround(clientX, clientY){
   return raycaster.ray.intersectPlane(hoodPlane, hoodHit) ? hoodHit : null;
 }
 canvas.addEventListener('pointermove', (e)=>{
-  if(!exteriorMode || !hoodEdit){ hoodCell.visible = false; return; }
+  if(!exteriorMode || !hoodEdit){ hoodCell.visible = false; hoodGhostGroup.visible = false; return; }
   const p = rayToGround(e.clientX, e.clientY);
-  if(!p){ hoodCell.visible = false; return; }
+  if(!p){ hoodCell.visible = false; hoodGhostGroup.visible = false; return; }
   const snap = currentSnap();
   hoodCell.position.set(Math.round(p.x/snap)*snap, 0.06, Math.round(p.z/snap)*snap);
   hoodCell.visible = true;
+  hoodGhostPos = {x:p.x, z:p.z};
+  updateHoodGhost(p.x, p.z);
 });
+
 
 function nudgePick(dx, dz){
   const sel = hoodCarry || hoodPick;
@@ -6248,12 +6310,43 @@ function animate(ts){
       if(!p.body) p.body = charBody(p.wrap);
       stepCharacter(p.body, performance.now()/170*Math.max(0.6,p.speed*1.6), 1);
     });
-    cars.forEach(c=>{
-      c.z += c.dir*c.speed*dt/1000;
-      if(c.dir>0 && c.z>c.zMax) c.z = c.zMin;
-      if(c.dir<0 && c.z<c.zMin) c.z = c.zMax;
-      c.wrap.position.z = c.z;
-    });
+    if(cars.length){
+      const roadCells = roadCellSet();
+      const lane = 0.5;
+      cars.forEach(c=>{
+        if(!c.next && c.cell){
+          const again = nextRoadCell(c, roadCells);
+          if(again) c.next = [again.x, again.z];
+        }
+        if(!c.next){
+
+          // ancienne voiture de la ville de départ : trajet linéaire
+          c.z += (c.dir||1)*c.speed*dt/1000;
+          if(c.dir>0 && c.z>c.zMax) c.z = c.zMin;
+          if(c.dir<0 && c.z<c.zMin) c.z = c.zMax;
+          c.wrap.position.z = c.z;
+          return;
+        }
+        c.t += (c.speed*dt/1000) / HOOD_TILE;
+        while(c.t >= 1){
+          c.t -= 1;
+          c.from = (DIR_VECT.findIndex(([dx,dz]) => c.cell[0]+dx===c.next[0] && c.cell[1]+dz===c.next[1]) + 2) % 4;
+          c.cell = c.next;
+          const go = nextRoadCell(c, roadCells);
+          if(!go){ c.t = 0; c.next = null; return; }
+          c.next = [go.x, go.z];
+        }
+        const ax = c.cell[0]*HOOD_TILE, az = c.cell[1]*HOOD_TILE;
+        const bx = c.next[0]*HOOD_TILE, bz = c.next[1]*HOOD_TILE;
+        const hx = bx-ax, hz = bz-az;
+        const len = Math.hypot(hx,hz) || 1;
+        // décalage à droite du sens de marche : chaque voiture reste sur sa voie
+        const ox = (-hz/len)*lane, oz = (hx/len)*lane;
+        c.wrap.position.set(ax + hx*c.t + ox, 0, az + hz*c.t + oz);
+        c.wrap.rotation.y = Math.atan2(hx, hz);
+      });
+    }
+
     const now = performance.now()/1000;
     extMovers.forEach(m=>{
       if(m.type==='queue'){
