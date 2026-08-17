@@ -1,0 +1,66 @@
+name: PC (Electron)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: win32
+            arch: x64
+            name: Cosmic-Coin-Windows-x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            name: Cosmic-Coin-Linux-x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            name: Cosmic-Coin-macOS-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install Electron tooling
+        run: npm install --no-save --legacy-peer-deps electron @electron/packager
+
+      - name: Build web bundle (static)
+        run: npm run build:desktop
+
+      - name: Package app
+        run: >
+          npx @electron/packager . "Cosmic Coin"
+          --platform=${{ matrix.platform }}
+          --arch=${{ matrix.arch }}
+          --out=electron-release
+          --overwrite
+          --icon=electron/icon
+          --ignore="^/src"
+          --ignore="^/android"
+          --ignore="^/electron-release"
+
+      - name: Zip build
+        run: |
+          cd electron-release
+          for d in */; do
+            zip -r "../${{ matrix.name }}.zip" "$d" > /dev/null
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}.zip
+          retention-days: 30
