@@ -1,5 +1,6 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "clandestin-arcade-manager",
+  "version": "0.1.0",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -12,7 +13,7 @@
     "format": "prettier --write .",
     "build:desktop": "vite build --config vite.desktop.config.ts",
     "electron": "npm run build:desktop && electron .",
-    "electron:pack": "npm run build:desktop && npx @electron/packager . \"Cosmic Coin\" --overwrite --out=electron-release --icon=electron/icon --ignore=\"^/src\" --ignore=\"^/public/models\" --ignore=\"^/electron-release\""
+    "electron:pack": "npm run build:desktop && npx @electron/packager . \"Clandestin Arcade Manager\" --overwrite --out=electron-release --ignore=\"^/src\" --ignore=\"^/public/models/android-meshy\" --ignore=\"^/electron-release\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
