@@ -4320,7 +4320,8 @@ function spawnCustomer(){
   for(let k=0;k<free.length;k++){ pick -= weights[k]; if(pick<=0){ ti = k; break; } ti = k; }
   const target = free[ti];
   target.busy = true;
-  const mesh = buildCharacter(SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)]);
+  const shirt = SHIRT_COLORS[Math.floor(Math.random()*SHIRT_COLORS.length)];
+  const mesh = buildCharacter(shirt);
   const {cols,rows,doorRow} = state.dims;
   const doorP = cellToWorld(0,doorRow,cols,rows);
   // apparition dehors, sur le seuil : le client franchit vraiment la porte
@@ -4329,7 +4330,7 @@ function spawnCustomer(){
   const targetP = standSpotFor(target);
   const gate = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
   state.customers.push({
-    mesh, target, targetPos:targetP, gatePos:gate,
+    mesh, target, targetPos:targetP, gatePos:gate, shirt,
     doorPos:new THREE.Vector3(doorP.x-CELL-1.2,0,doorP.z),
     phase:'enter', playTimer:0
   });
