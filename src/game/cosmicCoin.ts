@@ -5519,12 +5519,65 @@ function serializeSave(){
       .map(c=>({mx:c.target.x, mz:c.target.z, t:Math.round(c.playTimer||0), shirt:c.shirt||null})),
   };
 }
+let lastSaveAt = 0;         // horodatage réel du dernier enregistrement réussi
+function flashSaveBadge(){
+  const el = document.getElementById('saveBadge');
+  if(!el) return;
+  el.classList.add('on');
+  el.innerText = '💾 sauvegardé';
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.classList.remove('on'); }, 1400);
+}
 function writeSave(){
   // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
   // seul le bouton Reset remet à zéro.
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave())); } catch(e){}
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave()));
+    lastSaveAt = Date.now();
+    flashSaveBadge();
+  } catch(e){}
 }
 function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+
+/* enregistrement immédiat quand on quitte / masque l'onglet : rien n'est perdu */
+{
+  const flush = ()=>{ try { writeSave(); } catch(e){} };
+  const onHide = ()=>{ if(document.visibilityState === 'hidden') flush(); };
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', flush);
+  document.addEventListener('visibilitychange', onHide);
+  _winL.push(['pagehide', flush, undefined], ['beforeunload', flush, undefined]);
+}
+
+/* ---- résumé lisible d'une sauvegarde (menu de démarrage) ---- */
+function saveAgeLabel(ts){
+  if(!ts) return 'date inconnue';
+  const d = new Date(ts);
+  const diff = Math.max(0, Date.now() - ts);
+  const mn = Math.floor(diff/60000);
+  let rel;
+  if(mn < 1) rel = "à l'instant";
+  else if(mn < 60) rel = `il y a ${mn} min`;
+  else if(mn < 60*24) rel = `il y a ${Math.floor(mn/60)} h`;
+  else rel = `il y a ${Math.floor(mn/1440)} j`;
+  const date = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
+  const heure = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  return `${date} à ${heure} · ${rel}`;
+}
+function playedLabel(ms){
+  const m = Math.floor((ms||0)/60000);
+  if(m < 60) return `${m} min de jeu`;
+  return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} de jeu`;
+}
+function saveSummary(data){
+  if(!data) return null;
+  const machines = (data.machines||[]).length;
+  return {
+    when: saveAgeLabel(data.ts),
+    line: `Jour ${data.day||1} · ${Math.round(data.money||0)}¢ · dette ${Math.round(data.debt||0)}¢`,
+    line2: `${machines} machine${machines>1?'s':''} · réputation ${Math.round(data.rep||0)} · ${playedLabel(data.playMs)}`,
+  };
+}
 
 function readSave(){
   try {
