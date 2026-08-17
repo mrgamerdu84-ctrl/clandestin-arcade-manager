@@ -5591,6 +5591,7 @@ function readSave(){
 function applySave(data){
   setTimeout(()=>{ try{ refreshClosedBtn(); }catch(e){} }, 0);
   Object.assign(state, {
+    playMs: data.playMs||0,
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
     // anciennes sauvegardes : la taille venait de l'étape, on la convertit en rangées achetées
     extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, ([6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
