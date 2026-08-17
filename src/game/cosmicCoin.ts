@@ -2389,6 +2389,121 @@ function hoodFromObject(obj){
   return null;
 }
 
+/* ---------- damier de l'éditeur : carreaux visibles + case survolée ---------- */
+let hoodPick = null;          // élément sélectionné, déplaçable aux flèches
+let hoodGridMesh = null;
+let hoodGridSnapUsed = 0;
+const hoodCell = new THREE.Mesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({color:0x2fd4c8, transparent:true, opacity:0.32, depthWrite:false})
+);
+hoodCell.rotation.x = -Math.PI/2;
+hoodCell.position.y = 0.06;
+hoodCell.visible = false;
+scene.add(hoodCell);
+
+const hoodPickBox = new THREE.Mesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({color:0xff3ea5, transparent:true, opacity:0.38, depthWrite:false})
+);
+hoodPickBox.rotation.x = -Math.PI/2;
+hoodPickBox.position.y = 0.07;
+hoodPickBox.visible = false;
+scene.add(hoodPickBox);
+
+function currentSnap(){
+  const d = hoodDef(hoodCarry ? hoodCarry.id : (hoodPick ? hoodPick.id : hoodSel));
+  return (d && d.snap) || 1.15;
+}
+function updateHoodGrid(){
+  const show = exteriorMode && hoodEdit;
+  const snap = currentSnap();
+  if(show && (!hoodGridMesh || hoodGridSnapUsed !== snap)){
+    if(hoodGridMesh){ scene.remove(hoodGridMesh); hoodGridMesh.geometry.dispose(); }
+    const div = 60;
+    hoodGridMesh = new THREE.GridHelper(snap*div, div, 0x7cf7ff, 0x2a5a72);
+    hoodGridMesh.material.transparent = true;
+    hoodGridMesh.material.opacity = 0.45;
+    hoodGridMesh.position.y = 0.05;
+    hoodGridSnapUsed = snap;
+    scene.add(hoodGridMesh);
+  }
+  if(hoodGridMesh) hoodGridMesh.visible = show;
+  if(!show){ hoodCell.visible = false; hoodPickBox.visible = false; return; }
+  hoodCell.scale.set(snap*0.94, snap*0.94, 1);
+  if(hoodPick){
+    const ps = (hoodDef(hoodPick.id)||{}).snap || 1.15;
+    hoodPickBox.scale.set(ps*0.98, ps*0.98, 1);
+    hoodPickBox.position.set(hoodPick.x, 0.07, hoodPick.z);
+    hoodPickBox.visible = true;
+  } else hoodPickBox.visible = false;
+}
+function rayToGround(clientX, clientY){
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  return raycaster.ray.intersectPlane(hoodPlane, hoodHit) ? hoodHit : null;
+}
+canvas.addEventListener('pointermove', (e)=>{
+  if(!exteriorMode || !hoodEdit){ hoodCell.visible = false; return; }
+  const p = rayToGround(e.clientX, e.clientY);
+  if(!p){ hoodCell.visible = false; return; }
+  const snap = currentSnap();
+  hoodCell.position.set(Math.round(p.x/snap)*snap, 0.06, Math.round(p.z/snap)*snap);
+  hoodCell.visible = true;
+});
+
+function nudgePick(dx, dz){
+  const target = hoodCarry || hoodPick;
+  if(!target){ log("Choisis d'abord un objet (✋ Déplacer ou pose-en un)."); return; }
+  const snap = ((hoodDef(target.id)||{}).snap || 1.15) / 4;
+  target.x = +(target.x + dx*snap).toFixed(3);
+  target.z = +(target.z + dz*snap).toFixed(3);
+  writeHood(); rebuildHood(); updateHoodGrid();
+}
+function initHoodArrows(){
+  const map = {hoodUp:[0,-1], hoodDown:[0,1], hoodLeft:[-1,0], hoodRight:[1,0]};
+  Object.entries(map).forEach(([id,[dx,dz]])=>{
+    const b = document.getElementById(id);
+    if(b) b.onclick = ()=> nudgePick(dx,dz);
+  });
+  addWin('keydown', (e)=>{
+    if(!exteriorMode || !hoodEdit) return;
+    const m = {ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0]}[e.key];
+    if(!m) return;
+    e.preventDefault();
+    nudgePick(m[0], m[1]);
+  });
+}
+
+/* ---------- grand écran : plein écran + masquage de la boutique ---------- */
+function initBigScreen(){
+  const btn = document.getElementById('bigScreenBtn');
+  if(!btn) return;
+  const sync = ()=>{
+    const on = document.body.classList.contains('bigscreen');
+    btn.classList.toggle('on', on);
+    btn.innerText = on ? '🗗' : '🗖';
+    resize();
+  };
+  btn.onclick = async ()=>{
+    const on = !document.body.classList.contains('bigscreen');
+    document.body.classList.toggle('bigscreen', on);
+    try {
+      if(on && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else if(!on && document.fullscreenElement) await document.exitFullscreen();
+    } catch(err){}
+    setTimeout(sync, 60);
+  };
+  addWin('fullscreenchange', ()=>{
+    if(!document.fullscreenElement) document.body.classList.remove('bigscreen');
+    sync();
+  });
+  sync();
+}
+
+
 canvas.addEventListener('click', (e)=>{
   if(!exteriorMode || !hoodEdit) return;
   if(dragMoved){ dragMoved = false; return; }
