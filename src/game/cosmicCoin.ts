@@ -1020,8 +1020,8 @@ function buildCharacter(shirtColor){
 /* oriente un personnage vers un point (le modèle regarde +Z, lookAt regarde -Z) */
 function faceTowards(mesh, x, z){
   if(!mesh) return;
+  // lookAt oriente déjà l'axe +Z (l'avant du personnage) vers la cible
   mesh.lookAt(x, mesh.position.y, z);
-  mesh.rotation.y += Math.PI;
 }
 
 /* pas de marche : balancement jambes/bras (amount = amplitude, 0 = repos) */
@@ -3709,6 +3709,7 @@ function moveWall(axis, delta){
   if(axis==='cols') state.extraCols = (state.extraCols||0) + delta;
   else state.extraRows = (state.extraRows||0) + delta;
   rebuildRoomKeepMachines();
+  if(typeof writeSave === 'function') writeSave();
   log(delta>0 ? "Tu casses le mur et gagnes une rangée de plus." : "Tu remontes un mur : la salle rétrécit.");
 }
 function initWallUI(){
@@ -3733,6 +3734,7 @@ function bankBorrow(amount){
   state.won = false;
   log(`🏦 Emprunt accordé : +${take}¢ (dette ${Math.round(state.debt)}¢).`);
   updateHUD();
+  if(typeof writeSave === 'function') writeSave();
 }
 function bankRepay(amount){
   if(state.debt<=0){ log("Tu n'as plus rien à rembourser."); return; }
@@ -3742,6 +3744,7 @@ function bankRepay(amount){
   log(`🏦 Remboursement : -${Math.round(pay)}¢ (reste ${Math.round(state.debt)}¢).`);
   checkDebtCleared();
   updateHUD();
+  if(typeof writeSave === 'function') writeSave();
 }
 function checkDebtCleared(){
   if(state.debt<=0 && !state.won){
@@ -3849,6 +3852,7 @@ function cleanOne(){
     log(`🧹 Tu déblaies un tas de gravats (${state.grime} restants).`);
   }
   updateHUD();
+  if(typeof writeSave === 'function') writeSave();
 }
 let cleanBtnEl = null, cleanTextEl = null;
 function renderCleanPanel(){
@@ -4078,6 +4082,7 @@ canvas.addEventListener('click', (e)=>{
   if(['dancefloor','discoball','djdeck'].includes(def.id)) rebuildRoomKeepMachines();
   state.selected=null;
   renderShop();
+  if(typeof writeSave === 'function') writeSave();
 
 });
 
