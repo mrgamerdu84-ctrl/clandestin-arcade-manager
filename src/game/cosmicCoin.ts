@@ -4352,36 +4352,51 @@ function spawnCustomer(){
   // apparition dehors, sur le seuil : le client franchit vraiment la porte
   mesh.position.set(doorP.x-CELL-1.2, 0, doorP.z);
   customersGroup.add(mesh);
-  const targetP = standSpotFor(target);
-  const gate = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
-  state.customers.push({
-    mesh, target, targetPos:targetP, gatePos:gate, shirt,
+  const cust = {
+    mesh, target, targetPos:new THREE.Vector3(), gatePos:null, shirt,
     doorPos:new THREE.Vector3(doorP.x-CELL-1.2,0,doorP.z),
     phase:'enter', playTimer:0
-  });
+  };
+  cust.targetPos.copy(standSpotFor(target, cust));
+  cust.gatePos = new THREE.Vector3(doorP.x-CELL/2+0.5, 0, doorP.z); // juste à l'intérieur de l'encadrement
+  state.customers.push(cust);
+
 }
 
 // position "devant" la machine : le client se place face à l'écran, jamais dedans
 const _spotBox = new THREE.Box3();
 const _spotSize = new THREE.Vector3();
-function standSpotFor(m){
+function standSpotFor(m, cust){
   const ry = m.mesh.rotation.y || 0;
   // profondeur réelle de la machine : le client reste devant, jamais dedans
   let depth = 0.9, width = 0.9;
   try{
     _spotBox.setFromObject(m.mesh); _spotBox.getSize(_spotSize);
-    depth = Math.max(0.5, _spotSize.z); width = Math.max(0.5, _spotSize.x);
+    depth = Math.max(0.5, Math.min(3.2, _spotSize.z)); width = Math.max(0.5, Math.min(3.2, _spotSize.x));
   }catch(e){}
   const off = depth/2 + 0.62;
-  // machines à plusieurs places : on se met sur un côté au lieu du centre
+  // machines à plusieurs places : on se met sur un côté au lieu du centre (côté fixe par client)
   const multi = ['airhockey','poker','blackjack','roulette','table'].includes(m.def.id);
-  const side = multi ? (Math.random()<0.5 ? -1 : 1) * (width/2 + 0.15) : 0;
-  return new THREE.Vector3(
-    m.mesh.position.x + Math.sin(ry)*off + Math.cos(ry)*side,
+  if(cust && cust.sideSign === undefined) cust.sideSign = Math.random()<0.5 ? -1 : 1;
+  const sideSign = cust ? cust.sideSign : (Math.random()<0.5 ? -1 : 1);
+  const side = multi ? sideSign * (width/2 + 0.15) : 0;
+  const {cols,rows} = state.dims;
+  const hx = cols*CELL/2 - 0.55, hz = rows*CELL/2 - 0.55;
+  const make = (sign)=> new THREE.Vector3(
+    m.mesh.position.x + Math.sin(ry)*off*sign + Math.cos(ry)*side,
     0,
-    m.mesh.position.z + Math.cos(ry)*off - Math.sin(ry)*side
+    m.mesh.position.z + Math.cos(ry)*off*sign - Math.sin(ry)*side
   );
+  const inside = (p)=> Math.abs(p.x)<=hx && Math.abs(p.z)<=hz;
+  let p = make(1);
+  if(!inside(p)){
+    const alt = make(-1);
+    if(inside(alt)) p = alt;
+    else { p.x = Math.max(-hx, Math.min(hx, p.x)); p.z = Math.max(-hz, Math.min(hz, p.z)); }
+  }
+  return p;
 }
+
 
 /* petite barre de progression flottante au-dessus du client qui joue */
 const PLAY_BAR_BG = new THREE.SpriteMaterial({color:0x120a1c, transparent:true, opacity:0.85, depthTest:false});
@@ -4440,7 +4455,7 @@ function updateCustomers(dt){
     }
     if(c.phase==='in'){
       // la machine a pu être déplacée/pivotée : on resynchronise la cible
-      if(c.target) c.targetPos.copy(standSpotFor(c.target));
+      if(c.target) c.targetPos.copy(standSpotFor(c.target, c));
       const dir = new THREE.Vector3().subVectors(c.targetPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
       if(dist<0.25){
@@ -4462,9 +4477,15 @@ function updateCustomers(dt){
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
-      // face à la machine + animation de jeu bien lisible (mains sur la borne)
-      if(c.target) faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
+      // le client reste bien visible devant la borne pendant toute la partie
+      c.mesh.visible = true;
+      if(c.target){
+        c.targetPos.copy(standSpotFor(c.target, c));
+        c.mesh.position.x = c.targetPos.x; c.mesh.position.z = c.targetPos.z;
+        faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
+      }
       const t = performance.now();
+
       c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
       stepCharacter(c.mesh, t/220, 0.28);
       const u = c.mesh.userData;
