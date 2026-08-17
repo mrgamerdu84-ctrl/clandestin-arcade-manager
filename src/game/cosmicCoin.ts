@@ -4970,17 +4970,45 @@ function setSidebarOpen(open){
 menuToggleBtn.onclick = ()=> setSidebarOpen(!sidebarEl.classList.contains('open'));
 dragHandleEl.onclick = ()=> setSidebarOpen(!sidebarEl.classList.contains('open'));
 
+/* ---------- onglets de la boutique ---------- */
+let shopTab = 'machines';
+const SHOP_TABS = ['machines','room','deco','bank','manage'];
+function setShopTab(tab){
+  if(!SHOP_TABS.includes(tab)) tab = 'machines';
+  shopTab = tab;
+  document.querySelectorAll('#shopTabs button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.shopTab').forEach(p=>{
+    p.style.display = (p.dataset.tab === tab) ? 'block' : 'none';
+  });
+  if(tab === 'deco' && typeof refreshStyleUI === 'function') refreshStyleUI();
+}
+function openShopTab(tab){
+  closeAllPanels('shop');
+  setShopTab(tab);
+  setSidebarOpen(true);
+  sidebarEl.scrollTop = 0;
+  refreshDock();
+}
+function initShopTabs(){
+  document.querySelectorAll('#shopTabs button').forEach(b=>{
+    b.onclick = ()=>{ setShopTab(b.dataset.tab); sidebarEl.scrollTop = 0; refreshDock(); };
+  });
+  setShopTab(shopTab);
+}
+
 /* ---------- dock : un seul menu, un seul panneau ouvert à la fois ---------- */
 function closeAllPanels(except){
   if(except!=='shop') setSidebarOpen(false);
-  if(except!=='deco' && styleOpen){ styleOpen=false; refreshStyleUI(); }
   if(except!=='opts') document.body.classList.remove('optsOn');
   refreshDock();
 }
 function refreshDock(){
   const set=(id,on)=>{ const b=document.getElementById(id); if(b) b.classList.toggle('on', !!on); };
-  set('dockShop', sidebarEl.classList.contains('open'));
-  set('dockDeco', styleOpen && !exteriorMode);
+  const shopOpen = sidebarEl.classList.contains('open');
+  set('dockShop', shopOpen && shopTab !== 'deco');
+  set('dockDeco', shopOpen && shopTab === 'deco');
   set('dockHood', exteriorMode);
   set('dockCam', document.body.classList.contains('camOn'));
   set('dockOpts', document.body.classList.contains('optsOn'));
@@ -4990,14 +5018,17 @@ function refreshDock(){
 function initDock(){
   const on=(id,fn)=>{ const b=document.getElementById(id); if(b) b.onclick=fn; };
   on('dockShop', ()=>{
-    const open = !sidebarEl.classList.contains('open');
-    closeAllPanels('shop'); setSidebarOpen(open); refreshDock();
+    // le bouton ouvre toujours quelque chose : s'il est déjà ouvert sur la déco, on revient aux machines
+    if(sidebarEl.classList.contains('open') && shopTab !== 'machines'){ openShopTab('machines'); return; }
+    if(sidebarEl.classList.contains('open') && window.innerWidth <= 820){ setSidebarOpen(false); refreshDock(); return; }
+    openShopTab('machines');
   });
   on('dockDeco', ()=>{
     if(exteriorMode) setExteriorMode(false);
-    const open = !styleOpen;
-    closeAllPanels('deco'); styleOpen = open; refreshStyleUI(); refreshDock();
+    if(sidebarEl.classList.contains('open') && shopTab === 'deco' && window.innerWidth <= 820){ setSidebarOpen(false); refreshDock(); return; }
+    openShopTab('deco');
   });
+
   on('dockHood', ()=>{
     closeAllPanels('hood');
     setExteriorMode(!exteriorMode);
