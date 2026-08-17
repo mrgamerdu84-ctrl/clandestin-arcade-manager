@@ -2301,7 +2301,7 @@ function autoRoadPiece(x, z, cells){
     if(shape.open.length !== n) continue;
     for(let r=0; r<4; r++){
       // rotation de +r*90° autour de Y : la direction d passe à (d + r) % 4
-      const ok = shape.open.every(d => links[(d + r) % 4]);
+      const ok = shape.open.every(d => links[(d - r + 8) % 4]);
       if(ok) return {key:shape.key, rot:r * Math.PI/2};
     }
   }
