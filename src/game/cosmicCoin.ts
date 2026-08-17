@@ -5002,6 +5002,8 @@ function applySave(data){
     extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, ([6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
     extraRows:(data.extraRows||0) + (data.baseRoom ? 0 : Math.max(0, ([5,7,9][data.stage||0] ?? BASE_ROWS) - BASE_ROWS)),
     cityDecor: data.baseRoom ? !!data.cityDecor : true, grime:(data.grime===undefined?0:data.grime|0),
+    // anciennes parties : la déco était offerte, on la leur laisse
+    cosmetics: Array.isArray(data.cosmetics) ? data.cosmetics : COSMETICS.map(c=>c.id),
 
     staff:{...state.staff, ...(data.staff||{})}, dayTimer:data.dayTimer||0,
     dayLength:data.dayLength||state.dayLength, won:!!data.won,
