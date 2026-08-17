@@ -5041,9 +5041,8 @@ document.getElementById('resetBtn').onclick=()=>{
   buildExteriorStreet(16);
   rebuildHood();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
-  document.getElementById('storyModal').style.display='flex';
-  setModalOpen(true);
   setExteriorMode(true);
+  frameAbandonedClub();
   document.getElementById('pauseBtn').innerText='⏸ Pause';
   refreshClosedBtn();
   renderShop(); updateHUD();
