@@ -2957,21 +2957,37 @@ function syncHoodLife(){
     pedestrians.push({wrap, body:charBody(wrap), z:h.z, dir, speed:0.4+Math.random()*0.3, zMin:h.z-4, zMax:h.z+4});
   }
 
-  const roads = hoodData.filter(e=>ROAD_IDS.includes(e.id));
-  const lanesByX = {};
-  roads.forEach(e=>{ const k = Math.round(e.x/HOOD_TILE); (lanesByX[k] = lanesByX[k] || []).push(e); });
-  Object.values(lanesByX).filter(a=>a.length>=3).slice(0,4).forEach((lane,i)=>{
-    const zs = lane.map(e=>e.z);
-    const zMin = Math.min(...zs), zMax = Math.max(...zs);
-    const dir = i%2===0 ? 1 : -1;
-    const laneX = lane[0].x + dir*0.5;
+  // les voitures suivent réellement le tracé des routes (graphe de dalles)
+  const cells = roadCellSet();
+  const list = [...cells].map(k=>{ const [a,b]=k.split('|'); return [Number(a), Number(b)]; });
+  const linked = list.filter(([cx,cz]) => DIR_VECT.some(([dx,dz]) => cells.has((cx+dx)+'|'+(cz+dz))));
+  const nCars = Math.min(4, Math.floor(linked.length/3));
+  for(let i=0;i<nCars;i++){
+    const start = linked[Math.floor(i*linked.length/nCars)];
+    const nexts = DIR_VECT.map(([dx,dz],d)=>[start[0]+dx, start[1]+dz, d]).filter(n=>cells.has(n[0]+'|'+n[1]));
+    if(!nexts.length) continue;
+    const nx = nexts[i % nexts.length];
     const key = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV'][i%4];
-    const wrap = placeExt(hoodLifeGroup, key, {mode:'footprint',target:1.05}, laneX, dir>0?zMin:zMax, dir>0?0:Math.PI);
-    if(!wrap) return;
+    const wrap = placeExt(hoodLifeGroup, key, {mode:'footprint',target:1.05}, start[0]*HOOD_TILE, start[1]*HOOD_TILE, 0);
+    if(!wrap) continue;
     wrap.userData.hoodLife = true; wrap.userData.noEdit = true;
-    cars.push({wrap, z: dir>0?zMin:zMax, dir, speed:2.0+Math.random(), zMin, zMax, x:laneX});
-  });
+    cars.push({wrap, cell:[start[0],start[1]], next:[nx[0],nx[1]], from:(nx[2]+2)%4, t:0, speed:1.6+Math.random()*0.8});
+  }
 }
+
+/* choisit la dalle suivante : tout droit en priorité, demi-tour en cul-de-sac */
+function nextRoadCell(car, cells){
+  const [cx,cz] = car.cell;
+  const opts = DIR_VECT.map(([dx,dz],d)=>({x:cx+dx, z:cz+dz, d}))
+    .filter(o=>cells.has(o.x+'|'+o.z));
+  if(!opts.length) return null;
+  const straight = (car.from + 2) % 4;
+  const fwd = opts.filter(o=>o.d !== car.from);
+  const pool = fwd.length ? fwd : opts;
+  const go = pool.find(o=>o.d === straight && Math.random() < 0.6) || pool[Math.floor(Math.random()*pool.length)];
+  return go;
+}
+
 function writeHood(){
   try { localStorage.setItem(HOOD_KEY, JSON.stringify(hoodData)); } catch(e){}
 }
