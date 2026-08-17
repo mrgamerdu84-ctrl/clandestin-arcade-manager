@@ -1607,6 +1607,31 @@ function buildRoom(stageIdx){
 const exteriorGroup = group(); exteriorGroup.visible = false; scene.add(exteriorGroup);
 const exteriorStreetGroup = group(); exteriorGroup.add(exteriorStreetGroup);
 const exteriorBuildingGroup = group(); exteriorGroup.add(exteriorBuildingGroup);
+// enveloppe de Rosa posée devant la porte condamnée (déclenche la cinématique d'intro au clic)
+let introLetter = null;
+function makeTagSprite(text, color){
+  const cvs = document.createElement('canvas');
+  cvs.width = 512; cvs.height = 128;
+  const c = cvs.getContext('2d');
+  c.fillStyle = 'rgba(10,6,20,0.82)';
+  c.strokeStyle = color; c.lineWidth = 6;
+  const r = 26;
+  c.beginPath();
+  c.moveTo(r,4); c.lineTo(508-r,4); c.quadraticCurveTo(508,4,508,4+r);
+  c.lineTo(508,124-r); c.quadraticCurveTo(508,124,508-r,124);
+  c.lineTo(r,124); c.quadraticCurveTo(4,124,4,124-r);
+  c.lineTo(4,4+r); c.quadraticCurveTo(4,4,r,4);
+  c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = color;
+  c.font = 'bold 58px "Courier New", monospace';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(text, 256, 68);
+  const tex = new THREE.CanvasTexture(cvs);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false}));
+  sp.scale.set(2.6, 0.65, 1);
+  sp.renderOrder = 999;
+  return sp;
+}
 // quartier personnalisé par le joueur (éditeur)
 const hoodGroup = group(); exteriorGroup.add(hoodGroup);
 const hoodLifeGroup = group(); exteriorGroup.add(hoodLifeGroup); // habitants/voitures nés des constructions
@@ -2502,14 +2527,23 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
   }
   // lettre glissée sous la porte : point de départ de l'histoire
+  introLetter = null;
   if(!(state && state.storyDone && state.storyDone.includes('intro'))){
     const letter = group();
     const env = box(0.34,0.02,0.24,'#efe6cf'); env.position.y=0.02; letter.add(env);
     const flap = box(0.2,0.02,0.14,'#d9cbab'); flap.position.set(0.02,0.035,0); flap.rotation.y=0.35; letter.add(flap);
     const halo = makeGlowSprite('#fff3c4', 0.6); halo.position.y=0.25; letter.add(halo);
+    const tag = makeTagSprite('\u2709 Lire la lettre', '#ffe600');
+    tag.position.set(0, 1.15, 0);
+    letter.add(tag);
     letter.position.set(-w/2-0.75, 0.21, doorZ+0.15);
     letter.rotation.y = 0.4;
+    letter.userData.baseY = letter.position.y;
+    letter.userData.halo = halo;
+    letter.userData.tag = tag;
+    letter.userData.pickable = 'letter';
     exteriorBuildingGroup.add(letter);
+    introLetter = letter;
     // planches clouées sur la porte : la boîte est condamnée
     [0.35,0.95].forEach((y,k)=>{
       const plank = box(0.08,0.16,1.5, k? '#6b5231':'#7d6039');
@@ -3264,6 +3298,35 @@ function initBigScreen(){
   sync();
 }
 
+
+// cadrage de départ : plan sur la façade condamnée et son enveloppe
+function frameAbandonedClub(){
+  const portrait = window.innerHeight > window.innerWidth;
+  orbit.theta = -Math.PI/2 - 0.9;
+  orbit.phi = 1.15;
+  orbit.radius = portrait ? 26 : 20;
+  orbit.target.set(-5.5, 1.2, 0);
+  updateCamera();
+}
+// clic sur l'enveloppe de Rosa : lance la cinématique d'ouverture
+function openIntroLetter(){
+  if(!introLetter) return;
+  const beat = STORY.find(b=>b.id==='intro');
+  if(introLetter.parent) introLetter.parent.remove(introLetter);
+  introLetter = null;
+  if(!state.storyDone.includes('intro')) state.storyDone.push('intro');
+  if(beat) playCinematic(beat);
+}
+canvas.addEventListener('click', (e)=>{
+  if(!exteriorMode || hoodEdit || !introLetter) return;
+  if(dragMoved){ dragMoved = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObject(introLetter, true);
+  if(hits.length) openIntroLetter();
+});
 
 canvas.addEventListener('click', (e)=>{
   if(!exteriorMode || !hoodEdit) return;
@@ -4706,6 +4769,7 @@ function maybeStory(){
   if(cine.active || state.gameOver) return;
   if(document.getElementById('eventModal').style.display === 'flex') return;
   for(const beat of STORY){
+    if(beat.id === 'intro') continue; // l'intro ne se joue qu'en cliquant sur la lettre
     if(state.storyDone.includes(beat.id)) continue;
     if(!beat.when()) continue;
     state.storyDone.push(beat.id);
@@ -4986,13 +5050,12 @@ document.getElementById('resetBtn').onclick=()=>{
   buildExteriorStreet(16);
   rebuildHood();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
-  document.getElementById('storyModal').style.display='flex';
-  setModalOpen(true);
   setExteriorMode(true);
+  frameAbandonedClub();
   document.getElementById('pauseBtn').innerText='⏸ Pause';
   refreshClosedBtn();
   renderShop(); updateHUD();
-  log("Nouvelle partie lancée. Bonne chance avec le Cosmic Coin !");
+  log("Nouvelle partie : te voilà devant une boîte condamnée. Une enveloppe dépasse sous la porte — clique dessus.");
 };
 
 /* ============================================================
@@ -5303,6 +5366,16 @@ function animate(ts){
   // enseignes néon + marquise de l'entrée
   if(exteriorMode){
     const tn = ts*0.001;
+    if(introLetter){
+      introLetter.position.y = introLetter.userData.baseY + Math.sin(tn*2.2)*0.05;
+      introLetter.rotation.y = 0.4 + Math.sin(tn*0.8)*0.15;
+      const pulse = 0.7 + 0.3*Math.abs(Math.sin(tn*2.6));
+      if(introLetter.userData.halo){
+        introLetter.userData.halo.material.opacity = pulse;
+        introLetter.userData.halo.scale.setScalar(0.6 + pulse*0.5);
+      }
+      if(introLetter.userData.tag) introLetter.userData.tag.position.y = 1.15 + Math.sin(tn*2.2)*0.06;
+    }
     const signs = exteriorBuildingGroup.userData.neonSigns || [];
 
     for(const s of signs){
@@ -5459,10 +5532,9 @@ preloadModels(()=>{
     state.scored = false;
     applySave(saved);
   } else {
-    document.getElementById('storyModal').style.display='flex';
-  setModalOpen(true);
     initGrid();
     setExteriorMode(true);
+    frameAbandonedClub();
   }
   buildExteriorStreet(16);
   initHoodEditor();
@@ -5481,7 +5553,7 @@ preloadModels(()=>{
   updateHUD();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
   if(saved) log(`Partie rechargée automatiquement : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
-  else log("Bienvenue au Cosmic Coin. Achète ta première borne — la porte du fond attendra ce soir.");
+  else log("Une boîte de nuit condamnée, des planches sur la porte… et une enveloppe qui dépasse en dessous. Clique dessus.");
   if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
   else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
   renderQuestPanel();
