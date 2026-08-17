@@ -5620,6 +5620,96 @@ function readSave(){
     return data;
   } catch(e){ return null; }
 }
+
+/* ---- emplacements de sauvegarde manuelle ---- */
+const SLOT_COUNT = 3;
+const slotKey = (i)=>`cc_slot_${i}`;
+function readSlot(i){
+  try {
+    const raw = localStorage.getItem(slotKey(i));
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(!d || d.v !== SAVE_VERSION) return null;
+    return d;
+  } catch(e){ return null; }
+}
+function writeSlot(i){
+  try {
+    localStorage.setItem(slotKey(i), JSON.stringify(serializeSave()));
+    log(`💾 Partie enregistrée dans l'emplacement ${i}.`);
+    flashSaveBadge();
+    return true;
+  } catch(e){ log("⚠️ Impossible d'enregistrer (stockage plein)."); return false; }
+}
+function deleteSlot(i){ try { localStorage.removeItem(slotKey(i)); } catch(e){} }
+function loadSlot(i){
+  const d = readSlot(i);
+  if(!d) return false;
+  try {
+    state.scored = false;
+    applySave(d);
+    writeSave();                 // la partie chargée devient la partie courante
+    renderShop(); updateHUD();
+    try{ renderQuestPanel(); }catch(e){}
+    log(`📁 Emplacement ${i} chargé : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+    return true;
+  } catch(e){ log("⚠️ Cette sauvegarde est illisible."); return false; }
+}
+
+let slotOnLoad = null;   // callback optionnel (fermeture du menu titre)
+function renderSlots(){
+  const list = document.getElementById('slotList');
+  if(!list) return;
+  list.innerHTML = '';
+  for(let i=1;i<=SLOT_COUNT;i++){
+    const d = readSlot(i);
+    const sum = d ? saveSummary(d) : null;
+    const row = document.createElement('div');
+    row.className = 'slotRow';
+    const info = sum ? `${sum.when}\n${sum.line}\n${sum.line2}` : 'Emplacement vide';
+    row.innerHTML = `<div class="slotName">EMPLACEMENT ${i}</div><div class="slotInfo">${info}</div>`;
+    const acts = document.createElement('div'); acts.className = 'slotActs';
+    const bSave = document.createElement('button');
+    bSave.className = 'btn'; bSave.type = 'button';
+    bSave.innerText = d ? '💾 Écraser' : '💾 Enregistrer';
+    bSave.onclick = ()=>{ if(d && !confirm(`Écraser l'emplacement ${i} ?`)) return; writeSlot(i); renderSlots(); };
+    acts.appendChild(bSave);
+    if(d){
+      const bLoad = document.createElement('button');
+      bLoad.className = 'btn pink'; bLoad.type = 'button'; bLoad.innerText = '▶ Charger';
+      bLoad.onclick = ()=>{
+        if(!confirm(`Charger l'emplacement ${i} ? La partie en cours sera remplacée.`)) return;
+        if(loadSlot(i)){
+          closeSlotPanel();
+          if(slotOnLoad) { const f = slotOnLoad; slotOnLoad = null; f(); }
+        }
+      };
+      const bDel = document.createElement('button');
+      bDel.className = 'btn'; bDel.type = 'button'; bDel.innerText = '🗑 Supprimer';
+      bDel.onclick = ()=>{ if(!confirm(`Supprimer l'emplacement ${i} ?`)) return; deleteSlot(i); renderSlots(); };
+      acts.appendChild(bLoad); acts.appendChild(bDel);
+    }
+    row.appendChild(acts);
+    list.appendChild(row);
+  }
+}
+function openSlotPanel(onLoad){
+  slotOnLoad = onLoad || null;
+  renderSlots();
+  const m = document.getElementById('slotModal');
+  if(m) m.style.display = 'flex';
+}
+function closeSlotPanel(){
+  const m = document.getElementById('slotModal');
+  if(m) m.style.display = 'none';
+}
+function initSlotsUI(){
+  const c = document.getElementById('slotClose');
+  if(c) c.onclick = ()=>{ slotOnLoad = null; closeSlotPanel(); };
+  const b = document.getElementById('slotsBtn');
+  if(b) b.onclick = ()=>openSlotPanel();
+}
+
 function applySave(data){
   setTimeout(()=>{ try{ refreshClosedBtn(); }catch(e){} }, 0);
   Object.assign(state, {
@@ -6118,6 +6208,8 @@ preloadModels(()=>{
   initCamPad();
   initShopTabs();
   initDock();
+  initSlotsUI();
+
 
   initBrandUI();
   initStyleUI();
@@ -6175,6 +6267,9 @@ preloadModels(()=>{
     smCont.onclick = ()=>{ closeMenu(); };
     smNew.onclick  = ()=>{ startNewGame(); loaded = false; closeMenu(); };
     smSc.onclick   = ()=>{ openScorePanel(); };
+    const smSlots = document.getElementById('smSlots');
+    if(smSlots) smSlots.onclick = ()=>openSlotPanel(()=>{ loaded = true; refreshMenu(); closeMenu(); });
+
     if(smMus) smMus.onclick = ()=>{ disco.toggle(); refreshMusicUI(); refreshMenu(); };
     if(smCred) smCred.onclick = ()=>{
       showEvent('CRÉDITS', "Cosmic Coin — simulation de boîte de nuit clandestine, été 1988. Conception, code et néons : toi et Lovable. Musique disco générée en temps réel. Merci de tenir la porte.");

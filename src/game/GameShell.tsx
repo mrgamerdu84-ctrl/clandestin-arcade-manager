@@ -270,9 +270,13 @@ export default function GameShell() {
             <button className="btn" id="scoreBtn" type="button">
               🏆 Score
             </button>
+            <button className="btn" id="slotsBtn" type="button">
+              💾 Sauvegardes
+            </button>
             <button className="btn" id="menuBtn" type="button">
               🎬 Menu principal
             </button>
+
 
             <button className="btn pink" id="resetBtn" type="button">
               ↺ Reset
@@ -336,7 +340,12 @@ export default function GameShell() {
               ✦ Nouvelle partie
               <small>Repartir d'une boîte condamnée</small>
             </button>
+            <button className="startBtn" id="smSlots" type="button">
+              📁 Charger une ancienne partie
+              <small>Emplacements de sauvegarde manuelle</small>
+            </button>
             <button className="startBtn" id="smScores" type="button">
+
               🏆 Classement & stats
               <small>Meilleures parties</small>
             </button>
@@ -379,7 +388,21 @@ export default function GameShell() {
         </div>
       </div>
 
+      <div id="slotModal" style={{ display: "none" }}>
+        <div className="card">
+          <h2>EMPLACEMENTS DE SAUVEGARDE</h2>
+          <p>Enregistre ta partie dans un emplacement, puis recharge-la quand tu veux.</p>
+          <div id="slotList" />
+          <div id="scoreActions">
+            <button className="btn pink" id="slotClose" type="button">
+              FERMER
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div id="scoreModal" style={{ display: "none" }}>
+
         <div className="card">
           <h2>SCORE & CLASSEMENT</h2>
           <p>
