@@ -6314,7 +6314,12 @@ function animate(ts){
       const roadCells = roadCellSet();
       const lane = 0.5;
       cars.forEach(c=>{
+        if(!c.next && c.cell){
+          const again = nextRoadCell(c, roadCells);
+          if(again) c.next = [again.x, again.z];
+        }
         if(!c.next){
+
           // ancienne voiture de la ville de départ : trajet linéaire
           c.z += (c.dir||1)*c.speed*dt/1000;
           if(c.dir>0 && c.z>c.zMax) c.z = c.zMin;
