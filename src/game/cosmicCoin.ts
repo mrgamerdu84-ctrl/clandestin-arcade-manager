@@ -3755,7 +3755,7 @@ function freshState(){
     // ---- couche clandestine ----
     backroom:false, suspicion:0, hidden:false, busts:0, raid:null, raidsSurvived:0,
     lookout:false, launderDay:-1, bribeDay:-99, gameOver:false, illegalEarned:0,
-    danger:0, doorTimer:0,
+    danger:0, doorTimer:0, playMs:0,
     unlocks:[], storyDone:[],
     questIdx:0, questProgress:{}, questsDone:[],
     stats:{earned:0, spent:0, customers:0, machinesBuilt:0, incidents:0, raids:0, busts:0,
@@ -5505,7 +5505,7 @@ function serializeSave(){
     backroom: state.backroom, suspicion: state.suspicion, hidden: state.hidden, busts: state.busts,
     raidsSurvived: state.raidsSurvived, lookout: state.lookout, launderDay: state.launderDay,
     bribeDay: state.bribeDay, gameOver: state.gameOver, illegalEarned: state.illegalEarned,
-    danger: state.danger, closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
+    danger: state.danger, playMs: Math.round(state.playMs||0), closed: !!state.closed, cityDecor: !!state.cityDecor, baseRoom: 1, unlocks: state.unlocks, storyDone: state.storyDone,
     questIdx: state.questIdx, questProgress: state.questProgress, questsDone: state.questsDone,
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
@@ -5519,12 +5519,65 @@ function serializeSave(){
       .map(c=>({mx:c.target.x, mz:c.target.z, t:Math.round(c.playTimer||0), shirt:c.shirt||null})),
   };
 }
+let lastSaveAt = 0;         // horodatage réel du dernier enregistrement réussi
+function flashSaveBadge(){
+  const el = document.getElementById('saveBadge');
+  if(!el) return;
+  el.classList.add('on');
+  el.innerText = '💾 sauvegardé';
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>{ el.classList.remove('on'); }, 1400);
+}
 function writeSave(){
   // la partie n'est JAMAIS effacée automatiquement (fin de partie ou victoire comprises) :
   // seul le bouton Reset remet à zéro.
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave())); } catch(e){}
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave()));
+    lastSaveAt = Date.now();
+    flashSaveBadge();
+  } catch(e){}
 }
 function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+
+/* enregistrement immédiat quand on quitte / masque l'onglet : rien n'est perdu */
+{
+  const flush = ()=>{ try { writeSave(); } catch(e){} };
+  const onHide = ()=>{ if(document.visibilityState === 'hidden') flush(); };
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', flush);
+  document.addEventListener('visibilitychange', onHide);
+  _winL.push(['pagehide', flush, undefined], ['beforeunload', flush, undefined]);
+}
+
+/* ---- résumé lisible d'une sauvegarde (menu de démarrage) ---- */
+function saveAgeLabel(ts){
+  if(!ts) return 'date inconnue';
+  const d = new Date(ts);
+  const diff = Math.max(0, Date.now() - ts);
+  const mn = Math.floor(diff/60000);
+  let rel;
+  if(mn < 1) rel = "à l'instant";
+  else if(mn < 60) rel = `il y a ${mn} min`;
+  else if(mn < 60*24) rel = `il y a ${Math.floor(mn/60)} h`;
+  else rel = `il y a ${Math.floor(mn/1440)} j`;
+  const date = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
+  const heure = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  return `${date} à ${heure} · ${rel}`;
+}
+function playedLabel(ms){
+  const m = Math.floor((ms||0)/60000);
+  if(m < 60) return `${m} min de jeu`;
+  return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} de jeu`;
+}
+function saveSummary(data){
+  if(!data) return null;
+  const machines = (data.machines||[]).length;
+  return {
+    when: saveAgeLabel(data.ts),
+    line: `Jour ${data.day||1} · ${Math.round(data.money||0)}¢ · dette ${Math.round(data.debt||0)}¢`,
+    line2: `${machines} machine${machines>1?'s':''} · réputation ${Math.round(data.rep||0)} · ${playedLabel(data.playMs)}`,
+  };
+}
 
 function readSave(){
   try {
@@ -5538,6 +5591,7 @@ function readSave(){
 function applySave(data){
   setTimeout(()=>{ try{ refreshClosedBtn(); }catch(e){} }, 0);
   Object.assign(state, {
+    playMs: data.playMs||0,
     money:data.money, rep:data.rep, day:data.day, debt:data.debt, stage:data.stage,
     // anciennes sauvegardes : la taille venait de l'étape, on la convertit en rangées achetées
     extraCols:(data.extraCols||0) + (data.baseRoom ? 0 : Math.max(0, ([6,9,12][data.stage||0] ?? BASE_COLS) - BASE_COLS)),
@@ -5803,6 +5857,7 @@ function animate(ts){
   if(_disposed) return;
   if(lastTime===null) lastTime=ts;
   const dt = Math.min(80, ts-lastTime); lastTime=ts;
+  if(!state.paused) state.playMs = (state.playMs||0) + dt;
   if(ts - saveTimer > 5000){ saveTimer = ts; writeSave(); }
   if(canvas.clientWidth && (renderer.domElement.width!==canvas.clientWidth*renderer.getPixelRatio())) resize();
 
@@ -6071,10 +6126,15 @@ preloadModels(()=>{
     };
     const refreshMenu = ()=>{
       if(loaded){
-        smInfo.innerText = `Jour ${state.day} · ${Math.round(state.money)}¢ · dette ${Math.round(state.debt)}¢`;
+        const sum = saveSummary(readSave()) || {
+          when: saveAgeLabel(lastSaveAt),
+          line: `Jour ${state.day} · ${Math.round(state.money)}¢ · dette ${Math.round(state.debt)}¢`,
+          line2: `${state.machines.length} machine(s) · réputation ${Math.round(state.rep)} · ${playedLabel(state.playMs)}`,
+        };
+        smInfo.innerText = `Sauvegarde du ${sum.when}\n${sum.line}\n${sum.line2}`;
         smCont.disabled = false;
       } else {
-        smInfo.innerText = "Aucune sauvegarde trouvée";
+        smInfo.innerText = "Aucune sauvegarde trouvée — lance une nouvelle partie";
         smCont.disabled = true;
       }
       if(smMus) smMus.firstChild.nodeValue = disco.isOn && disco.isOn() ? '🔊 Musique : activée' : '🔈 Musique : coupée';

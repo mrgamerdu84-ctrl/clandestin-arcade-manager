@@ -676,3 +676,16 @@ body.clubClosed #hud { box-shadow: inset 0 2px 0 rgba(255,80,120,.75); }
 #sidebar > *{ flex:0 0 auto; }
 .shopTab{ flex:0 0 auto; min-height:0; }
 #sidebar{ padding-bottom:26px; }
+
+/* ---- badge d'autosauvegarde + info de reprise ---- */
+#saveBadge{
+  position:absolute; right:10px; bottom:96px; z-index:26;
+  padding:4px 10px; border-radius:999px; pointer-events:none;
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  background:rgba(8,4,20,.82);
+  border:1px solid var(--neon2);
+  color:var(--neon2);
+  opacity:0; transform:translateY(6px); transition:opacity .25s ease, transform .25s ease;
+}
+#saveBadge.on{ opacity:.92; transform:translateY(0); }
+#smSaveInfo{ white-space:pre-line; line-height:1.35; }
