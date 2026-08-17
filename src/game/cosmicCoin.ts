@@ -5898,6 +5898,20 @@ function readSave(){
   } catch(e){ return null; }
 }
 
+/* dernière sauvegarde toutes sources confondues (auto + emplacements) */
+function latestSave(){
+  const cands = [];
+  const auto = readSave();
+  if(auto) cands.push({data:auto, label:'Sauvegarde auto', slot:0});
+  for(let i=1;i<=SLOT_COUNT;i++){
+    const d = readSlot(i);
+    if(d) cands.push({data:d, label:`Emplacement ${i}`, slot:i});
+  }
+  if(!cands.length) return null;
+  cands.sort((a,b)=>(b.data.ts||0)-(a.data.ts||0));
+  return cands[0];
+}
+
 /* ---- emplacements de sauvegarde manuelle ---- */
 const SLOT_COUNT = 3;
 const slotKey = (i)=>`cc_slot_${i}`;
