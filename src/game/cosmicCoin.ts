@@ -3470,13 +3470,16 @@ function rayToGround(clientX, clientY){
   return raycaster.ray.intersectPlane(hoodPlane, hoodHit) ? hoodHit : null;
 }
 canvas.addEventListener('pointermove', (e)=>{
-  if(!exteriorMode || !hoodEdit){ hoodCell.visible = false; return; }
+  if(!exteriorMode || !hoodEdit){ hoodCell.visible = false; hoodGhostGroup.visible = false; return; }
   const p = rayToGround(e.clientX, e.clientY);
-  if(!p){ hoodCell.visible = false; return; }
+  if(!p){ hoodCell.visible = false; hoodGhostGroup.visible = false; return; }
   const snap = currentSnap();
   hoodCell.position.set(Math.round(p.x/snap)*snap, 0.06, Math.round(p.z/snap)*snap);
   hoodCell.visible = true;
+  hoodGhostPos = {x:p.x, z:p.z};
+  updateHoodGhost(p.x, p.z);
 });
+
 
 function nudgePick(dx, dz){
   const sel = hoodCarry || hoodPick;
