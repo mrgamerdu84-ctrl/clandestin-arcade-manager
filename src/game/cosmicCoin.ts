@@ -1591,6 +1591,7 @@ const exteriorStreetGroup = group(); exteriorGroup.add(exteriorStreetGroup);
 const exteriorBuildingGroup = group(); exteriorGroup.add(exteriorBuildingGroup);
 // quartier personnalisé par le joueur (éditeur)
 const hoodGroup = group(); exteriorGroup.add(hoodGroup);
+const hoodLifeGroup = group(); exteriorGroup.add(hoodLifeGroup); // habitants/voitures nés des constructions
 const pedestrians = [];
 const cars = [];
 const extMovers = [];   // pigeons, chat de ruelle, badauds qui piétinent
@@ -1975,6 +1976,9 @@ function buildExteriorStreet(maxSpan){
   for(let i=nightHalos.length-1;i>=0;i--) if(!nightHalos[i].parent) nightHalos.splice(i,1);
   patrolCar = null;
 
+  // décor d'origine : uniquement pour les anciennes parties. Nouvelle partie = quartier à bâtir.
+  const decor = !!(typeof state !== 'undefined' && state && state.cityDecor);
+
   const sidewalkX = -8;
   const roadX = -10.6;
   const roadLaneOffset = 0.55; // two lanes, cars keep to their side
@@ -2003,6 +2007,7 @@ function buildExteriorStreet(maxSpan){
   placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:TILE}, roadX, crossZ, 0);
   placeExt(exteriorStreetGroup, 'ROAD_INTERSECTION', {mode:'footprint',target:TILE}, roadX, crossZ2, 0);
 
+  if(decor){
   // avenues transversales (est-ouest), même grille => raccord parfait aux carrefours
   [crossZ, crossZ2].forEach(cz=>{
     for(let j=jWest; j<=jEast; j++){
@@ -2031,6 +2036,8 @@ function buildExteriorStreet(maxSpan){
     placeStreetlight(x + 2.6, crossZ - 1.6, 'z+', false);
   }
 
+  }
+
   // helper : rien ne doit être posé sur une chaussée
   const ROAD_HALF = TILE/2 + 1.0;
   const onRoad = (x, z, radius)=>{
@@ -2041,6 +2048,7 @@ function buildExteriorStreet(maxSpan){
     return false;
   };
 
+  if(decor){
   // pâté d'immeubles derrière les maisons + gratte-ciels en fond de décor.
   // On cale les immeubles sur leur EMPRISE (pas leur hauteur) : sinon le modèle
   // est agrandi uniformément et devient une caisse géante hors d'échelle.
@@ -2075,12 +2083,15 @@ function buildExteriorStreet(maxSpan){
   placeExt(exteriorStreetGroup, 'BARRIER', {mode:'footprint',target:1.5}, roadX-0.7, zMin+2.2, 0.2);
   placeExt(exteriorStreetGroup, 'CONE_WORK', {mode:'height',target:0.5}, roadX-0.2, zMin+3.0, 0);
   placeExt(exteriorStreetGroup, 'CONE_WORK', {mode:'height',target:0.5}, roadX+0.3, zMin+3.6, 0);
+  }
+
   // sidewalk (flat light strip, procedural — no dedicated sidewalk-only model chosen)
   const walk = box(2.6, 0.08, (zMax-zMin)+4, '#5c5568');
   walk.position.set(sidewalkX, 0.04, 0);
   walk.receiveShadow = true;
   exteriorStreetGroup.add(walk);
 
+  if(decor){
   // streetlights along the sidewalk — arm always overhangs the road (-x side)
   let slIndex = 0;
   const lampX = sidewalkX - 1.0; // mast on the road-side edge of the sidewalk
@@ -2137,6 +2148,8 @@ function buildExteriorStreet(maxSpan){
     }
   }
 
+  }
+
   /* ---------- sol du quartier ---------- */
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(130, (zMax-zMin)+40),
@@ -2145,6 +2158,7 @@ function buildExteriorStreet(maxSpan){
   ground.rotation.x = -Math.PI/2; ground.position.y = -0.02; ground.receiveShadow = true;
   exteriorStreetGroup.add(ground);
 
+  if(decor){
   /* ---------- trottoir devant l'arcade + file d'attente ---------- */
   const queueX = -6.4;
   for(let i=0;i<5;i++){
@@ -2164,6 +2178,8 @@ function buildExteriorStreet(maxSpan){
     exteriorStreetGroup.add(puddle);
   });
 
+  }
+
   /* ---------- ruelle arrière (côté est) : porte de service clandestine ---------- */
   const alleyX = 7.4;
   const alleyFloor = box(3.4, 0.06, (zMax-zMin)*0.8, '#1d1a26');
@@ -2173,6 +2189,7 @@ function buildExteriorStreet(maxSpan){
   const alleyWall = box(0.35, 4.2, (zMax-zMin)*0.8, '#241f31');
   alleyWall.position.set(alleyX+1.9, 2.1, 0);
   exteriorStreetGroup.add(alleyWall);
+  if(decor){
   ['#ff2e88','#2fd4c8','#ffd23f'].forEach((c,i)=>{
     const tag = box(0.04, 0.9, 1.6, c, {emissive:new THREE.Color(c).getHex(), emissiveIntensity:0.5});
     tag.position.set(alleyX+1.7, 1.5+ (i%2)*0.9, -5 + i*4.5);
@@ -2256,6 +2273,8 @@ function buildExteriorStreet(maxSpan){
     if(wrap) extMovers.push({type:'pigeon', wrap, x:px, z:pz, t:Math.random()*10, nextHop:1+Math.random()*2.5});
   }
 
+  }
+
   /* ---------- voiture de patrouille (visible quand la suspicion monte) ---------- */
   const patrol = placeExt(exteriorStreetGroup, 'CAR_POLICE', {mode:'footprint',target:1.05}, roadX - roadLaneOffset, zMax, Math.PI);
   if(patrol){
@@ -2267,6 +2286,7 @@ function buildExteriorStreet(maxSpan){
   // les figurants animés ne sont pas éditables (ils bougent tout seuls)
   [...pedestrians, ...cars, ...extMovers].forEach(m=>{ if(m && m.wrap) m.wrap.userData.noEdit = true; });
   applyStreetOverrides();
+  syncHoodLife();
 }
 
 
@@ -2664,6 +2684,44 @@ function rebuildHood(){
   while(hoodGroup.children.length) hoodGroup.remove(hoodGroup.children[0]);
   const cells = roadCellSet();
   hoodData.forEach(e=>spawnHood(e, cells));
+  syncHoodLife();
+}
+
+/* le quartier s'anime au fur et à mesure : des habitants près des maisons,
+   des voitures dès qu'une rue fait au moins trois dalles. */
+function syncHoodLife(){
+  if(typeof state === 'undefined' || !state) return;
+  for(let i=pedestrians.length-1;i>=0;i--) if(pedestrians[i].wrap?.userData?.hoodLife) pedestrians.splice(i,1);
+  for(let i=cars.length-1;i>=0;i--) if(cars[i].wrap?.userData?.hoodLife) cars.splice(i,1);
+  while(hoodLifeGroup.children.length) hoodLifeGroup.remove(hoodLifeGroup.children[0]);
+  if(state.cityDecor) return;   // ancienne ville : ses figurants sont déjà là
+
+  const homes = hoodData.filter(e=>/^(house|city|sky|shop)/.test(e.id));
+  const nPed = Math.min(6, Math.floor(homes.length/2));
+  for(let i=0;i<nPed && homes.length;i++){
+    const h = homes[(i*3) % homes.length];
+    const key = ['PED_MALE','PED_FEMALE','PED_MALE2','PED_FEMALE2'][i%4];
+    const dir = i%2===0 ? 1 : -1;
+    const wrap = placeExt(hoodLifeGroup, key, {mode:'height',target:1.3}, h.x + 1.7, h.z, dir>0?0:Math.PI);
+    if(!wrap) continue;
+    wrap.userData.hoodLife = true; wrap.userData.noEdit = true;
+    pedestrians.push({wrap, body:charBody(wrap), z:h.z, dir, speed:0.4+Math.random()*0.3, zMin:h.z-4, zMax:h.z+4});
+  }
+
+  const roads = hoodData.filter(e=>ROAD_IDS.includes(e.id));
+  const lanesByX = {};
+  roads.forEach(e=>{ const k = Math.round(e.x/HOOD_TILE); (lanesByX[k] = lanesByX[k] || []).push(e); });
+  Object.values(lanesByX).filter(a=>a.length>=3).slice(0,4).forEach((lane,i)=>{
+    const zs = lane.map(e=>e.z);
+    const zMin = Math.min(...zs), zMax = Math.max(...zs);
+    const dir = i%2===0 ? 1 : -1;
+    const laneX = lane[0].x + dir*0.5;
+    const key = ['CAR_SEDAN','CAR_TAXI','CAR_HATCH','CAR_SUV'][i%4];
+    const wrap = placeExt(hoodLifeGroup, key, {mode:'footprint',target:1.05}, laneX, dir>0?zMin:zMax, dir>0?0:Math.PI);
+    if(!wrap) return;
+    wrap.userData.hoodLife = true; wrap.userData.noEdit = true;
+    cars.push({wrap, z: dir>0?zMin:zMax, dir, speed:2.0+Math.random(), zMin, zMax, x:laneX});
+  });
 }
 function writeHood(){
   try { localStorage.setItem(HOOD_KEY, JSON.stringify(hoodData)); } catch(e){}
