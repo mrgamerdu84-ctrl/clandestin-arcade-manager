@@ -2749,6 +2749,7 @@ const HOOD_ITEMS = [
   {id:'sky_a',     label:'🌆 Gratte-ciel',  key:'CITY_SKY_A',       spec:{mode:'footprint',target:5.0}},
   {id:'sky_c',     label:'🌇 Tour',         key:'CITY_SKY_C',       spec:{mode:'footprint',target:5.0}},
   {id:'shop',      label:'🛍️ Boutique néon', key:'SHOPFRONT',       spec:{mode:'height',target:2.8}},
+  {id:'bank',      label:'🏦 Banque',       key:'BANK_BUILDING',    spec:{mode:'height',target:3.6}},
   {id:'lamp',      label:'💡 Lampadaire',   key:'STREETLIGHT',      spec:{mode:'height',target:2.9}},
   {id:'tree',      label:'🌳 Arbre',        key:'TREE_LARGE',       spec:{mode:'height',target:1.5}},
   {id:'planter',   label:'🪴 Jardinière',   key:'PLANTER',          spec:{mode:'height',target:0.55}},
@@ -2772,7 +2773,7 @@ const HOOD_ITEMS = [
 const HOOD_COST = {
   roadauto:0, road:0, roadcross:0, roadbend:0, roadinter:0, sidewalk:0,
   house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
-  city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
+  city_f:120, sky_a:200, sky_c:200, shop:90, bank:0, lamp:25, tree:15, planter:10,
   fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
   wallneon:70, neonarrow:55, graffiti:30, bulbs:35, posterext:40,
   awning:60, rope:45, palmneon:65, marquee:150,
