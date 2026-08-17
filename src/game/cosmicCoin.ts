@@ -3048,9 +3048,20 @@ function renderShop(){
   renderExpandBox();
 }
 
+function renderWallBox(){
+  const info = document.getElementById('wallInfo');
+  const cv = document.getElementById('wallColVal');
+  const rv = document.getElementById('wallRowVal');
+  const dims = state.dims || roomSize(state.stage);
+  if(cv) cv.innerText = String(dims.cols);
+  if(rv) rv.innerText = String(dims.rows);
+  if(info) info.innerHTML = `Pousse les murs : +1 rangée = ${WALL_COST}¢ · retirer = +${WALL_REFUND}¢`;
+}
+
 function renderExpandBox(){
   const box = document.getElementById('expandText');
   const btn = document.getElementById('expandBtn');
+  renderWallBox();
   if(state.stage >= STAGES.length-1){
     box.innerHTML = `<b>${STAGES[state.stage].name}</b><br>Étape maximale atteinte !`;
     btn.style.display='none';
@@ -3061,6 +3072,7 @@ function renderExpandBox(){
   btn.style.display='block';
   btn.disabled = !(state.money>=next.cost && state.rep>=next.unlockRep);
 }
+
 
 document.getElementById('expandBtn').onclick = ()=>{
   const next = STAGES[state.stage+1];
