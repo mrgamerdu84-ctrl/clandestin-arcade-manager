@@ -1,15 +1,15 @@
 import type { CapacitorConfig } from "@capacitor/cli";
+import brand from "./brand.config.json";
 
 /**
  * Cosmic Coin — Android (Capacitor)
  *
- * L'app est rendue côté serveur (TanStack Start), donc le shell Android charge
- * directement le site publié au lieu d'un bundle statique.
- * Remplace `server.url` par ton URL publiée (ou ton domaine perso).
+ * Nom, couleurs et typo viennent de brand.config.json (source unique partagée
+ * avec la PWA et l'app Electron).
  */
 const config: CapacitorConfig = {
-  appId: "app.lovable.cosmiccoin",
-  appName: "Cosmic Coin",
+  appId: brand.appId,
+  appName: brand.name,
   webDir: "public",
   server: {
     url: process.env["CAP_SERVER_URL"] ?? "https://8581d91b-588d-45ac-8445-54604eed2926.lovableproject.com",
@@ -20,19 +20,19 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 1800,
       launchAutoHide: true,
-      backgroundColor: "#07060fff",
+      backgroundColor: `${brand.colors.background}ff`,
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: true,
       androidSpinnerStyle: "small",
-      spinnerColor: "#ff2d95",
+      spinnerColor: brand.colors.primary,
       splashFullScreen: true,
       splashImmersive: true,
     },
   },
   android: {
     allowMixedContent: false,
-    backgroundColor: "#07060f",
+    backgroundColor: brand.colors.background,
   },
 };
 
