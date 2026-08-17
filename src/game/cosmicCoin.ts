@@ -2237,6 +2237,8 @@ let hoodEdit = false;
 let hoodSel = null;
 let hoodRot = 0;
 let hoodErase = false;
+let hoodMove = false;      // mode déplacement : on attrape un objet posé puis on le repose
+let hoodCarry = null;      // entrée en cours de déplacement
 let hoodData = [];   // {id,x,z,rot}
 
 const hoodPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
@@ -2279,6 +2281,11 @@ function refreshHoodUI(){
   if(toggle) toggle.classList.toggle('on', hoodEdit);
   const eraseBtn = document.getElementById('hoodErase');
   if(eraseBtn) eraseBtn.classList.toggle('on', hoodErase);
+  const moveBtn = document.getElementById('hoodMove');
+  if(moveBtn){
+    moveBtn.classList.toggle('on', hoodMove);
+    moveBtn.innerText = hoodCarry ? '✋ Repose-le' : '✋ Déplacer';
+  }
   const rotLbl = document.getElementById('hoodRotVal');
   if(rotLbl) rotLbl.innerText = Math.round(hoodRot*180/Math.PI)+'°';
   panel.querySelectorAll('.hoodItem').forEach(b=>{
@@ -2308,7 +2315,14 @@ function initHoodEditor(){
   const r = document.getElementById('hoodRotate');
   if(r) r.onclick = ()=>{ hoodRot = (hoodRot + Math.PI/2) % (Math.PI*2); refreshHoodUI(); };
   const e = document.getElementById('hoodErase');
-  if(e) e.onclick = ()=>{ hoodErase = !hoodErase; if(hoodErase) hoodSel = null; refreshHoodUI(); };
+  if(e) e.onclick = ()=>{ hoodErase = !hoodErase; if(hoodErase){ hoodSel = null; hoodMove = false; hoodCarry = null; } refreshHoodUI(); };
+  const mv = document.getElementById('hoodMove');
+  if(mv) mv.onclick = ()=>{
+    hoodMove = !hoodMove;
+    if(hoodMove){ hoodErase = false; hoodSel = null; }
+    hoodCarry = null;
+    refreshHoodUI();
+  };
   const u = document.getElementById('hoodUndo');
   if(u) u.onclick = ()=>{
     if(!hoodData.length) return;
@@ -2337,6 +2351,31 @@ canvas.addEventListener('click', (e)=>{
   mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
   mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouseNDC, camera);
+
+  if(hoodMove){
+    if(!hoodCarry){
+      // on attrape l'objet cliqué
+      const hits = raycaster.intersectObjects(hoodGroup.children, true);
+      if(!hits.length) return;
+      const wrap = hoodFromObject(hits[0].object);
+      if(!wrap) return;
+      hoodCarry = wrap.userData.hood;
+      hoodRot = hoodCarry.rot || 0;
+      refreshHoodUI();
+      log("Objet attrapé : clique où tu veux le reposer.");
+      return;
+    }
+    // on le repose à l'endroit cliqué
+    if(!raycaster.ray.intersectPlane(hoodPlane, hoodHit)) return;
+    const mdef = hoodDef(hoodCarry.id);
+    const msnap = (mdef && mdef.snap) || 1.15;
+    hoodCarry.x = Math.round(hoodHit.x/msnap)*msnap;
+    hoodCarry.z = Math.round(hoodHit.z/msnap)*msnap;
+    hoodCarry.rot = hoodRot;
+    hoodCarry = null;
+    writeHood(); rebuildHood(); refreshHoodUI();
+    return;
+  }
 
   if(hoodErase){
     const hits = raycaster.intersectObjects(hoodGroup.children, true);
