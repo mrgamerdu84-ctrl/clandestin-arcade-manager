@@ -228,22 +228,20 @@ function GamePage() {
 
       <div id="sidebar">
         <div id="dragHandle">▲ BOUTIQUE ▲</div>
+        <h3>🕹️ Boutique intérieur — machines</h3>
+        <div id="itemList" />
+        <h3>🛋️ Boutique déco de la boîte</h3>
+        <div id="decorList" />
+        <h3>Arrière-salle</h3>
+        <div id="backroomList" />
+        <h3>Personnel</h3>
+        <div id="staffList" />
         <h3>Mission</h3>
         <div id="questBox" />
         <h3>🧹 Remise en état</h3>
         <div id="cleanBox" />
         <h3>🏦 Banque</h3>
         <div id="bankBox" />
-        <h3>Arrière-salle</h3>
-
-
-        <div id="backroomList" />
-        <h3>🕹️ Boutique intérieur — machines</h3>
-        <div id="itemList" />
-        <h3>🛋️ Boutique déco de la boîte</h3>
-        <div id="decorList" />
-        <h3>Personnel</h3>
-        <div id="staffList" />
         <div id="expandBox">
           <div id="expandText">Chargement...</div>
           <button className="btn pink" id="expandBtn" type="button">
