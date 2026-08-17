@@ -1959,6 +1959,10 @@ function buildExteriorStreet(maxSpan){
     patrolCar = {wrap:patrol, z:zMax, dir:-1, speed:2.2, zMin:zMin-2, zMax:zMax+2};
     patrol.visible = false;
   }
+
+  // les figurants animés ne sont pas éditables (ils bougent tout seuls)
+  [...pedestrians, ...cars, ...extMovers].forEach(m=>{ if(m && m.wrap) m.wrap.userData.noEdit = true; });
+  applyStreetOverrides();
 }
 
 
