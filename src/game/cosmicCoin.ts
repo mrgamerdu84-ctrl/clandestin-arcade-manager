@@ -5803,7 +5803,7 @@ function serializeSave(){
     stats: state.stats, logMsgs: state.logMsgs.slice(-14),
     // personnalisations : murs/sol/motif + nom & enseigne de la boîte
     style: {...roomStyle},
-    brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned},
+    brand: {name: clubBrand.name, sign: clubBrand.sign, owned: clubBrand.owned, named: !!clubBrand.named},
     machines: state.machines.map(m=>({id:m.def.id, x:m.x, z:m.z, rot:m.mesh.rotation.y, broken:!!m.broken,
       tint:m.tint||null, priceMult:machinePriceMult(m), rigged:!!m.rigged})),
     // clients en train de jouer : on note la machine (cellule), l'avancement et la couleur du perso
@@ -6007,6 +6007,7 @@ function applySave(data){
     clubBrand.name = data.brand.name || BRAND_DEFAULT.name;
     clubBrand.sign = data.brand.sign || BRAND_DEFAULT.sign;
     clubBrand.owned = Array.isArray(data.brand.owned) ? data.brand.owned.slice() : ['neonpink'];
+    clubBrand.named = !!data.brand.named;
     if(!clubBrand.owned.includes('neonpink')) clubBrand.owned.push('neonpink');
     writeBrand();
   }
