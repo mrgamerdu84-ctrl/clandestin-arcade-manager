@@ -1461,11 +1461,8 @@ function buildRoom(stageIdx){
     partition.add(strip);
   }
   roomGroup.add(partition);
-  // coin coupé : petit mur en biais pour casser l'angle sud-ouest
-  const cut = box(CELL*1.3, 2.3, 0.22, casino?'#2a1420':'#221630');
-  cut.position.set(-halfW + CELL*0.55, 1.15, halfD - CELL*0.55);
-  cut.rotation.y = Math.PI/4;
-  roomGroup.add(cut);
+
+
 
   // outer walls (skip a gap on west wall middle for the door)
   const wallH = 2.4;
