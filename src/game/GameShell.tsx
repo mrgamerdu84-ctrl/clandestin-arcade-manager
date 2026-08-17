@@ -161,6 +161,7 @@ export default function GameShell() {
 
         <div id="actsBar">
           <button id="actSave" type="button">💾 Sauvegarder</button>
+          <button id="actLoad" type="button">▶ Charger la partie</button>
           <button id="actSlots" type="button">📁 Charger / emplacements</button>
           <button id="actMenu" type="button">🎬 Menu principal</button>
           <button id="actQuit" type="button" className="danger">⏻ Quitter le jeu</button>

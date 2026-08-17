@@ -5735,6 +5735,23 @@ function initDock(){
   relay('actSlots', 'slotsBtn');
   relay('actMenu', 'menuBtn');
   relay('actQuit', 'quitBtn');
+  // Charger la partie : reprend la sauvegarde la plus récente (auto + emplacements)
+  const actLoad = document.getElementById('actLoad');
+  if(actLoad) actLoad.onclick = ()=>{
+    document.body.classList.remove('actsOn');
+    refreshDock();
+    const best = latestSave();
+    if(!best){ log('Aucune sauvegarde à charger.'); return; }
+    if(!confirm(`Charger la partie ${best.label.toLowerCase()} ? La partie en cours sera remplacée.`)) return;
+    try {
+      state.scored = false;
+      applySave(best.data);
+      writeSave();
+      renderShop(); updateHUD();
+      try{ renderQuestPanel(); }catch(e){}
+      log(`▶ Partie chargée : ${best.label} — jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+    } catch(e){ log("⚠️ Impossible de charger cette sauvegarde."); }
+  };
   if(window.innerWidth > 820) document.body.classList.add('camOn');
   refreshDock();
 }
@@ -5896,6 +5913,20 @@ function readSave(){
     if(!data || data.v !== SAVE_VERSION) return null;
     return data;
   } catch(e){ return null; }
+}
+
+/* dernière sauvegarde toutes sources confondues (auto + emplacements) */
+function latestSave(){
+  const cands = [];
+  const auto = readSave();
+  if(auto) cands.push({data:auto, label:'Sauvegarde auto', slot:0});
+  for(let i=1;i<=SLOT_COUNT;i++){
+    const d = readSlot(i);
+    if(d) cands.push({data:d, label:`Emplacement ${i}`, slot:i});
+  }
+  if(!cands.length) return null;
+  cands.sort((a,b)=>(b.data.ts||0)-(a.data.ts||0));
+  return cands[0];
 }
 
 /* ---- emplacements de sauvegarde manuelle ---- */
@@ -6587,19 +6618,6 @@ preloadModels(()=>{
     };
 
 
-    /* dernière sauvegarde toutes sources confondues (auto + emplacements) */
-    function latestSave(){
-      const cands = [];
-      const auto = readSave();
-      if(auto) cands.push({data:auto, label:'Sauvegarde auto', slot:0});
-      for(let i=1;i<=SLOT_COUNT;i++){
-        const d = readSlot(i);
-        if(d) cands.push({data:d, label:`Emplacement ${i}`, slot:i});
-      }
-      if(!cands.length) return null;
-      cands.sort((a,b)=>(b.data.ts||0)-(a.data.ts||0));
-      return cands[0];
-    }
 
     smCont.onclick = ()=>{
       const best = latestSave();
