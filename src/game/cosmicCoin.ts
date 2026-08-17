@@ -4801,6 +4801,7 @@ preloadModels(()=>{
   initHoodArrows();
   initBigScreen();
   initTapPlace();
+  initCamPad();
   initStyleUI();
   initWallUI();
 
