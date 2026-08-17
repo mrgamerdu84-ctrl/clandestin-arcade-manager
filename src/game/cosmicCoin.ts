@@ -1511,20 +1511,22 @@ function buildRoom(stageIdx){
       wallSeg(pW.x-CELL/2, pW.z, -Math.PI/2, CELL);
     }
   }
-  // posters along the north wall (the one without a door), for a decorated look
-  const posterKinds = ['logo','score','pad'];
-  const northZ = cellToWorld(0,0,cols,rows).z - CELL/2;
-  let pk = 0;
-  for(let x=0.7; x<cols-0.5; x+=1.7){
-    const worldX = -(cols*CELL/2) + x*CELL;
-    const tex = makePosterTexture(posterKinds[pk % posterKinds.length], casino);
-    pk++;
-    const poster = new THREE.Mesh(new THREE.PlaneGeometry(0.75,1.0), new THREE.MeshStandardMaterial({map:tex, roughness:0.6}));
-    poster.position.set(worldX, 1.35, northZ+0.06);
-    roomGroup.add(poster);
+  // posters along the north wall — décor payant
+  if(hasCos('posters')){
+    const posterKinds = ['logo','score','pad'];
+    const northZ = cellToWorld(0,0,cols,rows).z - CELL/2;
+    let pk = 0;
+    for(let x=0.7; x<cols-0.5; x+=1.7){
+      const worldX = -(cols*CELL/2) + x*CELL;
+      const tex = makePosterTexture(posterKinds[pk % posterKinds.length], casino);
+      pk++;
+      const poster = new THREE.Mesh(new THREE.PlaneGeometry(0.75,1.0), new THREE.MeshStandardMaterial({map:tex, roughness:0.6}));
+      poster.position.set(worldX, 1.35, northZ+0.06);
+      roomGroup.add(poster);
+    }
   }
-  // columns at corners for bigger stages
-  if(stageIdx>0){
+  // colonnes d'angle — décor payant
+  if(hasCos('columns')){
     const corners = [[0,0],[cols-1,0],[0,rows-1],[cols-1,rows-1]];
     corners.forEach(([cx,cz])=>{
       const p = cellToWorld(cx,cz,cols,rows);
@@ -1542,22 +1544,26 @@ function buildRoom(stageIdx){
       }
     });
   }
-  // enseigne néon intérieure : pas de sprite texte (il masquait la salle),
-  // juste une barre lumineuse discrète au-dessus du mur nord.
-  const northMid = cellToWorld(cols/2-0.5,0,cols,rows);
-  const signBar = new THREE.Mesh(
-    new THREE.BoxGeometry(CELL*2.2, 0.12, 0.12),
-    new THREE.MeshStandardMaterial({
-      color: casino?0xffd23f:0xff2e88,
-      emissive: casino?0xffd23f:0xff2e88, emissiveIntensity:1.4, roughness:0.4
-    })
-  );
-  signBar.position.set(northMid.x, wallH*0.9, northMid.z-CELL/2+0.08);
-  roomGroup.add(signBar);
-  const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 0.8, 7, 2);
-  signGlow.position.set(northMid.x, wallH*0.8, northMid.z-CELL/2+0.6);
-  roomGroup.add(signGlow);
-  roomGroup.userData.signHalo = signBar;
+  // barre néon intérieure — achetable
+  if(hasCos('innerneon')){
+    const northMid = cellToWorld(cols/2-0.5,0,cols,rows);
+    const signBar = new THREE.Mesh(
+      new THREE.BoxGeometry(CELL*2.2, 0.12, 0.12),
+      new THREE.MeshStandardMaterial({
+        color: casino?0xffd23f:0xff2e88,
+        emissive: casino?0xffd23f:0xff2e88, emissiveIntensity:1.4, roughness:0.4
+      })
+    );
+    signBar.position.set(northMid.x, wallH*0.9, northMid.z-CELL/2+0.08);
+    roomGroup.add(signBar);
+    const signGlow = new THREE.PointLight(casino?0xffd23f:0xff2e88, 0.8, 7, 2);
+    signGlow.position.set(northMid.x, wallH*0.8, northMid.z-CELL/2+0.6);
+    roomGroup.add(signGlow);
+    roomGroup.userData.signHalo = signBar;
+  } else {
+    roomGroup.userData.signHalo = null;
+  }
+
 
 
   // door — a proper detailed doorway (frame, glass panels, handles, canopy)
