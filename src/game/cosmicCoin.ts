@@ -904,6 +904,31 @@ function danceCharacter(mesh, t, style){
 
 
 /* ============================================================
+   STYLE PERSONNALISÉ — murs, détails, sol (sauvegardé)
+   ============================================================ */
+const STYLE_KEY = 'cc_style_v1';
+const STYLE_DEFAULT = {wall:'#2b2438', trim:'#f4a13c', trim2:'#6b4e9e', floor:'#ffffff', detail:'stripes'};
+const WALL_DETAILS = [
+  {id:'stripes', label:'Bandes néon'},
+  {id:'bricks',  label:'Briques'},
+  {id:'panels',  label:'Panneaux'},
+  {id:'plain',   label:'Mur nu'},
+  {id:'model',   label:'Mur d\'origine'},
+];
+let roomStyle = {...STYLE_DEFAULT};
+function readStyle(){
+  try{
+    const raw = localStorage.getItem(STYLE_KEY);
+    if(raw) return {...STYLE_DEFAULT, ...JSON.parse(raw)};
+  }catch(e){}
+  return {...STYLE_DEFAULT};
+}
+function writeStyle(){
+  try{ localStorage.setItem(STYLE_KEY, JSON.stringify(roomStyle)); }catch(e){}
+}
+roomStyle = readStyle();
+
+/* ============================================================
    ROOM / STAGE CONSTRUCTION
    ============================================================ */
 const CELL = 2;
