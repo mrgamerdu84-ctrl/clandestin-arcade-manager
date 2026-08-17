@@ -1607,6 +1607,31 @@ function buildRoom(stageIdx){
 const exteriorGroup = group(); exteriorGroup.visible = false; scene.add(exteriorGroup);
 const exteriorStreetGroup = group(); exteriorGroup.add(exteriorStreetGroup);
 const exteriorBuildingGroup = group(); exteriorGroup.add(exteriorBuildingGroup);
+// enveloppe de Rosa posée devant la porte condamnée (déclenche la cinématique d'intro au clic)
+let introLetter = null;
+function makeTagSprite(text, color){
+  const cvs = document.createElement('canvas');
+  cvs.width = 512; cvs.height = 128;
+  const c = cvs.getContext('2d');
+  c.fillStyle = 'rgba(10,6,20,0.82)';
+  c.strokeStyle = color; c.lineWidth = 6;
+  const r = 26;
+  c.beginPath();
+  c.moveTo(r,4); c.lineTo(508-r,4); c.quadraticCurveTo(508,4,508,4+r);
+  c.lineTo(508,124-r); c.quadraticCurveTo(508,124,508-r,124);
+  c.lineTo(r,124); c.quadraticCurveTo(4,124,4,124-r);
+  c.lineTo(4,4+r); c.quadraticCurveTo(4,4,r,4);
+  c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = color;
+  c.font = 'bold 58px "Courier New", monospace';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(text, 256, 68);
+  const tex = new THREE.CanvasTexture(cvs);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false}));
+  sp.scale.set(2.6, 0.65, 1);
+  sp.renderOrder = 999;
+  return sp;
+}
 // quartier personnalisé par le joueur (éditeur)
 const hoodGroup = group(); exteriorGroup.add(hoodGroup);
 const hoodLifeGroup = group(); exteriorGroup.add(hoodLifeGroup); // habitants/voitures nés des constructions
