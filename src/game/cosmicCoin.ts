@@ -2571,6 +2571,35 @@ hoodPickBox.position.y = 0.07;
 hoodPickBox.visible = false;
 scene.add(hoodPickBox);
 
+/* ---------- aperçu de la case visée à l'intérieur (achat / déplacement) ---------- */
+const roomCell = new THREE.Mesh(
+  new THREE.PlaneGeometry(CELL*0.92, CELL*0.92),
+  new THREE.MeshBasicMaterial({color:0x2fd4c8, transparent:true, opacity:0.3, depthWrite:false})
+);
+roomCell.rotation.x = -Math.PI/2;
+roomCell.position.y = 0.05;
+roomCell.visible = false;
+scene.add(roomCell);
+canvas.addEventListener('pointermove', (e)=>{
+  const active = !exteriorMode && !state.paused && (movingMachine || state.selected);
+  if(!active){ roomCell.visible = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObjects(roomGroup.children, true);
+  if(!hits.length){ roomCell.visible = false; return; }
+  const {cols, rows} = state.dims;
+  const nx = Math.floor(hits[0].point.x/CELL + cols/2);
+  const nz = Math.floor(hits[0].point.z/CELL + rows/2);
+  if(nx<0||nx>=cols||nz<0||nz>=rows){ roomCell.visible = false; return; }
+  const p = cellToWorld(nx,nz,cols,rows);
+  const busy = state.grid[nz][nx] && state.grid[nz][nx] !== movingMachine;
+  roomCell.material.color.setHex(busy ? 0xff3ea5 : 0x2fd4c8);
+  roomCell.position.set(p.x, 0.05, p.z);
+  roomCell.visible = true;
+});
+
 function selPos(sel){
   if(!sel) return null;
   return sel.kind==='hood' ? {x:sel.entry.x, z:sel.entry.z} : {x:sel.wrap.position.x, z:sel.wrap.position.z};
