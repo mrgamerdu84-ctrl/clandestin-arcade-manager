@@ -2556,8 +2556,16 @@ function refreshStyleUI(){
   const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
   const f = document.getElementById('styleFloor'); if(f) f.value = roomStyle.floor;
   panel.querySelectorAll('.styleDet').forEach(b=>{
-    b.classList.toggle('on', b.dataset.det === roomStyle.detail);
+    const id = b.dataset.det;
+    const owned = roomStyle.owned.includes(id);
+    const price = DETAIL_COST[id] || 0;
+    const def = WALL_DETAILS.find(d=>d.id===id);
+    b.classList.toggle('on', id === roomStyle.detail);
+    b.classList.toggle('locked', !owned);
+    b.innerText = owned ? def.label : `${def.label} · ${price}¢`;
   });
+  const bill = document.getElementById('styleCost');
+  if(bill) bill.innerText = `Repeindre une surface : ${PAINT_COST}¢ — jetons : ${Math.round(state.money)}¢`;
 }
 let styleOpen = false;
 function initStyleUI(){
@@ -2565,20 +2573,45 @@ function initStyleUI(){
   if(list){
     list.innerHTML = WALL_DETAILS.map(d=>`<button type="button" class="styleDet" data-det="${d.id}">${d.label}</button>`).join('');
     list.querySelectorAll('.styleDet').forEach(b=>{
-      b.onclick = ()=>{ roomStyle.detail = b.dataset.det; applyStyle(); };
+      b.onclick = ()=>{
+        const id = b.dataset.det;
+        if(!roomStyle.owned.includes(id)){
+          const price = DETAIL_COST[id] || 0;
+          if(!payFor(price, `le style « ${WALL_DETAILS.find(d=>d.id===id).label} »`)) return;
+          roomStyle.owned.push(id);
+          log(`Style de mur débloqué : ${WALL_DETAILS.find(d=>d.id===id).label}.`);
+        }
+        roomStyle.detail = id;
+        applyStyle();
+      };
     });
   }
+  // aperçu gratuit pendant qu'on fait glisser, facturé quand on valide la couleur
   const bind = (id, key)=>{
     const el = document.getElementById(id);
-    if(el) el.oninput = ()=>{ roomStyle[key] = el.value; applyStyle(); };
+    if(!el) return;
+    let before = roomStyle[key];
+    el.onfocus = ()=>{ before = roomStyle[key]; };
+    el.oninput = ()=>{ roomStyle[key] = el.value; buildRoom(state.stage); };
+    el.onchange = ()=>{
+      const picked = el.value;
+      if(picked === before){ return; }
+      roomStyle[key] = before;
+      if(!payFor(PAINT_COST, 'un coup de peinture')){ applyStyle(); return; }
+      roomStyle[key] = picked;
+      before = picked;
+      applyStyle();
+      log(`Surface repeinte pour ${PAINT_COST}¢.`);
+    };
   };
   bind('styleWall','wall'); bind('styleTrim','trim'); bind('styleTrim2','trim2'); bind('styleFloor','floor');
   const tog = document.getElementById('styleToggle');
   if(tog) tog.onclick = ()=>{ styleOpen = !styleOpen; refreshStyleUI(); };
   const rst = document.getElementById('styleReset');
-  if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT}; applyStyle(); log("Décoration de la salle remise à zéro."); };
+  if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT, owned:roomStyle.owned}; applyStyle(); log("Décoration de la salle remise à zéro (les styles achetés restent à toi)."); };
   refreshStyleUI();
 }
+
 
 /* ---------- retouches du décor d'origine (déplacer / retirer / remettre) ---------- */
 const OVR_KEY = 'cc_hood_ovr_v1';
