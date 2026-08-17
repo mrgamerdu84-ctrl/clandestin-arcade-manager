@@ -6310,12 +6310,38 @@ function animate(ts){
       if(!p.body) p.body = charBody(p.wrap);
       stepCharacter(p.body, performance.now()/170*Math.max(0.6,p.speed*1.6), 1);
     });
-    cars.forEach(c=>{
-      c.z += c.dir*c.speed*dt/1000;
-      if(c.dir>0 && c.z>c.zMax) c.z = c.zMin;
-      if(c.dir<0 && c.z<c.zMin) c.z = c.zMax;
-      c.wrap.position.z = c.z;
-    });
+    if(cars.length){
+      const roadCells = roadCellSet();
+      const lane = 0.5;
+      cars.forEach(c=>{
+        if(!c.next){
+          // ancienne voiture de la ville de départ : trajet linéaire
+          c.z += (c.dir||1)*c.speed*dt/1000;
+          if(c.dir>0 && c.z>c.zMax) c.z = c.zMin;
+          if(c.dir<0 && c.z<c.zMin) c.z = c.zMax;
+          c.wrap.position.z = c.z;
+          return;
+        }
+        c.t += (c.speed*dt/1000) / HOOD_TILE;
+        while(c.t >= 1){
+          c.t -= 1;
+          c.from = (DIR_VECT.findIndex(([dx,dz]) => c.cell[0]+dx===c.next[0] && c.cell[1]+dz===c.next[1]) + 2) % 4;
+          c.cell = c.next;
+          const go = nextRoadCell(c, roadCells);
+          if(!go){ c.t = 0; c.next = null; return; }
+          c.next = [go.x, go.z];
+        }
+        const ax = c.cell[0]*HOOD_TILE, az = c.cell[1]*HOOD_TILE;
+        const bx = c.next[0]*HOOD_TILE, bz = c.next[1]*HOOD_TILE;
+        const hx = bx-ax, hz = bz-az;
+        const len = Math.hypot(hx,hz) || 1;
+        // décalage à droite du sens de marche : chaque voiture reste sur sa voie
+        const ox = (-hz/len)*lane, oz = (hx/len)*lane;
+        c.wrap.position.set(ax + hx*c.t + ox, 0, az + hz*c.t + oz);
+        c.wrap.rotation.y = Math.atan2(hx, hz);
+      });
+    }
+
     const now = performance.now()/1000;
     extMovers.forEach(m=>{
       if(m.type==='queue'){
