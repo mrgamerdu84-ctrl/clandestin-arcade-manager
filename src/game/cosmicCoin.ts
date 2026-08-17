@@ -4834,15 +4834,16 @@ function updateCustomers(dt){
             state.danger = Math.min(100, (state.danger||0) + 1.2);
           }
         }
-        if(c.target.def.illegal){
+        const illegalPlay = !!c.target.def.illegal;
+        if(illegalPlay){
           gain = Math.round(gain * 2.3);
-          state.illegalEarned += gain;
           state.suspicion = Math.min(100, state.suspicion + (state.lookout?0.45:0.75)*(1+state.danger/120));
           state.rep = Math.min(30, state.rep + 0.05);
         } else {
           state.rep = Math.min(30,state.rep+0.15);
         }
-        gain = earnMoney(gain, 'play');
+        gain = earnMoney(gain, illegalPlay ? 'illegal' : 'play');
+        if(illegalPlay) state.illegalEarned += gain;
 
         state.stats.customers += 1;
         if(scammed){
@@ -5108,7 +5109,7 @@ function doorPass(){
     log("Le curieux entre, compte les tables et repart. Ça se saura.");
   } else {
     const [lo,hi] = v.kind.pay;
-    const gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
+    let gain = Math.round((lo + Math.random()*(hi-lo)) * (1 + state.danger/220));
     gain = earnMoney(gain, 'illegal'); state.illegalEarned += gain;
     questEvent('pass_good');
     questEvent('illegal_earn', gain);
