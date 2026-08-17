@@ -6400,32 +6400,22 @@ preloadModels(()=>{
       document.getElementById('pauseBtn').innerText = state.paused ? '▶ Reprendre' : '⏸ Pause';
     };
     const refreshMenu = ()=>{
-      if(loaded){
-        const sum = saveSummary(readSave()) || {
-          when: saveAgeLabel(lastSaveAt),
-          line: `Jour ${state.day} · ${Math.round(state.money)}¢ · dette ${Math.round(state.debt)}¢`,
-          line2: `${state.machines.length} machine(s) · réputation ${Math.round(state.rep)} · ${playedLabel(state.playMs)}`,
-        };
-        smInfo.innerText = `Sauvegarde du ${sum.when}\n${sum.line}\n${sum.line2}`;
+      // un seul bouton : il reprend toujours la sauvegarde la plus récente
+      const best = latestSave();
+      if(best){
+        const s = saveSummary(best.data);
+        smInfo.innerText = `${best.label} · ${s.when}\n${s.line}\n${s.line2}`;
+        smCont.disabled = false;
+      } else if(loaded){
+        smInfo.innerText = `Partie en cours\nJour ${state.day} · ${Math.round(state.money)}¢`;
         smCont.disabled = false;
       } else {
         smInfo.innerText = "Aucune sauvegarde trouvée — lance une nouvelle partie";
         smCont.disabled = true;
       }
       if(smMus) smMus.firstChild.nodeValue = disco.isOn && disco.isOn() ? '🔊 Musique : activée' : '🔈 Musique : coupée';
-      const smRes = document.getElementById('smResume');
-      const smResInfo = document.getElementById('smResumeInfo');
-      const best = latestSave();
-      if(smRes){
-        smRes.disabled = !best;
-        if(smResInfo){
-          if(best){
-            const s = saveSummary(best.data);
-            smResInfo.innerText = `${best.label} · ${s.when}\n${s.line}`;
-          } else smResInfo.innerText = "Aucune sauvegarde disponible";
-        }
-      }
     };
+
 
     /* dernière sauvegarde toutes sources confondues (auto + emplacements) */
     function latestSave(){
@@ -6441,10 +6431,9 @@ preloadModels(()=>{
       return cands[0];
     }
 
-    const smRes0 = document.getElementById('smResume');
-    if(smRes0) smRes0.onclick = ()=>{
+    smCont.onclick = ()=>{
       const best = latestSave();
-      if(!best) return;
+      if(!best){ closeMenu(); return; }
       try {
         state.scored = false;
         applySave(best.data);
@@ -6452,13 +6441,11 @@ preloadModels(()=>{
         writeSave();
         renderShop(); updateHUD();
         try{ renderQuestPanel(); }catch(e){}
-        log(`⏩ Reprise : ${best.label} — jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
-        closeMenu();
-      } catch(e){ log("⚠️ Impossible de reprendre cette sauvegarde."); }
+        log(`▶ Reprise : ${best.label} — jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+      } catch(e){ log("⚠️ Impossible de charger cette sauvegarde."); }
+      closeMenu();
     };
 
-
-    smCont.onclick = ()=>{ closeMenu(); };
     smNew.onclick  = ()=>{ startNewGame(); loaded = false; closeMenu(); };
     smSc.onclick   = ()=>{ openScorePanel(); };
     const smSlots = document.getElementById('smSlots');
