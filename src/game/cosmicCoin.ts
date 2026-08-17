@@ -986,7 +986,19 @@ const WALL_DETAILS = [
   {id:'plain',   label:'Mur nu'},
   {id:'model',   label:'Mur d\'origine'},
 ];
-let roomStyle = {...STYLE_DEFAULT};
+/* coûts de personnalisation : on dépense les jetons gagnés pour décorer */
+const PAINT_COST = 25;
+const DETAIL_COST = {stripes:0, bricks:90, panels:140, plain:0, model:60};
+let roomStyle = {...STYLE_DEFAULT, owned:['stripes','plain']};
+/* petit portefeuille commun à toutes les personnalisations */
+function payFor(cost, label){
+  if(!cost || cost<=0) return true;
+  if(state.money < cost){ log(`Pas assez de jetons : ${label} coûte ${cost}¢ (tu as ${Math.round(state.money)}¢).`); return false; }
+  state.money -= cost;
+  if(typeof updateHUD === 'function') updateHUD();
+  return true;
+}
+
 function readStyle(){
   try{
     const raw = localStorage.getItem(STYLE_KEY);
