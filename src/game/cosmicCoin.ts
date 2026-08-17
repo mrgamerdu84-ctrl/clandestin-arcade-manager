@@ -517,6 +517,57 @@ const BUILDERS = {
     });
     return g;
   },
+  'toilets': ()=>{
+    const g = group();
+    // cabine avec porte + cuvette : petit coin toilettes de l'arcade
+    const wall1 = box(1.4,2.0,0.1, '#cfd6e6'); wall1.position.set(0,1.0,-0.6); g.add(wall1);
+    const wall2 = box(0.1,2.0,1.2, '#cfd6e6'); wall2.position.set(-0.65,1.0,0); g.add(wall2);
+    const door = box(1.2,1.7,0.08, '#5ba3d0'); door.position.set(0.1,0.9,0.55); g.add(door);
+    const sign = box(0.28,0.28,0.04, PAL.yellow); sign.position.set(0.1,1.75,0.6); g.add(sign);
+    const bowl = cyl(0.2,0.18,0.4,'#f2f5fa',12); bowl.position.set(-0.2,0.2,-0.15); g.add(bowl);
+    const tank = box(0.36,0.4,0.16,'#f2f5fa'); tank.position.set(-0.2,0.55,-0.35); g.add(tank);
+    const sink = cyl(0.16,0.12,0.14,'#e8eef7',12); sink.position.set(0.35,0.75,-0.4); g.add(sink);
+    return g;
+  },
+  'tables': ()=>{
+    const g = group();
+    // table ronde + 3 chaises pour que les clients s'assoient
+    const top = cyl(0.5,0.5,0.07,'#3a2350',20); top.position.y=0.72; g.add(top);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.5,0.03,8,28), mat(PAL.pink));
+    rim.rotation.x = Math.PI/2; rim.position.y = 0.76; g.add(rim);
+    const foot = cyl(0.09,0.12,0.7, PAL.chrome,12); foot.position.y=0.35; g.add(foot);
+    const base = cyl(0.32,0.32,0.05,'#1a1226',16); base.position.y=0.03; g.add(base);
+    for(let i=0;i<3;i++){
+      const a = i*Math.PI*2/3 + 0.4;
+      const ch = group();
+      const seat = cyl(0.2,0.2,0.08,'#20e6d0',14); seat.position.y=0.44; ch.add(seat);
+      const backr = box(0.36,0.42,0.06,'#17b3a2'); backr.position.set(0,0.66,-0.18); ch.add(backr);
+      const stem = cyl(0.05,0.06,0.42, PAL.chrome,10); stem.position.y=0.21; ch.add(stem);
+      ch.position.set(Math.cos(a)*0.85, 0, Math.sin(a)*0.85);
+      ch.rotation.y = -a + Math.PI/2;
+      g.add(ch);
+    }
+    return g;
+  },
+  'djdeck': ()=>{
+    const g = group();
+    // platine du DJ : caisson, deux platines vinyle, mixette et enceintes
+    const deck = box(1.5,0.85,0.6,'#241338'); deck.position.y=0.43; g.add(deck);
+    const front = box(1.52,0.24,0.62, PAL.pink); front.position.y=0.7; g.add(front);
+    for(let i=0;i<2;i++){
+      const plate = cyl(0.2,0.2,0.05,'#0e0a16',18); plate.position.set(-0.4+i*0.8,0.88,0); g.add(plate);
+      const vinyl = cyl(0.05,0.05,0.055, PAL.teal,12); vinyl.position.set(-0.4+i*0.8,0.91,0); g.add(vinyl);
+    }
+    const mixer = box(0.28,0.06,0.4,'#1c1430'); mixer.position.set(0,0.88,0); g.add(mixer);
+    for(let i=0;i<3;i++){
+      const knob = cyl(0.03,0.03,0.05, PAL.yellow,8); knob.position.set(-0.08+i*0.08,0.93,0.1); g.add(knob);
+    }
+    [-1,1].forEach(s=>{
+      const spk = box(0.34,0.7,0.34,'#141024'); spk.position.set(s*1.0,0.35,0); g.add(spk);
+      const cone = cyl(0.12,0.12,0.04, PAL.purple,14); cone.rotation.x=Math.PI/2; cone.position.set(s*1.0,0.45,0.18); g.add(cone);
+    });
+    return g;
+  },
   'neon': ()=>{
     const g = group();
     const base = cyl(0.16,0.18,0.15, PAL.black,10); base.position.y=0.08; g.add(base);
@@ -792,13 +843,65 @@ function buildMachineMesh(defId){
 function buildCharacter(shirtColor){
 
   const g = group();
-  const legs = cyl(0.16,0.18,0.5, PAL.black,10); legs.position.y=0.25; g.add(legs);
-  const body = cyl(0.2,0.24,0.55, shirtColor,10); body.position.y=0.75; g.add(body);
-  const head = sphere(0.17, '#f2c9a0'); head.position.y=1.15; g.add(head);
-  const hair = sphere(0.18, '#3b2a20'); hair.position.y=1.22; hair.scale.set(1,0.7,1); g.add(hair);
+  // hanches : deux jambes articulées + deux bras, pour la marche et la danse
+  const hips = group(); hips.position.y = 0.52; g.add(hips);
+  const mkLimb = (x, color, len, thick)=>{
+    const pivot = group(); pivot.position.set(x, 0, 0);
+    const limb = cyl(thick, thick*0.9, len, color, 8);
+    limb.position.y = -len/2; pivot.add(limb);
+    const foot = box(thick*2.1, 0.07, thick*3.0, '#1b1b26');
+    foot.position.set(0, -len-0.03, 0.04); pivot.add(foot);
+    return pivot;
+  };
+  const legL = mkLimb(-0.1, PAL.black, 0.5, 0.085); hips.add(legL);
+  const legR = mkLimb( 0.1, PAL.black, 0.5, 0.085); hips.add(legR);
+  const body = cyl(0.2,0.24,0.55, shirtColor,10); body.position.y=0.8; g.add(body);
+  const shoulders = group(); shoulders.position.y = 1.0; g.add(shoulders);
+  const mkArm = (x)=>{
+    const pivot = group(); pivot.position.set(x,0,0);
+    const arm = cyl(0.055,0.05,0.42, shirtColor, 8); arm.position.y=-0.21; pivot.add(arm);
+    const hand = sphere(0.06,'#f2c9a0'); hand.position.y=-0.44; pivot.add(hand);
+    return pivot;
+  };
+  const armL = mkArm(-0.24); shoulders.add(armL);
+  const armR = mkArm( 0.24); shoulders.add(armR);
+  const head = sphere(0.17, '#f2c9a0'); head.position.y=1.2; g.add(head);
+  const hair = sphere(0.18, '#3b2a20'); hair.position.y=1.27; hair.scale.set(1,0.7,1); g.add(hair);
   g.userData.bodyMesh = body;
+  g.userData.legL = legL; g.userData.legR = legR;
+  g.userData.armL = armL; g.userData.armR = armR;
   return g;
 }
+
+/* pas de marche : balancement jambes/bras (amount = amplitude, 0 = repos) */
+function stepCharacter(mesh, t, amount = 1){
+  const u = mesh && mesh.userData;
+  if(!u || !u.legL) return;
+  const s = Math.sin(t)*amount;
+  u.legL.rotation.x =  s*0.85;
+  u.legR.rotation.x = -s*0.85;
+  if(u.armL){ u.armL.rotation.x = -s*0.6; u.armR.rotation.x = s*0.6; }
+}
+
+/* pas de danse sur la piste : genoux qui rebondissent + bras en l'air */
+function danceCharacter(mesh, t, style){
+  const u = mesh && mesh.userData;
+  if(!u || !u.legL) return;
+  const s = Math.sin(t);
+  if(style==='jump'){
+    u.legL.rotation.x = -Math.abs(s)*0.5; u.legR.rotation.x = -Math.abs(s)*0.5;
+    if(u.armL){ u.armL.rotation.x = -2.2 - s*0.3; u.armR.rotation.x = -2.2 + s*0.3; }
+  } else if(style==='spin'){
+    u.legL.rotation.x = s*0.5; u.legR.rotation.x = -s*0.5;
+    if(u.armL){ u.armL.rotation.z = 1.1; u.armR.rotation.z = -1.1; }
+  } else if(style==='dj'){
+    if(u.armL){ u.armL.rotation.x = -1.1 + s*0.35; u.armR.rotation.x = -1.1 - s*0.35; }
+  } else {
+    u.legL.rotation.x = s*0.65; u.legR.rotation.x = -s*0.65;
+    if(u.armL){ u.armL.rotation.x = -0.5 + s*0.5; u.armR.rotation.x = -0.5 - s*0.5; }
+  }
+}
+
 
 /* ============================================================
    ROOM / STAGE CONSTRUCTION
@@ -2304,6 +2407,9 @@ const DECOR = [
   {id:'plant', name:'Plante verte', color:PAL.green, price:40, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'cashregister', name:'Caisse enregistreuse', color:PAL.red, price:50, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'bench', name:"Banc d'attente", color:PAL.orange, price:55, repBoost:0.6, repReq:1, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'toilets', name:'Toilettes', color:'#cfd6e6', price:90, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'tables', name:'Table + chaises', color:PAL.teal, price:70, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'djdeck', name:'Platine du DJ', color:PAL.pink, price:160, repBoost:1.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'neon', name:'Enseigne néon', color:PAL.pink, price:80, repBoost:0.8, repReq:2, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
   {id:'jukebox', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
   {id:'safe', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
@@ -2645,6 +2751,7 @@ function updateCustomers(dt){
         dir.normalize();
         c.mesh.position.addScaledVector(dir, (1.6*dt/1000));
         c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+        stepCharacter(c.mesh, performance.now()/150);
         c.mesh.lookAt(c.targetPos.x, c.mesh.position.y, c.targetPos.z);
         // anti-blocage : si on n'avance plus, on rejoint directement la machine
         c.stuck = (c.prevDist!==undefined && dist > c.prevDist-0.002) ? (c.stuck||0)+dt : 0;
@@ -2659,6 +2766,7 @@ function updateCustomers(dt){
       if(c.target) c.mesh.lookAt(c.target.mesh.position.x, c.mesh.position.y, c.target.mesh.position.z);
       const t = performance.now();
       c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
+        stepCharacter(c.mesh, t/220, 0.35);
       c.mesh.rotation.z = Math.sin(t/120)*0.06;
       c.playTimer += dt;
 
@@ -2692,6 +2800,7 @@ function updateCustomers(dt){
       dir.normalize();
       c.mesh.position.addScaledVector(dir,(1.8*dt/1000));
       c.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      stepCharacter(c.mesh, performance.now()/150);
       c.mesh.lookAt(c.doorPos.x, c.mesh.position.y, c.doorPos.z);
       // filet : un client qui traîne trop longtemps dehors est retiré
       c.outTimer = (c.outTimer||0) + dt;
@@ -2995,6 +3104,7 @@ function updateDoor(dt){
       dir.normalize();
       v.mesh.position.addScaledVector(dir, 1.5*dt/1000);
       v.mesh.position.y = Math.abs(Math.sin(performance.now()/140))*0.05;
+      stepCharacter(v.mesh, performance.now()/150);
       v.mesh.lookAt(goal.x, v.mesh.position.y, goal.z);
     } else if(v.phase==='walk'){
       v.phase='wait'; renderDoorPanel();
@@ -3867,6 +3977,7 @@ function animate(ts){
     for(let i=0;i<dancers.length;i++){
       const d = dancers[i];
       const beat = Math.abs(Math.sin(t*2.4 + d.phase));
+      danceCharacter(d.wrap, t*4.4 + d.phase, d.style);
       if(d.style==='jump'){
         d.wrap.position.y = d.base + beat*0.22;
         d.wrap.rotation.z = Math.sin(t*2.4 + d.phase)*0.06;
@@ -3901,6 +4012,7 @@ function animate(ts){
       if(p.z>p.zMax){ p.z=p.zMax; p.dir=-1; p.wrap.rotation.y=Math.PI; }
       if(p.z<p.zMin){ p.z=p.zMin; p.dir=1; p.wrap.rotation.y=0; }
       p.wrap.position.z = p.z;
+      stepCharacter(p.wrap, performance.now()/170*Math.max(0.6,p.speed*1.6));
     });
     cars.forEach(c=>{
       c.z += c.dir*c.speed*dt/1000;
