@@ -339,7 +339,12 @@ export default function GameShell() {
             <span className="l3">boîte de nuit clandestine — 1988</span>
           </div>
           <div id="startBtns">
+            <button className="startBtn" id="smResume" type="button">
+              ⏩ Reprendre
+              <small id="smResumeInfo">Charge la dernière sauvegarde</small>
+            </button>
             <button className="startBtn" id="smContinue" type="button">
+
               ▶ Continuer la partie
               <small id="smSaveInfo" />
             </button>
