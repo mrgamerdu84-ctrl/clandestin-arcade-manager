@@ -904,6 +904,31 @@ function danceCharacter(mesh, t, style){
 
 
 /* ============================================================
+   STYLE PERSONNALISÉ — murs, détails, sol (sauvegardé)
+   ============================================================ */
+const STYLE_KEY = 'cc_style_v1';
+const STYLE_DEFAULT = {wall:'#2b2438', trim:'#f4a13c', trim2:'#6b4e9e', floor:'#ffffff', detail:'stripes'};
+const WALL_DETAILS = [
+  {id:'stripes', label:'Bandes néon'},
+  {id:'bricks',  label:'Briques'},
+  {id:'panels',  label:'Panneaux'},
+  {id:'plain',   label:'Mur nu'},
+  {id:'model',   label:'Mur d\'origine'},
+];
+let roomStyle = {...STYLE_DEFAULT};
+function readStyle(){
+  try{
+    const raw = localStorage.getItem(STYLE_KEY);
+    if(raw) return {...STYLE_DEFAULT, ...JSON.parse(raw)};
+  }catch(e){}
+  return {...STYLE_DEFAULT};
+}
+function writeStyle(){
+  try{ localStorage.setItem(STYLE_KEY, JSON.stringify(roomStyle)); }catch(e){}
+}
+roomStyle = readStyle();
+
+/* ============================================================
    ROOM / STAGE CONSTRUCTION
    ============================================================ */
 const CELL = 2;
@@ -1056,10 +1081,11 @@ function buildRoom(stageIdx){
   const casino = st.theme==='casino';
   const floorA = casino ? '#4a1830' : PAL.floorA;
   const floorB = casino ? '#3a1226' : PAL.floorB;
-  const wallCol = casino ? PAL.casinoWallDark : PAL.wallDark;
-  const stripeCol = casino ? PAL.casinoGold : PAL.wallOrange;
-  const stripeCol2 = casino ? PAL.casinoRed : PAL.wallPurple;
-  const wallTint = casino ? '#ffb27a' : '#ffffff';
+  // couleurs choisies par le joueur (panneau 🎨), sinon couleurs du thème
+  const wallCol = roomStyle.wall || (casino ? PAL.casinoWallDark : PAL.wallDark);
+  const stripeCol = roomStyle.trim || (casino ? PAL.casinoGold : PAL.wallOrange);
+  const stripeCol2 = roomStyle.trim2 || (casino ? PAL.casinoRed : PAL.wallPurple);
+  const wallTint = roomStyle.wall || (casino ? '#ffb27a' : '#ffffff');
 
   // carpet floor — a single woven-pattern plane instead of flat tiles, for a
   // proper casino/arcade carpet look instead of bare colored squares
@@ -1067,7 +1093,8 @@ function buildRoom(stageIdx){
   carpetTex.repeat.set(cols, rows);
   const floorPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(cols*CELL, rows*CELL),
-    new THREE.MeshStandardMaterial({map:carpetTex, roughness:0.88, metalness:0.05})
+    new THREE.MeshStandardMaterial({map:carpetTex, roughness:0.88, metalness:0.05,
+      color:new THREE.Color(roomStyle.floor || '#ffffff')})
   );
   floorPlane.rotation.x = -Math.PI/2;
   floorPlane.receiveShadow = true;
@@ -1210,11 +1237,12 @@ function buildRoom(stageIdx){
   const wallH = 2.4;
   const doorRow = Math.floor(rows/2);
   function wallSeg(px,pz,rotY,len){
-    if(MODEL_TEMPLATES.WALL){
+    const detail = roomStyle.detail || 'stripes';
+    if(detail === 'model' && MODEL_TEMPLATES.WALL){
       const obj = MODEL_TEMPLATES.WALL.clone(true);
       obj.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
       fitHeight(obj, wallH);
-      if(casino) tintObject(obj, wallTint);
+      tintObject(obj, wallTint);
       const wrap = group(); wrap.add(obj);
       wrap.position.set(px,0,pz); wrap.rotation.y=rotY;
       roomGroup.add(wrap);
@@ -1222,8 +1250,29 @@ function buildRoom(stageIdx){
     }
     const g = group();
     const base = box(len,wallH,0.25, wallCol); base.position.y=wallH/2; g.add(base);
-    const stripe = box(len,0.5,0.27, stripeCol); stripe.position.y=wallH*0.32; g.add(stripe);
-    const stripe2 = box(len,0.3,0.28, stripeCol2); stripe2.position.y=wallH*0.15; g.add(stripe2);
+    if(detail === 'stripes'){
+      const stripe = box(len,0.5,0.27, stripeCol); stripe.position.y=wallH*0.32; g.add(stripe);
+      const stripe2 = box(len,0.3,0.28, stripeCol2); stripe2.position.y=wallH*0.15; g.add(stripe2);
+    } else if(detail === 'bricks'){
+      // appareillage de briques en quinconce
+      const rowsB = 6, bw = len/4;
+      for(let r=0;r<rowsB;r++){
+        const off = (r%2) ? bw/2 : 0;
+        for(let c=0;c<4;c++){
+          const bx = -len/2 + off + bw/2 + c*bw;
+          if(bx > len/2 - 0.05) continue;
+          const brick = box(bw*0.9, wallH/rowsB*0.8, 0.27, r%2 ? stripeCol2 : stripeCol);
+          brick.position.set(bx, (r+0.5)*wallH/rowsB, 0);
+          g.add(brick);
+        }
+      }
+    } else if(detail === 'panels'){
+      for(let c=0;c<3;c++){
+        const panel = box(len/3*0.8, wallH*0.6, 0.27, stripeCol);
+        panel.position.set(-len/3 + c*len/3, wallH*0.5, 0); g.add(panel);
+      }
+      const cornice = box(len, 0.12, 0.3, stripeCol2); cornice.position.y = wallH*0.86; g.add(cornice);
+    }
     g.position.set(px,0,pz); g.rotation.y=rotY;
     roomGroup.add(g);
   }
@@ -2151,6 +2200,7 @@ function setExteriorMode(on){
   }
   updateCamera();
   refreshHoodUI();
+  if(typeof refreshStyleUI === 'function') refreshStyleUI();
 }
 document.getElementById('exteriorBtn').onclick = ()=> setExteriorMode(!exteriorMode);
 
@@ -2188,6 +2238,8 @@ let hoodEdit = false;
 let hoodSel = null;
 let hoodRot = 0;
 let hoodErase = false;
+let hoodMove = false;      // mode déplacement : on attrape un objet posé puis on le repose
+let hoodCarry = null;      // entrée en cours de déplacement
 let hoodData = [];   // {id,x,z,rot}
 
 const hoodPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
@@ -2230,6 +2282,11 @@ function refreshHoodUI(){
   if(toggle) toggle.classList.toggle('on', hoodEdit);
   const eraseBtn = document.getElementById('hoodErase');
   if(eraseBtn) eraseBtn.classList.toggle('on', hoodErase);
+  const moveBtn = document.getElementById('hoodMove');
+  if(moveBtn){
+    moveBtn.classList.toggle('on', hoodMove);
+    moveBtn.innerText = hoodCarry ? '✋ Repose-le' : '✋ Déplacer';
+  }
   const rotLbl = document.getElementById('hoodRotVal');
   if(rotLbl) rotLbl.innerText = Math.round(hoodRot*180/Math.PI)+'°';
   panel.querySelectorAll('.hoodItem').forEach(b=>{
@@ -2259,7 +2316,14 @@ function initHoodEditor(){
   const r = document.getElementById('hoodRotate');
   if(r) r.onclick = ()=>{ hoodRot = (hoodRot + Math.PI/2) % (Math.PI*2); refreshHoodUI(); };
   const e = document.getElementById('hoodErase');
-  if(e) e.onclick = ()=>{ hoodErase = !hoodErase; if(hoodErase) hoodSel = null; refreshHoodUI(); };
+  if(e) e.onclick = ()=>{ hoodErase = !hoodErase; if(hoodErase){ hoodSel = null; hoodMove = false; hoodCarry = null; } refreshHoodUI(); };
+  const mv = document.getElementById('hoodMove');
+  if(mv) mv.onclick = ()=>{
+    hoodMove = !hoodMove;
+    if(hoodMove){ hoodErase = false; hoodSel = null; }
+    hoodCarry = null;
+    refreshHoodUI();
+  };
   const u = document.getElementById('hoodUndo');
   if(u) u.onclick = ()=>{
     if(!hoodData.length) return;
@@ -2275,6 +2339,50 @@ function initHoodEditor(){
   refreshHoodUI();
 }
 
+/* ---------- panneau STYLE : couleurs des murs, détail, sol ---------- */
+function applyStyle(){
+  writeStyle();
+  buildRoom(state.stage);
+  refreshStyleUI();
+}
+function refreshStyleUI(){
+  const panel = document.getElementById('stylePanel');
+  if(!panel) return;
+  panel.style.display = (!exteriorMode && styleOpen) ? 'block' : 'none';
+  const btn = document.getElementById('styleToggle');
+  if(btn){
+    btn.style.display = exteriorMode ? 'none' : 'inline-block';
+    btn.classList.toggle('on', styleOpen);
+  }
+  const w = document.getElementById('styleWall'); if(w) w.value = roomStyle.wall;
+  const t1 = document.getElementById('styleTrim'); if(t1) t1.value = roomStyle.trim;
+  const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
+  const f = document.getElementById('styleFloor'); if(f) f.value = roomStyle.floor;
+  panel.querySelectorAll('.styleDet').forEach(b=>{
+    b.classList.toggle('on', b.dataset.det === roomStyle.detail);
+  });
+}
+let styleOpen = false;
+function initStyleUI(){
+  const list = document.getElementById('styleDetails');
+  if(list){
+    list.innerHTML = WALL_DETAILS.map(d=>`<button type="button" class="styleDet" data-det="${d.id}">${d.label}</button>`).join('');
+    list.querySelectorAll('.styleDet').forEach(b=>{
+      b.onclick = ()=>{ roomStyle.detail = b.dataset.det; applyStyle(); };
+    });
+  }
+  const bind = (id, key)=>{
+    const el = document.getElementById(id);
+    if(el) el.oninput = ()=>{ roomStyle[key] = el.value; applyStyle(); };
+  };
+  bind('styleWall','wall'); bind('styleTrim','trim'); bind('styleTrim2','trim2'); bind('styleFloor','floor');
+  const tog = document.getElementById('styleToggle');
+  if(tog) tog.onclick = ()=>{ styleOpen = !styleOpen; refreshStyleUI(); };
+  const rst = document.getElementById('styleReset');
+  if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT}; applyStyle(); log("Décoration de la salle remise à zéro."); };
+  refreshStyleUI();
+}
+
 function hoodFromObject(obj){
   let o = obj;
   while(o){ if(o.userData && o.userData.hood) return o; o = o.parent; }
@@ -2288,6 +2396,31 @@ canvas.addEventListener('click', (e)=>{
   mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
   mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouseNDC, camera);
+
+  if(hoodMove){
+    if(!hoodCarry){
+      // on attrape l'objet cliqué
+      const hits = raycaster.intersectObjects(hoodGroup.children, true);
+      if(!hits.length) return;
+      const wrap = hoodFromObject(hits[0].object);
+      if(!wrap) return;
+      hoodCarry = wrap.userData.hood;
+      hoodRot = hoodCarry.rot || 0;
+      refreshHoodUI();
+      log("Objet attrapé : clique où tu veux le reposer.");
+      return;
+    }
+    // on le repose à l'endroit cliqué
+    if(!raycaster.ray.intersectPlane(hoodPlane, hoodHit)) return;
+    const mdef = hoodDef(hoodCarry.id);
+    const msnap = (mdef && mdef.snap) || 1.15;
+    hoodCarry.x = Math.round(hoodHit.x/msnap)*msnap;
+    hoodCarry.z = Math.round(hoodHit.z/msnap)*msnap;
+    hoodCarry.rot = hoodRot;
+    hoodCarry = null;
+    writeHood(); rebuildHood(); refreshHoodUI();
+    return;
+  }
 
   if(hoodErase){
     const hits = raycaster.intersectObjects(hoodGroup.children, true);
@@ -4106,6 +4239,7 @@ preloadModels(()=>{
   }
   buildExteriorStreet(16);
   initHoodEditor();
+  initStyleUI();
   updateCamera();
   renderShop();
   updateHUD();

@@ -137,11 +137,39 @@ function GamePage() {
         <button id="exteriorBtn" type="button">
           🏙️ EXTÉRIEUR
         </button>
+        <button id="styleToggle" type="button">
+          🎨 DÉCO DE LA SALLE
+        </button>
+        <div id="stylePanel" style={{ display: "none" }}>
+          <div className="hoodHead">Personnalise ta salle — sauvegardé auto</div>
+          <label className="styleRow">
+            <span>Mur</span>
+            <input id="styleWall" type="color" />
+          </label>
+          <label className="styleRow">
+            <span>Détail 1</span>
+            <input id="styleTrim" type="color" />
+          </label>
+          <label className="styleRow">
+            <span>Détail 2</span>
+            <input id="styleTrim2" type="color" />
+          </label>
+          <label className="styleRow">
+            <span>Sol</span>
+            <input id="styleFloor" type="color" />
+          </label>
+          <div className="hoodHead">Style des murs</div>
+          <div id="styleDetails" />
+          <button id="styleReset" type="button" className="styleReset">
+            ↺ Réinitialiser
+          </button>
+        </div>
         <div id="hoodBar" style={{ display: "none" }}>
           <button id="hoodToggle" type="button">🏗️ ÉDITER LE QUARTIER</button>
           <button id="hoodRotate" type="button" title="Pivoter">
             🔄 <span id="hoodRotVal">0°</span>
           </button>
+          <button id="hoodMove" type="button" title="Déplacer un objet posé">✋ Déplacer</button>
           <button id="hoodErase" type="button" title="Supprimer">🧨 Retirer</button>
           <button id="hoodUndo" type="button" title="Annuler le dernier">↩︎</button>
           <button id="hoodClear" type="button" title="Tout effacer">🗑️</button>
@@ -150,6 +178,7 @@ function GamePage() {
           <div className="hoodHead">Pose ce que tu veux : clique une case au sol</div>
           <div id="hoodList" />
         </div>
+
       </div>
 
       <div id="sidebar">
