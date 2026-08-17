@@ -3027,7 +3027,8 @@ function initStyleUI(){
   };
   bind('styleWall','wall'); bind('styleTrim','trim'); bind('styleTrim2','trim2'); bind('styleFloor','floor');
   const tog = document.getElementById('styleToggle');
-  if(tog) tog.onclick = ()=>{ styleOpen = !styleOpen; refreshStyleUI(); };
+  if(tog) tog.onclick = ()=>{ openShopTab('deco'); };
+
   const rst = document.getElementById('styleReset');
   if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT, owned:roomStyle.owned}; applyStyle(); log("Décoration de la salle remise à zéro (les styles achetés restent à toi)."); };
   refreshStyleUI();
