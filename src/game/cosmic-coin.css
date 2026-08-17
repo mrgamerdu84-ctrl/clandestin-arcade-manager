@@ -139,7 +139,7 @@
     position:fixed; z-index:30; background:linear-gradient(160deg,#1c0a2e,#11041c);
     border:2px solid var(--neon1); border-radius:12px; padding:12px;
     box-shadow:0 0 30px rgba(255,0,127,0.5); font-family:'Courier New',monospace;
-    min-width:180px; display:none; backdrop-filter: blur(10px);
+    min-width:190px; max-width:230px; max-height:74vh; overflow:auto; display:none; backdrop-filter: blur(10px);
   }
   #machineMenu.open{display:block; animation: popIn 0.2s cubic-bezier(0.1, 1.2, 0.3, 1);}
   @keyframes popIn { 0% { transform: scale(0.9); opacity:0; } 100% { transform: scale(1); opacity:1; } }
