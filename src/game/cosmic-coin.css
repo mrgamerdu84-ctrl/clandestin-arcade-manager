@@ -360,3 +360,16 @@ body.bigscreen #sidebar{ display:none; }
 body.bigscreen #app{ grid-template-columns:1fr; }
 body.bigscreen #viewport{ width:100%; }
 body.bigscreen #title{ opacity:.5; }
+
+/* ---- pad des murs de la salle (agrandir / rétrécir la pièce) ---- */
+#wallGrid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin:6px 0 4px;
+  align-items:center;
+}
+#wallGrid button{
+  background:rgba(10,4,20,.82); color:#9ffff5; border:1px solid #2fd4c8; border-radius:8px;
+  font-size:12px; padding:6px 0; cursor:pointer;
+}
+#wallGrid button:active{ background:#2fd4c8; color:#04201e; }
+#wallGrid span{ text-align:center; color:#ff7bd5; font-weight:700; font-size:12px; }
+#wallInfo{ font-size:9px; color:var(--dim); line-height:1.4; }
