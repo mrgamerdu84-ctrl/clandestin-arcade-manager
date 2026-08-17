@@ -2095,7 +2095,7 @@ function hoodDef(id){ return HOOD_ITEMS.find(i=>i.id===id); }
 function spawnHood(entry){
   const def = hoodDef(entry.id);
   if(!def) return null;
-  const wrap = placeExt(hoodGroup, def.key, def.spec, entry.x, 0.001, entry.z);
+  const wrap = placeExt(hoodGroup, def.key, def.spec, entry.x, entry.z, entry.rot||0);
   if(!wrap) return null;
   wrap.position.set(entry.x, def.id.startsWith('road')||def.id==='sidewalk' ? 0.02 : 0, entry.z);
   wrap.rotation.y = entry.rot || 0;
