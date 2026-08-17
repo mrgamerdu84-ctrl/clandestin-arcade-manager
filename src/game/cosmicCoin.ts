@@ -517,6 +517,57 @@ const BUILDERS = {
     });
     return g;
   },
+  'toilets': ()=>{
+    const g = group();
+    // cabine avec porte + cuvette : petit coin toilettes de l'arcade
+    const wall1 = box(1.4,2.0,0.1, '#cfd6e6'); wall1.position.set(0,1.0,-0.6); g.add(wall1);
+    const wall2 = box(0.1,2.0,1.2, '#cfd6e6'); wall2.position.set(-0.65,1.0,0); g.add(wall2);
+    const door = box(1.2,1.7,0.08, '#5ba3d0'); door.position.set(0.1,0.9,0.55); g.add(door);
+    const sign = box(0.28,0.28,0.04, PAL.yellow); sign.position.set(0.1,1.75,0.6); g.add(sign);
+    const bowl = cyl(0.2,0.18,0.4,'#f2f5fa',12); bowl.position.set(-0.2,0.2,-0.15); g.add(bowl);
+    const tank = box(0.36,0.4,0.16,'#f2f5fa'); tank.position.set(-0.2,0.55,-0.35); g.add(tank);
+    const sink = cyl(0.16,0.12,0.14,'#e8eef7',12); sink.position.set(0.35,0.75,-0.4); g.add(sink);
+    return g;
+  },
+  'tables': ()=>{
+    const g = group();
+    // table ronde + 3 chaises pour que les clients s'assoient
+    const top = cyl(0.5,0.5,0.07,'#3a2350',20); top.position.y=0.72; g.add(top);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.5,0.03,8,28), mat(PAL.pink));
+    rim.rotation.x = Math.PI/2; rim.position.y = 0.76; g.add(rim);
+    const foot = cyl(0.09,0.12,0.7, PAL.chrome,12); foot.position.y=0.35; g.add(foot);
+    const base = cyl(0.32,0.32,0.05,'#1a1226',16); base.position.y=0.03; g.add(base);
+    for(let i=0;i<3;i++){
+      const a = i*Math.PI*2/3 + 0.4;
+      const ch = group();
+      const seat = cyl(0.2,0.2,0.08,'#20e6d0',14); seat.position.y=0.44; ch.add(seat);
+      const backr = box(0.36,0.42,0.06,'#17b3a2'); backr.position.set(0,0.66,-0.18); ch.add(backr);
+      const stem = cyl(0.05,0.06,0.42, PAL.chrome,10); stem.position.y=0.21; ch.add(stem);
+      ch.position.set(Math.cos(a)*0.85, 0, Math.sin(a)*0.85);
+      ch.rotation.y = -a + Math.PI/2;
+      g.add(ch);
+    }
+    return g;
+  },
+  'djdeck': ()=>{
+    const g = group();
+    // platine du DJ : caisson, deux platines vinyle, mixette et enceintes
+    const deck = box(1.5,0.85,0.6,'#241338'); deck.position.y=0.43; g.add(deck);
+    const front = box(1.52,0.24,0.62, PAL.pink); front.position.y=0.7; g.add(front);
+    for(let i=0;i<2;i++){
+      const plate = cyl(0.2,0.2,0.05,'#0e0a16',18); plate.position.set(-0.4+i*0.8,0.88,0); g.add(plate);
+      const vinyl = cyl(0.05,0.05,0.055, PAL.teal,12); vinyl.position.set(-0.4+i*0.8,0.91,0); g.add(vinyl);
+    }
+    const mixer = box(0.28,0.06,0.4,'#1c1430'); mixer.position.set(0,0.88,0); g.add(mixer);
+    for(let i=0;i<3;i++){
+      const knob = cyl(0.03,0.03,0.05, PAL.yellow,8); knob.position.set(-0.08+i*0.08,0.93,0.1); g.add(knob);
+    }
+    [-1,1].forEach(s=>{
+      const spk = box(0.34,0.7,0.34,'#141024'); spk.position.set(s*1.0,0.35,0); g.add(spk);
+      const cone = cyl(0.12,0.12,0.04, PAL.purple,14); cone.rotation.x=Math.PI/2; cone.position.set(s*1.0,0.45,0.18); g.add(cone);
+    });
+    return g;
+  },
   'neon': ()=>{
     const g = group();
     const base = cyl(0.16,0.18,0.15, PAL.black,10); base.position.y=0.08; g.add(base);
