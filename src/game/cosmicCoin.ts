@@ -970,7 +970,11 @@ const SCREEN_COLORS = {
 // machines sans écran frontal : pas de panneau
 const NO_SCREEN = new Set(['statue','neon','prizes','basket','airhockey','poker','blackjack','vip']);
 function addScreenGlow(wrapper, clone, defId){
+  // panneaux émissifs retirés : ils flottaient devant les bornes et rendaient mal
+  return;
+  // eslint-disable-next-line no-unreachable
   if(NO_SCREEN.has(defId)) return;
+
   const bb = new THREE.Box3().setFromObject(clone);
   const size = new THREE.Vector3(); bb.getSize(size);
   const center = new THREE.Vector3(); bb.getCenter(center);
