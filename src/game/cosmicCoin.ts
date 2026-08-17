@@ -4477,9 +4477,15 @@ function updateCustomers(dt){
       }
       c.prevDist = dist;
     } else if(c.phase==='playing'){
-      // face à la machine + animation de jeu bien lisible (mains sur la borne)
-      if(c.target) faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
+      // le client reste bien visible devant la borne pendant toute la partie
+      c.mesh.visible = true;
+      if(c.target){
+        c.targetPos.copy(standSpotFor(c.target, c));
+        c.mesh.position.x = c.targetPos.x; c.mesh.position.z = c.targetPos.z;
+        faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
+      }
       const t = performance.now();
+
       c.mesh.position.y = Math.abs(Math.sin(t/180))*0.045;
       stepCharacter(c.mesh, t/220, 0.28);
       const u = c.mesh.userData;
