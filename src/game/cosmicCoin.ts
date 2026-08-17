@@ -3452,7 +3452,9 @@ function updateHoodGrid(){
     scene.add(hoodGridMesh);
   }
   if(hoodGridMesh) hoodGridMesh.visible = show;
-  if(!show){ hoodCell.visible = false; hoodPickBox.visible = false; return; }
+  if(!show){ hoodCell.visible = false; hoodPickBox.visible = false; hoodGhostGroup.visible = false; return; }
+  updateHoodGhost(hoodGhostPos && hoodGhostPos.x, hoodGhostPos && hoodGhostPos.z);
+
   hoodCell.scale.set(snap*0.94, snap*0.94, 1);
   const p = selPos(hoodPick);
   if(p){
