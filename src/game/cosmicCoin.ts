@@ -2925,12 +2925,10 @@ function applyStyle(){
 function refreshStyleUI(){
   const panel = document.getElementById('stylePanel');
   if(!panel) return;
-  panel.style.display = (!exteriorMode && styleOpen) ? 'block' : 'none';
+  panel.style.display = 'block'; // le panneau vit maintenant dans l'onglet Déco de la boutique
   const btn = document.getElementById('styleToggle');
-  if(btn){
-    btn.style.display = exteriorMode ? 'none' : 'inline-block';
-    btn.classList.toggle('on', styleOpen);
-  }
+  if(btn) btn.style.display = 'none';
+
   const w = document.getElementById('styleWall'); if(w) w.value = roomStyle.wall;
   const t1 = document.getElementById('styleTrim'); if(t1) t1.value = roomStyle.trim;
   const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
@@ -3029,7 +3027,8 @@ function initStyleUI(){
   };
   bind('styleWall','wall'); bind('styleTrim','trim'); bind('styleTrim2','trim2'); bind('styleFloor','floor');
   const tog = document.getElementById('styleToggle');
-  if(tog) tog.onclick = ()=>{ styleOpen = !styleOpen; refreshStyleUI(); };
+  if(tog) tog.onclick = ()=>{ openShopTab('deco'); };
+
   const rst = document.getElementById('styleReset');
   if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT, owned:roomStyle.owned}; applyStyle(); log("Décoration de la salle remise à zéro (les styles achetés restent à toi)."); };
   refreshStyleUI();
@@ -3744,18 +3743,29 @@ function cleanOne(){
   }
   updateHUD();
 }
+let cleanBtnEl = null, cleanTextEl = null;
 function renderCleanPanel(){
   const box = document.getElementById('cleanBox');
   if(!box) return;
   const left = state.grime|0;
   if(left<=0){ box.style.display='none'; return; }
   box.style.display='block';
-  box.innerHTML = `<div class="costLine">Boîte rachetée en ruine : <b>${left}</b> tas de gravats.<br>Recettes réduites de 40 % tant que ce n'est pas nettoyé.</div>`;
-  const b = document.createElement('button');
-  b.type='button'; b.className='btn pink'; b.innerText = `🧹 Nettoyer un tas (${left})`;
-  b.onclick = ()=>cleanOne();
-  box.appendChild(b);
+  // le bouton est créé une seule fois : le recréer à chaque tick annulait les taps
+  if(!cleanTextEl || cleanTextEl.parentNode !== box){
+    box.innerHTML = '';
+    cleanTextEl = document.createElement('div');
+    cleanTextEl.className = 'costLine';
+    box.appendChild(cleanTextEl);
+    cleanBtnEl = document.createElement('button');
+    cleanBtnEl.type='button'; cleanBtnEl.className='btn pink';
+    cleanBtnEl.onclick = ()=>cleanOne();
+    box.appendChild(cleanBtnEl);
+  }
+  cleanTextEl.innerHTML = `Boîte rachetée en ruine : <b>${left}</b> tas de gravats.<br>Recettes réduites de 40 % tant que ce n'est pas nettoyé.`;
+  const label = `🧹 Nettoyer un tas (${left})`;
+  if(cleanBtnEl.innerText !== label) cleanBtnEl.innerText = label;
 }
+
 
 
 
@@ -4921,7 +4931,7 @@ function updateHUD(){
   if(scoreEl) scoreEl.innerText = computeScore().toLocaleString('fr-FR');
   updateDangerHUD();
   if(typeof refreshHoodUI === 'function' && exteriorMode) refreshHoodUI();
-  if(typeof refreshStyleUI === 'function' && styleOpen) refreshStyleUI();
+  if(typeof refreshStyleUI === 'function' && shopTab === 'deco') refreshStyleUI();
   renderDoorPanel();
   renderExpandBox();
   renderBankPanel();
@@ -4971,17 +4981,45 @@ function setSidebarOpen(open){
 menuToggleBtn.onclick = ()=> setSidebarOpen(!sidebarEl.classList.contains('open'));
 dragHandleEl.onclick = ()=> setSidebarOpen(!sidebarEl.classList.contains('open'));
 
+/* ---------- onglets de la boutique ---------- */
+let shopTab = 'machines';
+const SHOP_TABS = ['machines','room','deco','bank','manage'];
+function setShopTab(tab){
+  if(!SHOP_TABS.includes(tab)) tab = 'machines';
+  shopTab = tab;
+  document.querySelectorAll('#shopTabs button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.shopTab').forEach(p=>{
+    p.style.display = (p.dataset.tab === tab) ? 'block' : 'none';
+  });
+  if(tab === 'deco' && typeof refreshStyleUI === 'function') refreshStyleUI();
+}
+function openShopTab(tab){
+  closeAllPanels('shop');
+  setShopTab(tab);
+  setSidebarOpen(true);
+  sidebarEl.scrollTop = 0;
+  refreshDock();
+}
+function initShopTabs(){
+  document.querySelectorAll('#shopTabs button').forEach(b=>{
+    b.onclick = ()=>{ setShopTab(b.dataset.tab); sidebarEl.scrollTop = 0; refreshDock(); };
+  });
+  setShopTab(shopTab);
+}
+
 /* ---------- dock : un seul menu, un seul panneau ouvert à la fois ---------- */
 function closeAllPanels(except){
   if(except!=='shop') setSidebarOpen(false);
-  if(except!=='deco' && styleOpen){ styleOpen=false; refreshStyleUI(); }
   if(except!=='opts') document.body.classList.remove('optsOn');
   refreshDock();
 }
 function refreshDock(){
   const set=(id,on)=>{ const b=document.getElementById(id); if(b) b.classList.toggle('on', !!on); };
-  set('dockShop', sidebarEl.classList.contains('open'));
-  set('dockDeco', styleOpen && !exteriorMode);
+  const shopOpen = sidebarEl.classList.contains('open');
+  set('dockShop', shopOpen && shopTab !== 'deco');
+  set('dockDeco', shopOpen && shopTab === 'deco');
   set('dockHood', exteriorMode);
   set('dockCam', document.body.classList.contains('camOn'));
   set('dockOpts', document.body.classList.contains('optsOn'));
@@ -4991,14 +5029,17 @@ function refreshDock(){
 function initDock(){
   const on=(id,fn)=>{ const b=document.getElementById(id); if(b) b.onclick=fn; };
   on('dockShop', ()=>{
-    const open = !sidebarEl.classList.contains('open');
-    closeAllPanels('shop'); setSidebarOpen(open); refreshDock();
+    // le bouton ouvre toujours quelque chose : s'il est déjà ouvert sur la déco, on revient aux machines
+    if(sidebarEl.classList.contains('open') && shopTab !== 'machines'){ openShopTab('machines'); return; }
+    if(sidebarEl.classList.contains('open') && window.innerWidth <= 820){ setSidebarOpen(false); refreshDock(); return; }
+    openShopTab('machines');
   });
   on('dockDeco', ()=>{
     if(exteriorMode) setExteriorMode(false);
-    const open = !styleOpen;
-    closeAllPanels('deco'); styleOpen = open; refreshStyleUI(); refreshDock();
+    if(sidebarEl.classList.contains('open') && shopTab === 'deco' && window.innerWidth <= 820){ setSidebarOpen(false); refreshDock(); return; }
+    openShopTab('deco');
   });
+
   on('dockHood', ()=>{
     closeAllPanels('hood');
     setExteriorMode(!exteriorMode);
@@ -5546,7 +5587,9 @@ preloadModels(()=>{
   initBigScreen();
   initTapPlace();
   initCamPad();
+  initShopTabs();
   initDock();
+
   initBrandUI();
   initStyleUI();
   initCosmeticsUI();
