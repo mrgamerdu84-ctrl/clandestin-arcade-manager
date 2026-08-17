@@ -986,14 +986,33 @@ const WALL_DETAILS = [
   {id:'plain',   label:'Mur nu'},
   {id:'model',   label:'Mur d\'origine'},
 ];
-let roomStyle = {...STYLE_DEFAULT};
+/* coûts de personnalisation : on dépense les jetons gagnés pour décorer */
+const PAINT_COST = 25;
+const DETAIL_COST = {stripes:0, bricks:90, panels:140, plain:0, model:60};
+let roomStyle = {...STYLE_DEFAULT, owned:['stripes','plain']};
+/* petit portefeuille commun à toutes les personnalisations */
+function payFor(cost, label){
+  if(!cost || cost<=0) return true;
+  if(state.money < cost){ log(`Pas assez de jetons : ${label} coûte ${cost}¢ (tu as ${Math.round(state.money)}¢).`); return false; }
+  state.money -= cost;
+  if(typeof updateHUD === 'function') updateHUD();
+  return true;
+}
+
 function readStyle(){
   try{
     const raw = localStorage.getItem(STYLE_KEY);
-    if(raw) return {...STYLE_DEFAULT, ...JSON.parse(raw)};
+    if(raw){
+      const s = {...STYLE_DEFAULT, ...JSON.parse(raw)};
+      s.owned = Array.isArray(s.owned) ? s.owned : ['stripes','plain'];
+      if(!s.owned.includes('stripes')) s.owned.push('stripes');
+      if(!s.owned.includes('plain')) s.owned.push('plain');
+      return s;
+    }
   }catch(e){}
-  return {...STYLE_DEFAULT};
+  return {...STYLE_DEFAULT, owned:['stripes','plain']};
 }
+
 function writeStyle(){
   try{ localStorage.setItem(STYLE_KEY, JSON.stringify(roomStyle)); }catch(e){}
 }
@@ -2332,6 +2351,15 @@ const HOOD_ITEMS = [
   {id:'taxi',      label:'🚕 Taxi',         key:'CAR_TAXI',         spec:{mode:'footprint',target:1.05}},
   {id:'van',       label:'🚐 Camionnette',  key:'CAR_VAN',          spec:{mode:'footprint',target:1.05}},
 ];
+/* prix des éléments du quartier : on paie avec les jetons gagnés */
+const HOOD_COST = {
+  roadauto:12, road:10, roadcross:12, roadbend:10, roadinter:14, sidewalk:8,
+  house_a:60, house_e:60, house_j:45, city_a:110, city_b:110, city_c:110,
+  city_f:120, sky_a:200, sky_c:200, shop:90, lamp:25, tree:15, planter:10,
+  fence:8, bench:12, phone:30, car:40, taxi:45, van:50,
+};
+function hoodCost(id){ return HOOD_COST[id] ?? 20; }
+function hoodRefund(id){ return Math.round(hoodCost(id)*0.5); }
 let hoodEdit = false;
 let hoodSel = null;
 let hoodRot = 0;
@@ -2436,7 +2464,10 @@ function refreshHoodUI(){
   if(rotLbl) rotLbl.innerText = Math.round(hoodRot*180/Math.PI)+'°';
   panel.querySelectorAll('.hoodItem').forEach(b=>{
     b.classList.toggle('on', b.dataset.id===hoodSel && !hoodErase);
+    b.classList.toggle('tooPoor', state.money < hoodCost(b.dataset.id));
   });
+  const head = document.getElementById('hoodMoney');
+  if(head) head.innerText = `Jetons : ${Math.round(state.money)}¢ — retirer un objet rembourse la moitié.`;
   const arrows = document.getElementById('hoodArrows');
   if(arrows) arrows.style.display = (exteriorMode && hoodEdit) ? 'grid' : 'none';
   if(typeof updateHoodGrid === 'function') updateHoodGrid();
@@ -2445,7 +2476,7 @@ function refreshHoodUI(){
 function buildHoodPalette(){
   const list = document.getElementById('hoodList');
   if(!list) return;
-  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}</button>`).join('');
+  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}<b class="hoodPrice">${hoodCost(i.id)}¢</b></button>`).join('');
   list.querySelectorAll('.hoodItem').forEach(b=>{
     b.onclick = ()=>{
       hoodErase = false;
@@ -2537,8 +2568,16 @@ function refreshStyleUI(){
   const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
   const f = document.getElementById('styleFloor'); if(f) f.value = roomStyle.floor;
   panel.querySelectorAll('.styleDet').forEach(b=>{
-    b.classList.toggle('on', b.dataset.det === roomStyle.detail);
+    const id = b.dataset.det;
+    const owned = roomStyle.owned.includes(id);
+    const price = DETAIL_COST[id] || 0;
+    const def = WALL_DETAILS.find(d=>d.id===id);
+    b.classList.toggle('on', id === roomStyle.detail);
+    b.classList.toggle('locked', !owned);
+    b.innerText = owned ? def.label : `${def.label} · ${price}¢`;
   });
+  const bill = document.getElementById('styleCost');
+  if(bill) bill.innerText = `Repeindre une surface : ${PAINT_COST}¢ — jetons : ${Math.round(state.money)}¢`;
 }
 let styleOpen = false;
 function initStyleUI(){
@@ -2546,20 +2585,45 @@ function initStyleUI(){
   if(list){
     list.innerHTML = WALL_DETAILS.map(d=>`<button type="button" class="styleDet" data-det="${d.id}">${d.label}</button>`).join('');
     list.querySelectorAll('.styleDet').forEach(b=>{
-      b.onclick = ()=>{ roomStyle.detail = b.dataset.det; applyStyle(); };
+      b.onclick = ()=>{
+        const id = b.dataset.det;
+        if(!roomStyle.owned.includes(id)){
+          const price = DETAIL_COST[id] || 0;
+          if(!payFor(price, `le style « ${WALL_DETAILS.find(d=>d.id===id).label} »`)) return;
+          roomStyle.owned.push(id);
+          log(`Style de mur débloqué : ${WALL_DETAILS.find(d=>d.id===id).label}.`);
+        }
+        roomStyle.detail = id;
+        applyStyle();
+      };
     });
   }
+  // aperçu gratuit pendant qu'on fait glisser, facturé quand on valide la couleur
   const bind = (id, key)=>{
     const el = document.getElementById(id);
-    if(el) el.oninput = ()=>{ roomStyle[key] = el.value; applyStyle(); };
+    if(!el) return;
+    let before = roomStyle[key];
+    el.onfocus = ()=>{ before = roomStyle[key]; };
+    el.oninput = ()=>{ roomStyle[key] = el.value; buildRoom(state.stage); };
+    el.onchange = ()=>{
+      const picked = el.value;
+      if(picked === before){ return; }
+      roomStyle[key] = before;
+      if(!payFor(PAINT_COST, 'un coup de peinture')){ applyStyle(); return; }
+      roomStyle[key] = picked;
+      before = picked;
+      applyStyle();
+      log(`Surface repeinte pour ${PAINT_COST}¢.`);
+    };
   };
   bind('styleWall','wall'); bind('styleTrim','trim'); bind('styleTrim2','trim2'); bind('styleFloor','floor');
   const tog = document.getElementById('styleToggle');
   if(tog) tog.onclick = ()=>{ styleOpen = !styleOpen; refreshStyleUI(); };
   const rst = document.getElementById('styleReset');
-  if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT}; applyStyle(); log("Décoration de la salle remise à zéro."); };
+  if(rst) rst.onclick = ()=>{ roomStyle = {...STYLE_DEFAULT, owned:roomStyle.owned}; applyStyle(); log("Décoration de la salle remise à zéro (les styles achetés restent à toi)."); };
   refreshStyleUI();
 }
+
 
 /* ---------- retouches du décor d'origine (déplacer / retirer / remettre) ---------- */
 const OVR_KEY = 'cc_hood_ovr_v1';
@@ -2812,6 +2876,10 @@ canvas.addEventListener('click', (e)=>{
       if(hoodPick && hoodPick.entry === pick.entry) hoodPick = null;
       hoodData = hoodData.filter(d=>d !== pick.entry);
       hoodGroup.remove(pick.wrap);
+      const back = hoodRefund(pick.entry.id);
+      state.money += back;
+      if(typeof updateHUD === 'function') updateHUD();
+      log(`Objet retiré : +${back}¢ récupérés.`);
       writeHood();
     } else {
       pick.wrap.visible = false;
@@ -2836,6 +2904,7 @@ canvas.addEventListener('click', (e)=>{
     rot: hoodRot,
   };
   if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
+  if(!payFor(hoodCost(hoodSel), def.label)) return;
   hoodData.push(entry);
   if(ROAD_IDS.includes(entry.id)) rebuildHood(); else spawnHood(entry);
   hoodPick = {kind:'hood', entry};
@@ -4182,6 +4251,8 @@ function updateHUD(){
   const scoreEl = document.getElementById('score');
   if(scoreEl) scoreEl.innerText = computeScore().toLocaleString('fr-FR');
   updateDangerHUD();
+  if(typeof refreshHoodUI === 'function' && exteriorMode) refreshHoodUI();
+  if(typeof refreshStyleUI === 'function' && styleOpen) refreshStyleUI();
   renderDoorPanel();
   renderExpandBox();
   renderBackroom();

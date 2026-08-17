@@ -149,7 +149,8 @@ function GamePage() {
           🎨 DÉCO DE LA SALLE
         </button>
         <div id="stylePanel" style={{ display: "none" }}>
-          <div className="hoodHead">Personnalise ta salle — sauvegardé auto</div>
+          <div className="hoodHead">Personnalise ta boîte — payé avec tes jetons, sauvegardé auto</div>
+          <div id="styleCost" className="costLine" />
           <label className="styleRow">
             <span>Mur</span>
             <input id="styleWall" type="color" />
@@ -193,6 +194,7 @@ function GamePage() {
         </div>
         <div id="hoodPanel" style={{ display: "none" }}>
           <div className="hoodHead">Pose ce que tu veux : clique une case au sol. ✋ Déplacer et 🧨 Retirer marchent aussi sur le décor d'origine.</div>
+          <div id="hoodMoney" className="costLine" />
           <div id="hoodList" />
         </div>
 
