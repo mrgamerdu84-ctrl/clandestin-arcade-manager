@@ -6001,7 +6001,7 @@ preloadModels(()=>{
   renderShop();
   updateHUD();
   document.getElementById('stageLabel').innerText = STAGES[state.stage].name;
-  if(saved) log(`Partie rechargée automatiquement : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
+  if(loaded) log(`Partie rechargée automatiquement : jour ${state.day}, ${Math.round(state.money)}¢ en caisse.`);
   else log("Une boîte de nuit condamnée, des planches sur la porte… et une enveloppe qui dépasse en dessous. Clique dessus.");
   if(lightRender) log("Rendu léger actif : la salle s'affiche avec des placeholders (⚡ dans la barre du haut).");
   else if(missingModels.length) log(`${missingModels.length} modèle(s) 3D indisponible(s) — remplacés par des placeholders.`);
