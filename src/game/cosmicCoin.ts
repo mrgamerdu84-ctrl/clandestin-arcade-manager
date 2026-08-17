@@ -2527,14 +2527,23 @@ function buildExteriorBuilding(stageIdx, cols, rows){
     const canopyPoleB = cyl(0.03,0.03,0.5,'#333333'); canopyPoleB.position.set(-w/2-0.5,2.3,doorZ+0.55); exteriorBuildingGroup.add(canopyPoleB);
   }
   // lettre glissée sous la porte : point de départ de l'histoire
+  introLetter = null;
   if(!(state && state.storyDone && state.storyDone.includes('intro'))){
     const letter = group();
     const env = box(0.34,0.02,0.24,'#efe6cf'); env.position.y=0.02; letter.add(env);
     const flap = box(0.2,0.02,0.14,'#d9cbab'); flap.position.set(0.02,0.035,0); flap.rotation.y=0.35; letter.add(flap);
     const halo = makeGlowSprite('#fff3c4', 0.6); halo.position.y=0.25; letter.add(halo);
+    const tag = makeTagSprite('\u2709 Lire la lettre', '#ffe600');
+    tag.position.set(0, 1.15, 0);
+    letter.add(tag);
     letter.position.set(-w/2-0.75, 0.21, doorZ+0.15);
     letter.rotation.y = 0.4;
+    letter.userData.baseY = letter.position.y;
+    letter.userData.halo = halo;
+    letter.userData.tag = tag;
+    letter.userData.pickable = 'letter';
     exteriorBuildingGroup.add(letter);
+    introLetter = letter;
     // planches clouées sur la porte : la boîte est condamnée
     [0.35,0.95].forEach((y,k)=>{
       const plank = box(0.08,0.16,1.5, k? '#6b5231':'#7d6039');
