@@ -28,7 +28,7 @@ jobs:
       - uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Install Capacitor
         run: bun add @capacitor/core @capacitor/android && bun add -d @capacitor/cli
