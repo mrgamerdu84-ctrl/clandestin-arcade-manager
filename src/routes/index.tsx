@@ -212,7 +212,16 @@ function GamePage() {
           <div id="hoodList" />
         </div>
 
+        <nav id="dock" aria-label="Menu principal">
+          <button id="dockShop" type="button"><i>🕹️</i><span>Boutique</span></button>
+          <button id="dockDeco" type="button"><i>🎨</i><span>Déco</span></button>
+          <button id="dockHood" type="button"><i>🏙️</i><span>Quartier</span></button>
+          <button id="dockCam" type="button"><i>🎮</i><span>Caméra</span></button>
+          <button id="dockOpts" type="button"><i>⚙️</i><span>Options</span></button>
+        </nav>
+
       </div>
+
 
       <div id="sidebar">
         <div id="dragHandle">▲ BOUTIQUE ▲</div>

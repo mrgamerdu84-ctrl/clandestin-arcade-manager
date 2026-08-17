@@ -2652,7 +2652,9 @@ function refreshHoodUI(){
   const head = document.getElementById('hoodMoney');
   if(head) head.innerText = `Jetons : ${Math.round(state.money)}¢ — retirer un objet rembourse la moitié.`;
   const arrows = document.getElementById('hoodArrows');
-  if(arrows) arrows.style.display = (exteriorMode && hoodEdit) ? 'grid' : 'none';
+  const editing = !!(exteriorMode && hoodEdit);
+  if(arrows) arrows.style.display = editing ? 'grid' : 'none';
+  document.body.classList.toggle('hoodEdit', editing);
   if(typeof updateHoodGrid === 'function') updateHoodGrid();
 }
 
@@ -2750,11 +2752,12 @@ function refreshStyleUI(){
   const t1 = document.getElementById('styleTrim'); if(t1) t1.value = roomStyle.trim;
   const t2 = document.getElementById('styleTrim2'); if(t2) t2.value = roomStyle.trim2;
   const f = document.getElementById('styleFloor'); if(f) f.value = roomStyle.floor;
-  panel.querySelectorAll('.styleDet').forEach(b=>{
+  panel.querySelectorAll('#styleDetails .styleDet').forEach(b=>{
     const id = b.dataset.det;
+
     const owned = roomStyle.owned.includes(id);
     const price = DETAIL_COST[id] || 0;
-    const def = WALL_DETAILS.find(d=>d.id===id);
+    const def = WALL_DETAILS.find(d=>d.id===id); if(!def) return;
     b.classList.toggle('on', id === roomStyle.detail);
     b.classList.toggle('locked', !owned);
     b.innerText = owned ? def.label : `${def.label} · ${price}¢`;
@@ -4618,6 +4621,7 @@ function updateHUD(){
   renderDoorPanel();
   renderExpandBox();
   renderBankPanel();
+  if(typeof refreshDock === 'function') refreshDock();
   renderCleanPanel();
   renderBackroom();
   renderQuestPanel();
@@ -4656,6 +4660,50 @@ function setSidebarOpen(open){
 }
 menuToggleBtn.onclick = ()=> setSidebarOpen(!sidebarEl.classList.contains('open'));
 dragHandleEl.onclick = ()=> setSidebarOpen(!sidebarEl.classList.contains('open'));
+
+/* ---------- dock : un seul menu, un seul panneau ouvert à la fois ---------- */
+function closeAllPanels(except){
+  if(except!=='shop') setSidebarOpen(false);
+  if(except!=='deco' && styleOpen){ styleOpen=false; refreshStyleUI(); }
+  if(except!=='opts') document.body.classList.remove('optsOn');
+  refreshDock();
+}
+function refreshDock(){
+  const set=(id,on)=>{ const b=document.getElementById(id); if(b) b.classList.toggle('on', !!on); };
+  set('dockShop', sidebarEl.classList.contains('open'));
+  set('dockDeco', styleOpen && !exteriorMode);
+  set('dockHood', exteriorMode);
+  set('dockCam', document.body.classList.contains('camOn'));
+  set('dockOpts', document.body.classList.contains('optsOn'));
+  const hood = document.getElementById('dockHood');
+  if(hood) hood.querySelector('span').innerText = exteriorMode ? 'Intérieur' : 'Quartier';
+}
+function initDock(){
+  const on=(id,fn)=>{ const b=document.getElementById(id); if(b) b.onclick=fn; };
+  on('dockShop', ()=>{
+    const open = !sidebarEl.classList.contains('open');
+    closeAllPanels('shop'); setSidebarOpen(open); refreshDock();
+  });
+  on('dockDeco', ()=>{
+    if(exteriorMode) setExteriorMode(false);
+    const open = !styleOpen;
+    closeAllPanels('deco'); styleOpen = open; refreshStyleUI(); refreshDock();
+  });
+  on('dockHood', ()=>{
+    closeAllPanels('hood');
+    setExteriorMode(!exteriorMode);
+    refreshDock();
+  });
+  on('dockCam', ()=>{ document.body.classList.toggle('camOn'); refreshDock(); });
+  on('dockOpts', ()=>{
+    const open = !document.body.classList.contains('optsOn');
+    closeAllPanels('opts');
+    document.body.classList.toggle('optsOn', open);
+    refreshDock();
+  });
+  if(window.innerWidth > 820) document.body.classList.add('camOn');
+  refreshDock();
+}
 addWin('orientationchange', ()=>setTimeout(resize,300));
 
 document.getElementById('pauseBtn').onclick=()=>{
@@ -5141,6 +5189,7 @@ preloadModels(()=>{
   initBigScreen();
   initTapPlace();
   initCamPad();
+  initDock();
   initBrandUI();
   initStyleUI();
   initWallUI();
