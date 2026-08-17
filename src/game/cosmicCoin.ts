@@ -4455,7 +4455,7 @@ function updateCustomers(dt){
     }
     if(c.phase==='in'){
       // la machine a pu être déplacée/pivotée : on resynchronise la cible
-      if(c.target) c.targetPos.copy(standSpotFor(c.target));
+      if(c.target) c.targetPos.copy(standSpotFor(c.target, c));
       const dir = new THREE.Vector3().subVectors(c.targetPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
       if(dist<0.25){
