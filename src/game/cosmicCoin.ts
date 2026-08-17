@@ -2047,8 +2047,172 @@ function setExteriorMode(on){
     btn.innerText = '🏙️ EXTÉRIEUR';
   }
   updateCamera();
+  refreshHoodUI();
 }
 document.getElementById('exteriorBtn').onclick = ()=> setExteriorMode(!exteriorMode);
+
+/* ============================================================
+   ÉDITEUR DE QUARTIER — le joueur pose routes, maisons, immeubles…
+   ============================================================ */
+const HOOD_KEY = 'cc_hood_v1';
+const HOOD_ITEMS = [
+  {id:'road',      label:'🛣️ Route',       key:'ROAD_STRAIGHT',    spec:{mode:'footprint',target:2.3}, snap:2.3},
+  {id:'roadcross', label:'🚸 Passage',      key:'ROAD_CROSS',       spec:{mode:'footprint',target:2.3}, snap:2.3},
+  {id:'roadbend',  label:'↩️ Virage',       key:'ROAD_BEND',        spec:{mode:'footprint',target:2.3}, snap:2.3},
+  {id:'roadinter', label:'✚ Carrefour',     key:'ROAD_INTERSECTION',spec:{mode:'footprint',target:2.3}, snap:2.3},
+  {id:'sidewalk',  label:'🧱 Trottoir',     key:'ROAD_SIDE',        spec:{mode:'footprint',target:2.3}, snap:2.3},
+  {id:'house_a',   label:'🏡 Maison',       key:'HOUSE_A',          spec:{mode:'height',target:1.8}},
+  {id:'house_e',   label:'🏘️ Pavillon',    key:'HOUSE_E',          spec:{mode:'height',target:1.8}},
+  {id:'house_j',   label:'🏚️ Vieille maison', key:'HOUSE_J',       spec:{mode:'height',target:1.8}},
+  {id:'city_a',    label:'🏢 Immeuble A',   key:'CITY_A',           spec:{mode:'footprint',target:4.2}},
+  {id:'city_b',    label:'🏢 Immeuble B',   key:'CITY_B',           spec:{mode:'footprint',target:4.2}},
+  {id:'city_c',    label:'🏢 Immeuble C',   key:'CITY_C',           spec:{mode:'footprint',target:4.2}},
+  {id:'city_f',    label:'🏬 Commerce',     key:'CITY_F',           spec:{mode:'footprint',target:4.0}},
+  {id:'sky_a',     label:'🌆 Gratte-ciel',  key:'CITY_SKY_A',       spec:{mode:'footprint',target:5.0}},
+  {id:'sky_c',     label:'🌇 Tour',         key:'CITY_SKY_C',       spec:{mode:'footprint',target:5.0}},
+  {id:'shop',      label:'🛍️ Boutique néon', key:'SHOPFRONT',       spec:{mode:'height',target:2.8}},
+  {id:'lamp',      label:'💡 Lampadaire',   key:'STREETLIGHT',      spec:{mode:'height',target:2.9}},
+  {id:'tree',      label:'🌳 Arbre',        key:'TREE_LARGE',       spec:{mode:'height',target:1.5}},
+  {id:'planter',   label:'🪴 Jardinière',   key:'PLANTER',          spec:{mode:'height',target:0.55}},
+  {id:'fence',     label:'🚧 Clôture',      key:'FENCE',            spec:{mode:'footprint',target:1.4}},
+  {id:'bench',     label:'🪑 Banc',         key:'BENCH_EXT',        spec:{mode:'height',target:0.7}},
+  {id:'phone',     label:'☎️ Cabine',       key:'PHONE_BOOTH',      spec:{mode:'height',target:2.0}},
+  {id:'car',       label:'🚗 Voiture',      key:'CAR_SEDAN',        spec:{mode:'footprint',target:1.05}},
+  {id:'taxi',      label:'🚕 Taxi',         key:'CAR_TAXI',         spec:{mode:'footprint',target:1.05}},
+  {id:'van',       label:'🚐 Camionnette',  key:'CAR_VAN',          spec:{mode:'footprint',target:1.05}},
+];
+let hoodEdit = false;
+let hoodSel = null;
+let hoodRot = 0;
+let hoodErase = false;
+let hoodData = [];   // {id,x,z,rot}
+
+const hoodPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+const hoodHit = new THREE.Vector3();
+
+function hoodDef(id){ return HOOD_ITEMS.find(i=>i.id===id); }
+
+function spawnHood(entry){
+  const def = hoodDef(entry.id);
+  if(!def) return null;
+  const wrap = placeExt(hoodGroup, def.key, def.spec, entry.x, 0.001, entry.z);
+  if(!wrap) return null;
+  wrap.position.set(entry.x, def.id.startsWith('road')||def.id==='sidewalk' ? 0.02 : 0, entry.z);
+  wrap.rotation.y = entry.rot || 0;
+  wrap.userData.hood = entry;
+  return wrap;
+}
+function rebuildHood(){
+  while(hoodGroup.children.length) hoodGroup.remove(hoodGroup.children[0]);
+  hoodData.forEach(spawnHood);
+}
+function writeHood(){
+  try { localStorage.setItem(HOOD_KEY, JSON.stringify(hoodData)); } catch(e){}
+}
+function readHood(){
+  try {
+    const raw = localStorage.getItem(HOOD_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter(e=>e && hoodDef(e.id)) : [];
+  } catch(e){ return []; }
+}
+
+function refreshHoodUI(){
+  const bar = document.getElementById('hoodBar');
+  const panel = document.getElementById('hoodPanel');
+  if(!bar || !panel) return;
+  bar.style.display = exteriorMode ? 'flex' : 'none';
+  panel.style.display = (exteriorMode && hoodEdit) ? 'block' : 'none';
+  const toggle = document.getElementById('hoodToggle');
+  if(toggle) toggle.classList.toggle('on', hoodEdit);
+  const eraseBtn = document.getElementById('hoodErase');
+  if(eraseBtn) eraseBtn.classList.toggle('on', hoodErase);
+  const rotLbl = document.getElementById('hoodRotVal');
+  if(rotLbl) rotLbl.innerText = Math.round(hoodRot*180/Math.PI)+'°';
+  panel.querySelectorAll('.hoodItem').forEach(b=>{
+    b.classList.toggle('on', b.dataset.id===hoodSel && !hoodErase);
+  });
+}
+
+function buildHoodPalette(){
+  const list = document.getElementById('hoodList');
+  if(!list) return;
+  list.innerHTML = HOOD_ITEMS.map(i=>`<button type="button" class="hoodItem" data-id="${i.id}">${i.label}</button>`).join('');
+  list.querySelectorAll('.hoodItem').forEach(b=>{
+    b.onclick = ()=>{
+      hoodErase = false;
+      hoodSel = (hoodSel===b.dataset.id) ? null : b.dataset.id;
+      refreshHoodUI();
+    };
+  });
+}
+
+function initHoodEditor(){
+  buildHoodPalette();
+  hoodData = readHood();
+  rebuildHood();
+  const t = document.getElementById('hoodToggle');
+  if(t) t.onclick = ()=>{ hoodEdit = !hoodEdit; if(!hoodEdit){ hoodSel=null; hoodErase=false; } refreshHoodUI(); };
+  const r = document.getElementById('hoodRotate');
+  if(r) r.onclick = ()=>{ hoodRot = (hoodRot + Math.PI/2) % (Math.PI*2); refreshHoodUI(); };
+  const e = document.getElementById('hoodErase');
+  if(e) e.onclick = ()=>{ hoodErase = !hoodErase; if(hoodErase) hoodSel = null; refreshHoodUI(); };
+  const u = document.getElementById('hoodUndo');
+  if(u) u.onclick = ()=>{
+    if(!hoodData.length) return;
+    hoodData.pop(); writeHood(); rebuildHood();
+    log("Dernier élément du quartier retiré.");
+  };
+  const c = document.getElementById('hoodClear');
+  if(c) c.onclick = ()=>{
+    if(!hoodData.length) return;
+    hoodData = []; writeHood(); rebuildHood();
+    log("Quartier personnalisé effacé.");
+  };
+  refreshHoodUI();
+}
+
+function hoodFromObject(obj){
+  let o = obj;
+  while(o){ if(o.userData && o.userData.hood) return o; o = o.parent; }
+  return null;
+}
+
+canvas.addEventListener('click', (e)=>{
+  if(!exteriorMode || !hoodEdit) return;
+  if(dragMoved){ dragMoved = false; return; }
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouseNDC.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+
+  if(hoodErase){
+    const hits = raycaster.intersectObjects(hoodGroup.children, true);
+    if(!hits.length) return;
+    const wrap = hoodFromObject(hits[0].object);
+    if(!wrap) return;
+    hoodData = hoodData.filter(d=>d !== wrap.userData.hood);
+    hoodGroup.remove(wrap);
+    writeHood();
+    return;
+  }
+
+  if(!hoodSel) return;
+  if(!raycaster.ray.intersectPlane(hoodPlane, hoodHit)) return;
+  const def = hoodDef(hoodSel);
+  const snap = def.snap || 1.15;
+  const entry = {
+    id: hoodSel,
+    x: Math.round(hoodHit.x/snap)*snap,
+    z: Math.round(hoodHit.z/snap)*snap,
+    rot: hoodRot,
+  };
+  if(Math.abs(entry.x) > 90 || Math.abs(entry.z) > 90) return;
+  hoodData.push(entry);
+  spawnHood(entry);
+  writeHood();
+});
+
 
 /* ---------- panneau lumière (jour / nuit / auto + luminosité) ---------- */
 function refreshLightUI(){
