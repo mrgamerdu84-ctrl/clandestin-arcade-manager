@@ -5476,6 +5476,7 @@ preloadModels(()=>{
   initDock();
   initBrandUI();
   initStyleUI();
+  initCosmeticsUI();
   initWallUI();
 
   updateCamera();
