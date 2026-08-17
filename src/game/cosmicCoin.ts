@@ -1305,88 +1305,92 @@ function buildRoom(stageIdx){
   const halfW = cols*CELL/2, halfD = rows*CELL/2;
   const danceX0 = -halfW + splitX*CELL, danceZ1 = -halfD + splitZ*CELL;
 
+  // ---- équipements de club : seulement si le joueur les a achetés ----
+  const owns = (id)=> !!(state && state.machines && state.machines.some(m=>m.def && m.def.id===id));
+  const hasFloor = owns('dancefloor');
+  const hasBall  = owns('discoball');
+  const hasDeck  = owns('djdeck');
+  const clubAlive = hasFloor && (state.grime|0) <= 0;
+
   // piste de danse : dalles lumineuses (nord-est)
   const danceW = cols-splitX, danceD = splitZ;
-  for(let x=0;x<danceW;x++){
-    for(let z=0;z<danceD;z++){
-      const tileMat = new THREE.MeshStandardMaterial({
-        color:0x120a20, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.25, roughness:0.35, metalness:0.3
-      });
-      const tile = new THREE.Mesh(new THREE.BoxGeometry(CELL*0.94, 0.06, CELL*0.94), tileMat);
-      tile.position.set(danceX0 + (x+0.5)*CELL, 0.03, -halfD + (z+0.5)*CELL);
-      tile.receiveShadow = true;
-      tile.userData.phase = (x+z)*0.7 + Math.random();
-      roomGroup.add(tile);
-      danceTiles.push(tile);
+  const danceCx = danceX0 + danceW*CELL/2, danceCz = -halfD + danceD*CELL/2;
+  const ringR = Math.min(danceW, danceD)*CELL*0.46;
+  if(hasFloor){
+    for(let x=0;x<danceW;x++){
+      for(let z=0;z<danceD;z++){
+        const tileMat = new THREE.MeshStandardMaterial({
+          color:0x120a20, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.25, roughness:0.35, metalness:0.3
+        });
+        const tile = new THREE.Mesh(new THREE.BoxGeometry(CELL*0.94, 0.06, CELL*0.94), tileMat);
+        tile.position.set(danceX0 + (x+0.5)*CELL, 0.03, -halfD + (z+0.5)*CELL);
+        tile.receiveShadow = true;
+        tile.userData.phase = (x+z)*0.7 + Math.random();
+        roomGroup.add(tile);
+        danceTiles.push(tile);
+      }
+    }
+    // anneau néon arrondi autour de la piste
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(ringR, 0.06, 8, 64),
+      new THREE.MeshStandardMaterial({color:0x20e6d0, emissive:new THREE.Color(0x20e6d0), emissiveIntensity:1.4, roughness:0.4})
+    );
+    ring.rotation.x = -Math.PI/2; ring.position.set(danceCx, 0.075, danceCz);
+    roomGroup.add(ring);
+    for(let a=0;a<2;a++){
+      const arch = new THREE.Mesh(
+        new THREE.TorusGeometry(ringR*0.9, 0.03, 6, 48, Math.PI),
+        new THREE.MeshStandardMaterial({color:0xff2e88, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.9, roughness:0.4})
+      );
+      arch.position.set(danceCx, 0.05, danceCz);
+      arch.rotation.y = a*Math.PI/2 + 0.4;
+      arch.scale.y = Math.min(0.75, 1.9/(ringR*0.9));
+      roomGroup.add(arch);
+    }
+    [[0xff2e88, -1], [0x20e6d0, 1]].forEach(([col, side], i)=>{
+      const spot = new THREE.PointLight(col, 1.6, 11, 2);
+      spot.position.set(danceCx + side*CELL*0.9, 2.3, danceCz + side*CELL*0.6);
+      spot.userData.kind = 'dance'; spot.userData.seed = i*2.1;
+      spot.userData.base = new THREE.Vector3().copy(spot.position);
+      roomGroup.add(spot); zoneLights.push(spot);
+    });
+  }
+  // boule à facettes : uniquement si achetée
+  if(hasBall){
+    discoBall = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.32, 1),
+      new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
+    );
+    discoBall.position.set(danceCx, 2.15, danceCz);
+    roomGroup.add(discoBall);
+    const ballGlow = makeGlowSprite('#bcd0ff', 0.7);
+    ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
+  }
+  // DJ : seulement si la platine est installée
+  if(hasDeck && clubAlive){
+    const djChar = buildCharacter('#20e6d0');
+    djChar.position.set(danceCx + (danceW*CELL/2) - 1.1, 0, -halfD + 1.6);
+    djChar.rotation.y = Math.PI;
+    roomGroup.add(djChar);
+    dancers.push({wrap:djChar, base:0, phase:0, style:'dj', x:djChar.position.x, z:djChar.position.z});
+  }
+
+  // foule qui danse : seulement quand la piste existe et que la salle est nettoyée
+  if(clubAlive){
+    const dancerCount = Math.min(8, Math.max(4, Math.round(danceW*danceD*0.55)));
+    const dCols = ['#ff2e88','#20e6d0','#ffe600','#9b5cff','#ff8a3c'];
+    for(let i=0;i<dancerCount;i++){
+      const ang = (i/dancerCount)*Math.PI*2 + Math.random()*0.4;
+      const rad = ringR*(0.25 + Math.random()*0.6);
+      const ch = buildCharacter(dCols[i%dCols.length]);
+      const px = danceCx + Math.cos(ang)*rad, pz = danceCz + Math.sin(ang)*rad;
+      ch.position.set(px, 0, pz);
+      ch.rotation.y = Math.atan2(danceCx-px, danceCz-pz);
+      roomGroup.add(ch);
+      dancers.push({wrap:ch, base:0, phase:Math.random()*6.3, style: i%3===0?'jump':(i%3===1?'sway':'spin'), x:px, z:pz});
     }
   }
-  // boule à facettes + spots colorés au-dessus de la piste
-  const danceCx = danceX0 + danceW*CELL/2, danceCz = -halfD + danceD*CELL/2;
-  discoBall = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(0.32, 1),
-    new THREE.MeshStandardMaterial({color:0xd8dcff, metalness:1, roughness:0.15, emissive:0x334466, emissiveIntensity:0.4})
-  );
-  discoBall.position.set(danceCx, 2.15, danceCz);
-  roomGroup.add(discoBall);
-  const ballGlow = makeGlowSprite('#bcd0ff', 0.7);
-  ballGlow.position.copy(discoBall.position); roomGroup.add(ballGlow);
-  [[0xff2e88, -1], [0x20e6d0, 1]].forEach(([col, side], i)=>{
-    const spot = new THREE.PointLight(col, 1.6, 11, 2);
-    spot.position.set(danceCx + side*CELL*0.9, 2.3, danceCz + side*CELL*0.6);
-    spot.userData.kind = 'dance'; spot.userData.seed = i*2.1;
-    spot.userData.base = new THREE.Vector3().copy(spot.position);
-    roomGroup.add(spot); zoneLights.push(spot);
-  });
-  // podium DJ dans l'angle de la piste
-  const dj = group();
-  const deck = box(1.6,0.9,0.6, '#241338'); deck.position.y=0.45; dj.add(deck);
-  const front = box(1.62,0.28,0.62, PAL.pink); front.position.y=0.72; dj.add(front);
-  for(let i=0;i<2;i++){
-    const plate = cyl(0.18,0.18,0.05,'#0e0a16',16); plate.position.set(-0.35+i*0.7,0.93,0); dj.add(plate);
-  }
-  dj.position.set(danceCx + (danceW*CELL/2) - 1.1, 0, -halfD + 0.7);
-  dj.rotation.y = -0.5;
-  roomGroup.add(dj);
-  const djChar = buildCharacter('#20e6d0');
-  djChar.position.set(dj.position.x, 0, dj.position.z + 0.9);
-  djChar.rotation.y = Math.PI;
-  roomGroup.add(djChar);
-  dancers.push({wrap:djChar, base:0, phase:0, style:'dj', x:djChar.position.x, z:djChar.position.z});
 
-  // anneau néon arrondi autour de la piste : casse l'aspect carré
-  const ringR = Math.min(danceW, danceD)*CELL*0.46;
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(ringR, 0.06, 8, 64),
-    new THREE.MeshStandardMaterial({color:0x20e6d0, emissive:new THREE.Color(0x20e6d0), emissiveIntensity:1.4, roughness:0.4})
-  );
-  ring.rotation.x = -Math.PI/2; ring.position.set(danceCx, 0.075, danceCz);
-  roomGroup.add(ring);
-  // arceaux néon discrets au-dessus de la piste (pas de grosses arches)
-  for(let a=0;a<2;a++){
-    const arch = new THREE.Mesh(
-      new THREE.TorusGeometry(ringR*0.9, 0.03, 6, 48, Math.PI),
-      new THREE.MeshStandardMaterial({color:0xff2e88, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.9, roughness:0.4})
-    );
-    arch.position.set(danceCx, 0.05, danceCz);
-    arch.rotation.y = a*Math.PI/2 + 0.4;
-    arch.scale.y = Math.min(0.75, 1.9/(ringR*0.9));
-    roomGroup.add(arch);
-  }
-
-
-  // foule qui danse sur la piste
-  const dancerCount = Math.min(8, Math.max(4, Math.round(danceW*danceD*0.55)));
-  const dCols = ['#ff2e88','#20e6d0','#ffe600','#9b5cff','#ff8a3c'];
-  for(let i=0;i<dancerCount;i++){
-    const ang = (i/dancerCount)*Math.PI*2 + Math.random()*0.4;
-    const rad = ringR*(0.25 + Math.random()*0.6);
-    const ch = buildCharacter(dCols[i%dCols.length]);
-    const px = danceCx + Math.cos(ang)*rad, pz = danceCz + Math.sin(ang)*rad;
-    ch.position.set(px, 0, pz);
-    ch.rotation.y = Math.atan2(danceCx-px, danceCz-pz);
-    roomGroup.add(ch);
-    dancers.push({wrap:ch, base:0, phase:Math.random()*6.3, style: i%3===0?'jump':(i%3===1?'sway':'spin'), x:px, z:pz});
-  }
 
   // arrière-salle clandestine (sud-est) : moquette rouge sombre + lumière tamisée
   const backW = cols-splitX, backD = rows-splitZ;
