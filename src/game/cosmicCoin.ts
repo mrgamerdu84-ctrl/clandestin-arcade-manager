@@ -1137,8 +1137,9 @@ roomStyle = readStyle();
    ROOM / STAGE CONSTRUCTION
    ============================================================ */
 const CELL = 2;
+const BASE_COLS = 4, BASE_ROWS = 4;   // local de départ : on construit tout soi-même
 const STAGES = [
-  {name:"SALLE D'ARCADE", cols:6, rows:5, unlockRep:0, cost:0, theme:'arcade'},
+  {name:"SALLE D'ARCADE", cols:4, rows:4, unlockRep:0, cost:0, theme:'arcade'},
   {name:"GRANDE SALLE D'ARCADE", cols:9, rows:7, unlockRep:9, cost:500, theme:'arcade'},
   {name:"COSMIC CASINO", cols:12, rows:9, unlockRep:20, cost:1300, theme:'casino'},
 ];
@@ -1280,11 +1281,11 @@ function zoneAllows(def, zone){
 }
 
 function roomSize(stageIdx){
-  const st = STAGES[stageIdx];
+  // la taille ne dépend plus de l'étape : c'est le joueur qui pousse ses murs
   const ex = (typeof state !== 'undefined' && state) ? state : null;
   return {
-    cols: Math.max(4, Math.min(20, st.cols + (ex?.extraCols || 0))),
-    rows: Math.max(4, Math.min(18, st.rows + (ex?.extraRows || 0))),
+    cols: Math.max(4, Math.min(20, BASE_COLS + (ex?.extraCols || 0))),
+    rows: Math.max(4, Math.min(18, BASE_ROWS + (ex?.extraRows || 0))),
   };
 }
 function buildRoom(stageIdx){
@@ -3325,9 +3326,9 @@ const STAFF = [
    ============================================================ */
 function freshState(){
   return {
-    money:170, rep:0, day:1, debt:400, paused:false, closed:false, stage:0,
+    money:140, rep:0, day:1, debt:400, paused:false, closed:false, stage:0, cityDecor:false,
     grid:null, dims:null, machines:[], customers:[], selected:null,
-    extraCols:0, extraRows:0, grime:8,
+    extraCols:0, extraRows:0, grime:4,
 
 
     staff:{tech:false,host:false,security:false},
@@ -3355,8 +3356,11 @@ function initGrid(){
 
 
 /* ---------- murs déplaçables : agrandir / rétrécir la pièce ---------- */
-const WALL_COST = 130;      // prix pour pousser un mur d'une case
-const WALL_REFUND = 45;     // récupéré en retirant un mur
+const WALL_BASE_COST = 45;  // première rangée : accessible dès le début
+const WALL_STEP_COST = 35;  // chaque rangée suivante coûte plus cher
+const WALL_REFUND = 20;     // récupéré en retirant un mur
+function wallsBought(){ return Math.max(0, (state.extraCols||0)) + Math.max(0, (state.extraRows||0)); }
+function wallCost(){ return WALL_BASE_COST + WALL_STEP_COST * wallsBought(); }
 function rebuildRoomKeepMachines(){
   const dims = buildRoom(state.stage);
   state.dims = dims;
@@ -3385,9 +3389,10 @@ function moveWall(axis, delta){
   const max = axis==='cols' ? 20 : 18;
   if(next < 4 || next > max){ log("Impossible de pousser le mur plus loin."); return; }
   if(delta > 0){
-    if(state.money < WALL_COST){ log("Pas assez de jetons pour poser un mur."); return; }
-    state.money -= WALL_COST;
-    state.stats.spent += WALL_COST;
+    const cost = wallCost();
+    if(state.money < cost){ log(`Pas assez de jetons : une rangée coûte ${cost}¢.`); return; }
+    state.money -= cost;
+    state.stats.spent += cost;
   } else {
     // refuse si des machines occupent la dernière rangée
     const occupied = state.machines.some(m=> axis==='cols' ? m.x >= next : m.z >= next);
@@ -3606,7 +3611,7 @@ function renderWallBox(){
   const dims = state.dims || roomSize(state.stage);
   if(cv) cv.innerText = String(dims.cols);
   if(rv) rv.innerText = String(dims.rows);
-  if(info) info.innerHTML = `Pousse les murs : +1 rangée = ${WALL_COST}¢ · retirer = +${WALL_REFUND}¢`;
+  if(info) info.innerHTML = `Salle ${dims.cols}×${dims.rows} — prochaine rangée : <b>${wallCost()}¢</b> · retirer = +${WALL_REFUND}¢`;
 }
 
 function renderExpandBox(){
