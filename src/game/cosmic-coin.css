@@ -619,3 +619,55 @@ body.clubClosed #hud { box-shadow: inset 0 2px 0 rgba(255,80,120,.75); }
   box-shadow:none; border:0; background:transparent; padding:0; z-index:auto;
 }
 #styleToggle{ display:none !important; }
+
+/* ---------- menu de démarrage type jeu PC ---------- */
+#startMenu{
+  position:fixed; inset:0; z-index:400;
+  display:flex; align-items:stretch; justify-content:flex-start;
+  background:#07060f url("/brand/splash.jpg") center/cover no-repeat;
+  animation:smFade .45s ease both;
+}
+#startMenu::before{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(100deg, rgba(7,6,15,.96) 0%, rgba(7,6,15,.82) 42%, rgba(7,6,15,.25) 100%);
+}
+#startMenu::after{
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.25;
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,.07) 0 1px, transparent 1px 3px);
+}
+@keyframes smFade{ from{opacity:0} to{opacity:1} }
+#startInner{
+  position:relative; z-index:2; display:flex; flex-direction:column; justify-content:center;
+  gap:22px; padding:6vh 26px; width:min(430px,92vw);
+}
+#startLogo{ display:flex; flex-direction:column; line-height:.9; }
+#startLogo .l1{ font-size:clamp(30px,9vw,46px); letter-spacing:.16em; color:#9ff5ea;
+  text-shadow:0 0 18px rgba(0,243,255,.65); }
+#startLogo .l2{ font-size:clamp(40px,13vw,66px); letter-spacing:.1em; color:#ff3ea5;
+  text-shadow:0 0 24px rgba(255,62,165,.7); animation:smFlicker 5s infinite; }
+#startLogo .l3{ margin-top:12px; font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:#d9c9ff; }
+@keyframes smFlicker{ 0%,96%,100%{opacity:1} 97%{opacity:.35} 98%{opacity:.9} 99%{opacity:.5} }
+#startBtns{ display:flex; flex-direction:column; gap:9px; }
+.startBtn{
+  font-family:inherit; text-align:left; cursor:pointer;
+  display:flex; flex-direction:column; gap:3px;
+  padding:12px 14px; min-height:52px; border-radius:10px;
+  background:rgba(24,12,44,.72); border:1px solid #4a2a86; color:#ffe9ff;
+  font-size:14px; letter-spacing:.06em;
+  transition:transform .12s ease, background .12s ease, border-color .12s ease;
+}
+.startBtn small{ font-size:10px; letter-spacing:.05em; color:#b9a6e6; text-transform:none; }
+.startBtn:hover, .startBtn:focus-visible{
+  background:rgba(255,62,165,.18); border-color:#ff8ccb; transform:translateX(4px); outline:none;
+}
+.startBtn:disabled{ opacity:.4; cursor:not-allowed; transform:none; }
+#startFoot{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  font-size:10px; letter-spacing:.14em; color:#8f7fbb; text-transform:uppercase; }
+.startGhost{ font-family:inherit; font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  background:transparent; border:1px solid #3a2568; color:#b9a6e6; border-radius:7px;
+  padding:6px 10px; cursor:pointer; }
+.startGhost:hover{ border-color:#ff8ccb; color:#ffe9ff; }
+@media (max-width:520px){
+  #startInner{ width:100%; padding:5vh 18px; justify-content:flex-end; gap:16px; padding-bottom:5vh; }
+  #startMenu::before{ background:linear-gradient(to bottom, rgba(7,6,15,.55) 0%, rgba(7,6,15,.95) 55%); }
+}
