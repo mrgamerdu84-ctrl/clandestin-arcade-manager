@@ -4251,6 +4251,8 @@ function updateHUD(){
   const scoreEl = document.getElementById('score');
   if(scoreEl) scoreEl.innerText = computeScore().toLocaleString('fr-FR');
   updateDangerHUD();
+  if(typeof refreshHoodUI === 'function' && exteriorMode) refreshHoodUI();
+  if(typeof refreshStyleUI === 'function' && styleOpen) refreshStyleUI();
   renderDoorPanel();
   renderExpandBox();
   renderBackroom();
