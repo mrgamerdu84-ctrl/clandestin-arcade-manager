@@ -19,7 +19,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Windows installer
-        run: npm run dist:win -- --publish never
+        run: npm run dist:win -- --publish=never
 
       - name: Upload Windows installer
         continue-on-error: true
