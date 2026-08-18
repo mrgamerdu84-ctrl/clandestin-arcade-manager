@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "build:desktop": "vite build --config vite.desktop.config.ts",
     "electron": "npm run build:desktop && electron .",
-    "electron:pack": "npm run build:desktop && npx @electron/packager . \"Clandestin Arcade Manager\" --overwrite --out=electron-release --ignore=\"^/src\" --ignore=\"^/public/models/android-meshy\" --ignore=\"^/electron-release\""
+    "electron:pack": "npm run build:desktop && npx @electron/packager . \"Clandestin Arcade Manager\" --overwrite --out=electron-release --ignore=\"^/src\" --ignore=\"^/public/models/android-meshy\" --ignore=\"^/electron-release\"",
+    "dist:win": "npm run build:desktop && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -81,6 +82,7 @@
     "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^39.0.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
@@ -93,5 +95,33 @@
     "typescript-eslint": "^8.56.1",
     "vite": "^8.2.0"
   },
-  "main": "electron/main.cjs"
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.tikowikofamily.clandestinarcademanager",
+    "productName": "Clandestin Arcade Manager",
+    "directories": {
+      "output": "installer-release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "brand.config.json",
+      "package.json",
+      "public/models/**/*",
+      "!public/models/android-meshy/**/*"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "Clandestin-Arcade-Manager-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Clandestin Arcade Manager",
+      "runAfterFinish": true,
+      "installerLanguages": ["fr_FR", "en_US"]
+    }
+  }
 }
