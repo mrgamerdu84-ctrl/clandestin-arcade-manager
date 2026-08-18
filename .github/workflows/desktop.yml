@@ -6,15 +6,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Windows installer
+        run: npm run dist:win
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clandestin-Arcade-Manager-Windows-Setup
+          path: installer-release/Clandestin-Arcade-Manager-Setup-*.exe
+          retention-days: 30
+
+  portable:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            platform: win32
-            arch: x64
-            name: Clandestin-Arcade-Manager-Windows-x64
           - os: ubuntu-latest
             platform: linux
             arch: x64
