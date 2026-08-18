@@ -19,7 +19,9 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Windows installer
-        run: npm run dist:win -- --publish=never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run build:desktop && npx electron-builder --win nsis --x64 --publish never
 
       - name: Upload Windows installer
         continue-on-error: true
