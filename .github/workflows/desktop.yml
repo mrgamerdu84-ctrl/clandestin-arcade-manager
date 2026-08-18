@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -23,13 +26,34 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run build:desktop && npx electron-builder --win nsis --x64 --publish never
 
-      - name: Upload Windows installer
+      # Keep the Actions artifact as a short-lived fallback. A full artifact
+      # quota must not fail the build.
+      - name: Upload Windows installer artifact
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: Clandestin-Arcade-Manager-Windows-Setup
           path: installer-release/Clandestin-Arcade-Manager-Setup-*.exe
           retention-days: 1
+
+      # Publish the installer on a stable GitHub Release so it can be
+      # downloaded without extracting an Actions artifact ZIP.
+      - name: Publish Windows installer to GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = node -p "require('./package.json').version"
+          $tag = "windows-v$version"
+          $installer = Get-ChildItem "installer-release/Clandestin-Arcade-Manager-Setup-*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "Windows installer not found" }
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title "Clandestin Arcade Manager Windows v$version" --notes "Installateur Windows de Clandestin Arcade Manager. Téléchargez le fichier Setup.exe puis double-cliquez dessus pour installer le jeu."
+          }
+
+          gh release upload $tag $installer.FullName --clobber
 
   portable:
     strategy:
