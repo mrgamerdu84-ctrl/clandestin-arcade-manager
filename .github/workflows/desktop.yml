@@ -13,19 +13,21 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.12.0"
+          node-version: "22.13.0"
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
       - name: Build Windows installer
-        run: npm run dist:win
+        run: npm run dist:win -- --publish never
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows installer
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
         with:
           name: Clandestin-Arcade-Manager-Windows-Setup
           path: installer-release/Clandestin-Arcade-Manager-Setup-*.exe
-          retention-days: 30
+          retention-days: 1
 
   portable:
     strategy:
@@ -46,7 +48,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.12.0"
+          node-version: "22.13.0"
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
@@ -73,8 +75,10 @@ jobs:
             zip -r "../${{ matrix.name }}.zip" "$d" > /dev/null
           done
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload portable build
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}.zip
-          retention-days: 30
+          retention-days: 1
