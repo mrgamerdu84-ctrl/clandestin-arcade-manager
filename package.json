@@ -112,6 +112,7 @@
     ],
     "win": {
       "target": ["nsis"],
+      "icon": "electron/icon.ico",
       "artifactName": "Clandestin-Arcade-Manager-Setup-${version}.${ext}"
     },
     "nsis": {
@@ -124,6 +125,8 @@
       "shortcutName": "Clandestin Arcade Manager",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
+      "installerIcon": "electron/icon.ico",
+      "uninstallerIcon": "electron/icon.ico",
       "installerLanguages": ["fr_FR", "en_US"]
     }
   }
