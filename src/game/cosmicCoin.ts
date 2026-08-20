@@ -954,7 +954,98 @@ Object.assign(BUILDERS, {
     }
     return g;
   },
+  /* ---------- transformation club : piste modulaire, lounge, lumières ---------- */
+  'floortile': ()=>{
+    const g = group();
+    const mat = new THREE.MeshStandardMaterial({
+      color:0x120a20, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.4,
+      roughness:0.32, metalness:0.35
+    });
+    const tile = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.07, 1.42), mat);
+    tile.position.y = 0.035; tile.receiveShadow = true; g.add(tile);
+    const edge = box(1.5,0.03,1.5,'#20e6d0',{emissive:0x20e6d0, emissiveIntensity:0.9});
+    edge.position.y = 0.012; g.add(edge);
+    g.userData.floorTile = tile;
+    g.userData.tilePhase = Math.random()*6.3;
+    return g;
+  },
+  'banquette': ()=>{
+    const g = group();
+    const seat = box(1.7,0.34,0.78,'#3b1c46'); seat.position.y=0.32; g.add(seat);
+    const back = box(1.7,0.7,0.16,'#4a2357'); back.position.set(0,0.72,-0.31); g.add(back);
+    for(let i=0;i<3;i++){
+      const cush = box(0.5,0.12,0.62,'#5d2c6b'); cush.position.set(-0.55+i*0.55,0.52,0.02); g.add(cush);
+    }
+    [-0.83,0.83].forEach(x=>{ const a=box(0.14,0.55,0.78,'#301539'); a.position.set(x,0.45,0); g.add(a); });
+    const trim = box(1.72,0.05,0.06,'#e8b64a',{emissive:0xe8b64a, emissiveIntensity:0.5});
+    trim.position.set(0,1.06,-0.31); g.add(trim);
+    return g;
+  },
+  'lowtable': ()=>{
+    const g = group();
+    const top = cyl(0.42,0.42,0.06,'#1e1430',20); top.position.y=0.46; g.add(top);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42,0.03,8,24),
+      new THREE.MeshStandardMaterial({color:0xe8b64a, emissive:0xe8b64a, emissiveIntensity:0.5, metalness:0.6, roughness:0.35}));
+    ring.rotation.x = Math.PI/2; ring.position.y=0.49; g.add(ring);
+    const foot = cyl(0.09,0.2,0.44,'#2a2038',12); foot.position.y=0.22; g.add(foot);
+    const candle = cyl(0.05,0.05,0.12,'#ffd9a0',10); candle.position.y=0.55; g.add(candle);
+    const flame = sphere(0.05,'#ffb14f',{emissive:0xffb14f, emissiveIntensity:1.6}); flame.position.y=0.64; g.add(flame);
+    return g;
+  },
+  'loungelamp': ()=>{
+    const g = group();
+    const base = cyl(0.2,0.24,0.06,'#241a33',14); base.position.y=0.03; g.add(base);
+    const pole = cyl(0.035,0.035,1.35,'#3a3a48',10); pole.position.y=0.7; g.add(pole);
+    const shade = cyl(0.3,0.18,0.34,'#ffcf9a',{},14);
+    shade.position.y=1.5; g.add(shade);
+    if(shade.material){ shade.material.emissive = new THREE.Color(0xffb877); shade.material.emissiveIntensity = 0.9; }
+    const warm = new THREE.PointLight(0xffb877, isMobile?0.8:1.2, 5.5, 2);
+    warm.position.y = 1.45; g.add(warm);
+    const halo = makeGlowSprite('#ffcf9a', 0.9); halo.position.y=1.5; g.add(halo);
+    return g;
+  },
+  'movinglight': ()=>{
+    const g = group();
+    const foot = cyl(0.22,0.26,0.08,'#1b1626',12); foot.position.y=0.04; g.add(foot);
+    const mast = cyl(0.05,0.05,1.9,'#33303f',10); mast.position.y=0.95; g.add(mast);
+    const head = group(); head.position.y = 1.9; g.add(head);
+    const body = box(0.3,0.26,0.36,'#191428'); head.add(body);
+    const lens = cyl(0.13,0.13,0.05,'#20e6d0',{emissive:0x20e6d0, emissiveIntensity:1.6},12);
+    lens.rotation.x = Math.PI/2; lens.position.z = 0.2; head.add(lens);
+    // faisceau conique : version émissive légère (aucune lumière réelle sur mobile)
+    const beamMat = new THREE.MeshBasicMaterial({color:0x20e6d0, transparent:true, opacity:isMobile?0.16:0.22,
+      depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending});
+    const beam = new THREE.Mesh(new THREE.ConeGeometry(0.5, 3.2, isMobile?10:16, 1, true), beamMat);
+    beam.rotation.x = -Math.PI/2; beam.position.z = 1.6; head.add(beam);
+    g.userData.sweepHead = head;
+    g.userData.sweepLens = lens;
+    g.userData.sweepBeam = beam;
+    g.userData.sweepPhase = Math.random()*6.3;
+    if(!isMobile){
+      const sp = new THREE.PointLight(0x20e6d0, 1.1, 7, 2);
+      sp.position.set(0,-0.1,1.4); head.add(sp);
+      g.userData.sweepLight = sp;
+    }
+    return g;
+  },
+  'veloperope': ()=>{
+    const g = group();
+    [-0.6,0.6].forEach(x=>{
+      const post = cyl(0.07,0.09,0.9,'#e8b64a',{metalness:0.7, roughness:0.3},12);
+      post.position.set(x,0.45,0); g.add(post);
+      const cap = sphere(0.09,'#ffd23f',{metalness:0.7, roughness:0.25}); cap.position.set(x,0.93,0); g.add(cap);
+      const base = cyl(0.18,0.2,0.05,'#2a2038',12); base.position.set(x,0.03,0); g.add(base);
+    });
+    for(let i=0;i<7;i++){
+      const t = i/6;
+      const link = sphere(0.055,'#8f1f2e');
+      link.position.set(-0.6 + t*1.2, 0.8 - Math.sin(t*Math.PI)*0.16, 0);
+      g.add(link);
+    }
+    return g;
+  },
 });
+
 
 /* ---------- écrans allumés ----------
    les modèles Kenney ont une dalle d'écran noire : sans lumière frontale elle
