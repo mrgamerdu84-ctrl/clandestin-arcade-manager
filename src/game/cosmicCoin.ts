@@ -996,7 +996,7 @@ Object.assign(BUILDERS, {
     const g = group();
     const base = cyl(0.2,0.24,0.06,'#241a33',14); base.position.y=0.03; g.add(base);
     const pole = cyl(0.035,0.035,1.35,'#3a3a48',10); pole.position.y=0.7; g.add(pole);
-    const shade = cyl(0.3,0.18,0.34,'#ffcf9a',{},14);
+    const shade = cyl(0.3,0.18,0.34,'#ffcf9a',14);
     shade.position.y=1.5; g.add(shade);
     if(shade.material){ shade.material.emissive = new THREE.Color(0xffb877); shade.material.emissiveIntensity = 0.9; }
     const warm = new THREE.PointLight(0xffb877, isMobile?0.8:1.2, 5.5, 2);
@@ -1010,7 +1010,7 @@ Object.assign(BUILDERS, {
     const mast = cyl(0.05,0.05,1.9,'#33303f',10); mast.position.y=0.95; g.add(mast);
     const head = group(); head.position.y = 1.9; g.add(head);
     const body = box(0.3,0.26,0.36,'#191428'); head.add(body);
-    const lens = cyl(0.13,0.13,0.05,'#20e6d0',{emissive:0x20e6d0, emissiveIntensity:1.6},12);
+    const lens = cyl(0.13,0.13,0.05,'#20e6d0',12,{emissive:0x20e6d0, emissiveIntensity:1.6});
     lens.rotation.x = Math.PI/2; lens.position.z = 0.2; head.add(lens);
     // faisceau conique : version émissive légère (aucune lumière réelle sur mobile)
     const beamMat = new THREE.MeshBasicMaterial({color:0x20e6d0, transparent:true, opacity:isMobile?0.16:0.22,
@@ -1031,7 +1031,7 @@ Object.assign(BUILDERS, {
   'veloperope': ()=>{
     const g = group();
     [-0.6,0.6].forEach(x=>{
-      const post = cyl(0.07,0.09,0.9,'#e8b64a',{metalness:0.7, roughness:0.3},12);
+      const post = cyl(0.07,0.09,0.9,'#e8b64a',12,{metalness:0.7, roughness:0.3});
       post.position.set(x,0.45,0); g.add(post);
       const cap = sphere(0.09,'#ffd23f',{metalness:0.7, roughness:0.25}); cap.position.set(x,0.93,0); g.add(cap);
       const base = cyl(0.18,0.2,0.05,'#2a2038',12); base.position.set(x,0.03,0); g.add(base);
