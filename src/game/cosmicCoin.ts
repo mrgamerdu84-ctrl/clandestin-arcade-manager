@@ -4815,6 +4815,7 @@ function updateCustomers(dt){
       // Le client reste debout, au sol et face à la borne pendant toute la partie.
       setPlayingCharacterVisible(c.mesh, true);
       if(c.target){
+        // machine déplacée ou pivotée : point d'attente ET orientation recalculés
         c.targetPos.copy(standSpotFor(c.target, c));
         c.mesh.position.set(c.targetPos.x, 0, c.targetPos.z);
         faceTowards(c.mesh, c.target.mesh.position.x, c.target.mesh.position.z);
@@ -4822,15 +4823,9 @@ function updateCustomers(dt){
       const t = performance.now();
 
       c.mesh.position.y = 0;
-      c.mesh.rotation.x = 0;
-      c.mesh.rotation.z = 0;
-      stepCharacter(c.mesh, t/220, 0);
-      const u = c.mesh.userData;
-      if(u && u.armL){
-        // bras tendus vers la machine, petits à-coups sur les boutons
-        u.armL.rotation.x = -1.15 + Math.sin(t/110)*0.22;
-        u.armR.rotation.x = -1.15 + Math.sin(t/110 + 1.6)*0.22;
-      }
+      // la pose des bras est appliquée APRÈS l'orientation, en repère local
+      playPose(c.mesh, t);
+
       c.playTimer += dt;
       attachPlayBar(c);
       updatePlayBar(c, c.target ? Math.min(1, c.playTimer/Math.max(1,c.target.def.time)) : 0);
