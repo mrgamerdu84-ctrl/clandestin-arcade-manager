@@ -954,7 +954,98 @@ Object.assign(BUILDERS, {
     }
     return g;
   },
+  /* ---------- transformation club : piste modulaire, lounge, lumières ---------- */
+  'floortile': ()=>{
+    const g = group();
+    const mat = new THREE.MeshStandardMaterial({
+      color:0x120a20, emissive:new THREE.Color(0xff2e88), emissiveIntensity:0.4,
+      roughness:0.32, metalness:0.35
+    });
+    const tile = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.07, 1.42), mat);
+    tile.position.y = 0.035; tile.receiveShadow = true; g.add(tile);
+    const edge = box(1.5,0.03,1.5,'#20e6d0',{emissive:0x20e6d0, emissiveIntensity:0.9});
+    edge.position.y = 0.012; g.add(edge);
+    g.userData.floorTile = tile;
+    g.userData.tilePhase = Math.random()*6.3;
+    return g;
+  },
+  'banquette': ()=>{
+    const g = group();
+    const seat = box(1.7,0.34,0.78,'#3b1c46'); seat.position.y=0.32; g.add(seat);
+    const back = box(1.7,0.7,0.16,'#4a2357'); back.position.set(0,0.72,-0.31); g.add(back);
+    for(let i=0;i<3;i++){
+      const cush = box(0.5,0.12,0.62,'#5d2c6b'); cush.position.set(-0.55+i*0.55,0.52,0.02); g.add(cush);
+    }
+    [-0.83,0.83].forEach(x=>{ const a=box(0.14,0.55,0.78,'#301539'); a.position.set(x,0.45,0); g.add(a); });
+    const trim = box(1.72,0.05,0.06,'#e8b64a',{emissive:0xe8b64a, emissiveIntensity:0.5});
+    trim.position.set(0,1.06,-0.31); g.add(trim);
+    return g;
+  },
+  'lowtable': ()=>{
+    const g = group();
+    const top = cyl(0.42,0.42,0.06,'#1e1430',20); top.position.y=0.46; g.add(top);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42,0.03,8,24),
+      new THREE.MeshStandardMaterial({color:0xe8b64a, emissive:0xe8b64a, emissiveIntensity:0.5, metalness:0.6, roughness:0.35}));
+    ring.rotation.x = Math.PI/2; ring.position.y=0.49; g.add(ring);
+    const foot = cyl(0.09,0.2,0.44,'#2a2038',12); foot.position.y=0.22; g.add(foot);
+    const candle = cyl(0.05,0.05,0.12,'#ffd9a0',10); candle.position.y=0.55; g.add(candle);
+    const flame = sphere(0.05,'#ffb14f',{emissive:0xffb14f, emissiveIntensity:1.6}); flame.position.y=0.64; g.add(flame);
+    return g;
+  },
+  'loungelamp': ()=>{
+    const g = group();
+    const base = cyl(0.2,0.24,0.06,'#241a33',14); base.position.y=0.03; g.add(base);
+    const pole = cyl(0.035,0.035,1.35,'#3a3a48',10); pole.position.y=0.7; g.add(pole);
+    const shade = cyl(0.3,0.18,0.34,'#ffcf9a',14);
+    shade.position.y=1.5; g.add(shade);
+    if(shade.material){ shade.material.emissive = new THREE.Color(0xffb877); shade.material.emissiveIntensity = 0.9; }
+    const warm = new THREE.PointLight(0xffb877, isMobile?0.8:1.2, 5.5, 2);
+    warm.position.y = 1.45; g.add(warm);
+    const halo = makeGlowSprite('#ffcf9a', 0.9); halo.position.y=1.5; g.add(halo);
+    return g;
+  },
+  'movinglight': ()=>{
+    const g = group();
+    const foot = cyl(0.22,0.26,0.08,'#1b1626',12); foot.position.y=0.04; g.add(foot);
+    const mast = cyl(0.05,0.05,1.9,'#33303f',10); mast.position.y=0.95; g.add(mast);
+    const head = group(); head.position.y = 1.9; g.add(head);
+    const body = box(0.3,0.26,0.36,'#191428'); head.add(body);
+    const lens = cyl(0.13,0.13,0.05,'#20e6d0',12,{emissive:0x20e6d0, emissiveIntensity:1.6});
+    lens.rotation.x = Math.PI/2; lens.position.z = 0.2; head.add(lens);
+    // faisceau conique : version émissive légère (aucune lumière réelle sur mobile)
+    const beamMat = new THREE.MeshBasicMaterial({color:0x20e6d0, transparent:true, opacity:isMobile?0.16:0.22,
+      depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending});
+    const beam = new THREE.Mesh(new THREE.ConeGeometry(0.5, 3.2, isMobile?10:16, 1, true), beamMat);
+    beam.rotation.x = -Math.PI/2; beam.position.z = 1.6; head.add(beam);
+    g.userData.sweepHead = head;
+    g.userData.sweepLens = lens;
+    g.userData.sweepBeam = beam;
+    g.userData.sweepPhase = Math.random()*6.3;
+    if(!isMobile){
+      const sp = new THREE.PointLight(0x20e6d0, 1.1, 7, 2);
+      sp.position.set(0,-0.1,1.4); head.add(sp);
+      g.userData.sweepLight = sp;
+    }
+    return g;
+  },
+  'veloperope': ()=>{
+    const g = group();
+    [-0.6,0.6].forEach(x=>{
+      const post = cyl(0.07,0.09,0.9,'#e8b64a',12,{metalness:0.7, roughness:0.3});
+      post.position.set(x,0.45,0); g.add(post);
+      const cap = sphere(0.09,'#ffd23f',{metalness:0.7, roughness:0.25}); cap.position.set(x,0.93,0); g.add(cap);
+      const base = cyl(0.18,0.2,0.05,'#2a2038',12); base.position.set(x,0.03,0); g.add(base);
+    });
+    for(let i=0;i<7;i++){
+      const t = i/6;
+      const link = sphere(0.055,'#8f1f2e');
+      link.position.set(-0.6 + t*1.2, 0.8 - Math.sin(t*Math.PI)*0.16, 0);
+      g.add(link);
+    }
+    return g;
+  },
 });
+
 
 /* ---------- écrans allumés ----------
    les modèles Kenney ont une dalle d'écran noire : sans lumière frontale elle
@@ -3931,26 +4022,32 @@ const MACHINES = [
   {id:'vip', name:'Table VIP de la Reine', color:'#e8b64a', price:520, earn:[24,42], time:4800, repReq:0, stageReq:0, illegal:true, unlockReq:'vip'},
 ];
 const DECOR = [
-  {id:'trash', name:'Poubelle', color:PAL.chrome, price:20, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'poster', name:'Affiche rétro', color:PAL.pink, price:30, repBoost:0.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'plant', name:'Plante verte', color:PAL.green, price:40, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'cashregister', name:'Caisse enregistreuse', color:PAL.red, price:50, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'bench', name:"Banc d'attente", color:PAL.orange, price:55, repBoost:0.6, repReq:1, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'toilets', name:'Toilettes', color:'#cfd6e6', price:90, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'tables', name:'Table + chaises', color:PAL.teal, price:70, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'dancefloor', name:'Piste de danse lumineuse', color:'#20e6d0', price:210, repBoost:1.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'djdeck', name:'Platine du DJ', color:PAL.pink, price:160, repBoost:1.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'trash', cat:'arcade', name:'Poubelle', color:PAL.chrome, price:20, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'poster', cat:'arcade', name:'Affiche rétro', color:PAL.pink, price:30, repBoost:0.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'plant', cat:'repos', name:'Plante verte', color:PAL.green, price:40, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'cashregister', cat:'arcade', name:'Caisse enregistreuse', color:PAL.red, price:50, repBoost:0.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'bench', cat:'repos', name:"Banc d'attente", color:PAL.orange, price:55, repBoost:0.6, repReq:1, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'toilets', cat:'arcade', name:'Toilettes', color:'#cfd6e6', price:90, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'tables', cat:'repos', name:'Table + chaises', color:PAL.teal, price:70, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'dancefloor', cat:'piste', name:'Piste de danse lumineuse', color:'#20e6d0', price:210, repBoost:1.5, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'djdeck', cat:'son', name:'Platine du DJ', color:PAL.pink, price:160, repBoost:1.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
 
-  {id:'neon', name:'Enseigne néon', color:PAL.pink, price:80, repBoost:0.8, repReq:2, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'jukebox', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
-  {id:'safe', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
-  {id:'falsewall', name:'Faux mur automatique', color:PAL.purpleDark, price:260, repBoost:0.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'falsewall'},
-  {id:'bar', name:'Comptoir de bar', color:'#e8b64a', price:180, repBoost:1.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'sofa', name:'Canapé lounge', color:'#8f1f2e', price:110, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'discoball', name:'Boule à facettes', color:'#cfd6e6', price:140, repBoost:1.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'speaker', name:'Enceinte de scène', color:'#141024', price:95, repBoost:0.8, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'wallart', name:'Fresque murale néon', color:'#8b5cf6', price:75, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
-  {id:'statue', name:'Statue dorée', color:PAL.casinoGold||'#e8b64a', price:150, repBoost:1.2, repReq:0, stageReq:2, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'neon', cat:'lumieres', name:'Enseigne néon', color:PAL.pink, price:80, repBoost:0.8, repReq:2, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'jukebox', cat:'son', name:'Juke-box de Momo', color:PAL.purple, price:120, repBoost:1.1, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'jukebox'},
+  {id:'safe', cat:'arcade', name:'Coffre planqué (-3 suspicion/jour)', color:PAL.chrome, price:170, repBoost:0.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'safe'},
+  {id:'falsewall', cat:'arcade', name:'Faux mur automatique', color:PAL.purpleDark, price:260, repBoost:0.3, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, unlockReq:'falsewall'},
+  {id:'bar', cat:'repos', name:'Comptoir de bar', color:'#e8b64a', price:180, repBoost:1.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'sofa', cat:'repos', name:'Canapé lounge', color:'#8f1f2e', price:110, repBoost:0.9, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'discoball', cat:'lumieres', name:'Boule à facettes', color:'#cfd6e6', price:140, repBoost:1.2, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'speaker', cat:'son', name:'Enceinte de scène', color:'#141024', price:95, repBoost:0.8, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'wallart', cat:'lumieres', name:'Fresque murale néon', color:'#8b5cf6', price:75, repBoost:0.7, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true},
+  {id:'floortile', name:'Dalle de piste (bloc)', color:'#ff2e88', price:22, repBoost:0.15, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'piste'},
+  {id:'banquette', name:'Banquette lounge', color:'#4a2357', price:95, repBoost:0.8, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'repos'},
+  {id:'lowtable', name:'Petite table basse', color:'#e8b64a', price:45, repBoost:0.4, repReq:0, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'repos'},
+  {id:'loungelamp', name:'Lampe d\u2019ambiance', color:'#ffcf9a', price:60, repBoost:0.5, repReq:1, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'repos'},
+  {id:'movinglight', name:'Projecteur mobile (balayage)', color:'#20e6d0', price:150, repBoost:1.1, repReq:4, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'lumieres'},
+  {id:'veloperope', name:'Cordon VIP doré', color:'#e8b64a', price:80, repBoost:0.7, repReq:8, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'vip'},
+  {id:'statue', cat:'vip', name:'Statue dorée', color:PAL.casinoGold||'#e8b64a', price:150, repBoost:1.2, repReq:0, stageReq:2, earn:[0,0], time:0, passive:true, decor:true},
 ];
 const STAFF = [
   {id:'tech', name:'Technicien', desc:'Répare les pannes auto.', price:150, stageReq:0},
