@@ -1090,12 +1090,34 @@ function buildCharacter(shirtColor){
   return g;
 }
 
-/* oriente un personnage vers un point (le modèle regarde +Z, lookAt regarde -Z) */
+/* oriente un personnage vers un point (le modèle regarde +Z) */
 function faceTowards(mesh, x, z){
   if(!mesh) return;
-  // lookAt oriente déjà l'axe +Z (l'avant du personnage) vers la cible
-  mesh.lookAt(x, mesh.position.y, z);
+  // yaw calculé dans le repère du parent : pas de bascule X/Z parasite,
+  // et le résultat reste valable quel que soit le groupe qui porte le PNJ
+  const dx = x - mesh.position.x, dz = z - mesh.position.z;
+  if(dx*dx + dz*dz < 1e-8) return;
+  mesh.rotation.set(0, Math.atan2(dx, dz), 0);
 }
+
+/* pose neutre de marche : membres remis à plat dans le repère local */
+function resetLimbPose(mesh){
+  const u = mesh && mesh.userData;
+  if(!u || !u.legL) return;
+  [u.armL, u.armR, u.legL, u.legR].forEach(p=>{ if(p) p.rotation.set(0,0,0); });
+}
+
+/* pose de jeu : les deux bras devant le torse, légèrement pliés vers le panneau.
+   Tout est exprimé en local (rotation X du pivot d'épaule), donc la pose suit
+   automatiquement l'orientation du personnage vers la machine. */
+function playPose(mesh, t){
+  const u = mesh && mesh.userData;
+  if(!u || !u.armL) return;
+  if(u.legL){ u.legL.rotation.set(0,0,0); u.legR.rotation.set(0,0,0); }
+  u.armL.rotation.set(-1.15 + Math.sin(t/110)*0.18, 0, 0.16);
+  u.armR.rotation.set(-1.15 + Math.sin(t/110 + 1.6)*0.18, 0, -0.16);
+}
+
 
 /* un joueur actif reste visible grâce à son bon placement, sans traverser la borne */
 function setPlayingCharacterVisible(mesh, playing){
