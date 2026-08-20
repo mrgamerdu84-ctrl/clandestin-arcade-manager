@@ -4871,6 +4871,7 @@ function updateCustomers(dt){
         }
         detachPlayBar(c);
         setPlayingCharacterVisible(c.mesh, false);
+        resetLimbPose(c.mesh); // retour à une pose de marche neutre
         c.target.busy=false;
         c.target=null;
         c.phase = c.gatePos ? 'exit' : 'out'; c.gateTimer = 0;
@@ -4879,6 +4880,7 @@ function updateCustomers(dt){
       c.mesh.rotation.z = 0;
       detachPlayBar(c);
       setPlayingCharacterVisible(c.mesh, false);
+      resetLimbPose(c.mesh);
 
       const dir = new THREE.Vector3().subVectors(c.doorPos,c.mesh.position); dir.y=0;
       const dist = dir.length();
