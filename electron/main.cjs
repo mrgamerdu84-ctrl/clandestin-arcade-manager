@@ -119,10 +119,10 @@ async function createWindow() {
   const splash = createSplash();
 
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 1600,
+    height: 1000,
+    minWidth: 1000,
+    minHeight: 650,
     backgroundColor: brand.colors.background,
     title: brand.name,
     icon: ICON,
@@ -142,7 +142,11 @@ async function createWindow() {
   win.once("ready-to-show", () => {
     setTimeout(() => {
       if (!splash.isDestroyed()) splash.destroy();
+      // Sur PC, démarrer directement en grande fenêtre adaptée à l'écran.
+      // L'utilisateur garde ensuite la possibilité de réduire/restaurer la fenêtre.
+      try { win.maximize(); } catch (_) {}
       win.show();
+      win.focus();
     }, 900);
   });
 }
