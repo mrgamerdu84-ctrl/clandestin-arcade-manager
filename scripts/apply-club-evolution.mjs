@@ -23,11 +23,19 @@ replaceOnce(
 );
 
 // Player-placed floor blocks must carry their own animation phase.
-replaceOnce(
-  '    g.userData.tilePhase = Math.random()*6.3;\n    return g;',
-  '    g.userData.tilePhase = Math.random()*6.3;\n    tile.userData.phase = g.userData.tilePhase;\n    return g;',
-  'floor tile phase',
-);
+if (!src.includes('tile.userData.phase = g.userData.tilePhase;')) {
+  const tilePhasePatterns = [
+    /g\.userData\.tilePhase\s*=\s*Math\.random\(\)\*6\.3;\s*return g;/,
+    /g\.userData\.tilePhase\s*=\s*Math\.random\(\)\s*\*\s*6\.3;\s*return g;/,
+  ];
+  let patched = false;
+  for (const pattern of tilePhasePatterns) {
+    const before = src;
+    src = src.replace(pattern, (match) => match.replace('return g;', 'tile.userData.phase = g.userData.tilePhase;\n    return g;'));
+    if (src !== before) { patched = true; break; }
+  }
+  if (!patched) throw new Error('[club-evolution] patch target not found: floor tile phase');
+}
 
 // Add a lightweight show podium. On mobile this replaces the heavier PC-style show area.
 replaceOnce(
