@@ -31,8 +31,8 @@ jobs:
       - name: Install Capacitor CLI
         run: npm install --no-save --legacy-peer-deps @capacitor/cli @capacitor/core @capacitor/android
 
-      - name: Build static web assets for Android
-        run: npm run build:desktop
+      - name: Build stable Android web assets
+        run: npx vite build --config vite.desktop.config.ts
 
       - name: Ensure Android platform is complete
         shell: bash
@@ -63,6 +63,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          TAG="android-v${VERSION}"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Clandestin Arcade Manager Android v${VERSION}" --notes "APK Android de Clandestin Arcade Manager."
+          TAG="android-stable-v${VERSION}"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Clandestin Arcade Manager Android stable v${VERSION}" --notes "Build Android stable: priorité à l'entrée intérieure, aux contrôles tactiles et à la jouabilité."
           gh release upload "$TAG" release-android/Clandestin-Arcade-Manager-Android.apk --clobber
