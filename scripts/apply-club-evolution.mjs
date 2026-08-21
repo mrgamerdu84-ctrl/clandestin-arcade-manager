@@ -53,11 +53,23 @@ replaceOnce(
   'dancefloor rename',
 );
 
-replaceOnce(
-  "  {id:'veloperope', name:'Cordon VIP doré', color:'#e8b64a', price:80, repBoost:0.7, repReq:8, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'vip'},\n",
-  "  {id:'veloperope', name:'Cordon VIP doré', color:'#e8b64a', price:80, repBoost:0.7, repReq:8, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'vip'},\n  {id:'podium', name:'Podium spectacle', color:'#ff2e88', price:120, repBoost:0.9, repReq:5, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'spectacle'},\n",
-  'podium shop item',
-);
+// Add the podium to the decoration catalogue using the current DECOR layout,
+// without relying on one exact neighbouring line/spacing.
+if (!/\{id:'podium'\s*,\s*name:'Podium spectacle'/.test(src)) {
+  const podiumItem = "  {id:'podium', name:'Podium spectacle', color:'#ff2e88', price:120, repBoost:0.9, repReq:5, stageReq:0, earn:[0,0], time:0, passive:true, decor:true, cat:'spectacle'},\n";
+  const decorStart = src.indexOf('const DECOR = [');
+  if (decorStart < 0) throw new Error('[club-evolution] patch target not found: DECOR catalogue');
+  const decorEnd = src.indexOf('\n];', decorStart);
+  if (decorEnd < 0) throw new Error('[club-evolution] patch target not found: DECOR catalogue end');
+  const decorBlock = src.slice(decorStart, decorEnd);
+  const ropeMatch = decorBlock.match(/^\s*\{id:'veloperope'[^\n]*\},\s*$/m);
+  if (ropeMatch && ropeMatch.index != null) {
+    const insertAt = decorStart + ropeMatch.index + ropeMatch[0].length;
+    src = src.slice(0, insertAt) + '\n' + podiumItem.trimEnd() + src.slice(insertAt);
+  } else {
+    src = src.slice(0, decorEnd) + '\n' + podiumItem + src.slice(decorEnd);
+  }
+}
 
 // Club progression: no more automatic full dance floor. Four placed floor tiles activate the club area.
 replaceOnce(
