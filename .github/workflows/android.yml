@@ -31,6 +31,9 @@ jobs:
       - name: Install Capacitor CLI
         run: npm install --no-save --legacy-peer-deps @capacitor/cli @capacitor/core @capacitor/android
 
+      - name: Apply lightweight Android club upgrade
+        run: node scripts/apply-android-club-lite.mjs
+
       - name: Build stable Android web assets
         run: npx vite build --config vite.desktop.config.ts
 
@@ -64,5 +67,5 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           TAG="android-stable-v${VERSION}"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Clandestin Arcade Manager Android stable v${VERSION}" --notes "Build Android stable: priorité à l'entrée intérieure, aux contrôles tactiles et à la jouabilité."
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Clandestin Arcade Manager Android stable v${VERSION}" --notes "Build Android stable avec première nouveauté club légère, sans modifier la transition extérieur/intérieur."
           gh release upload "$TAG" release-android/Clandestin-Arcade-Manager-Android.apk --clobber
