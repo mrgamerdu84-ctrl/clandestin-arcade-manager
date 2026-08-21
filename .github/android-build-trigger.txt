@@ -1,0 +1,2 @@
+Android rebuild trigger — 2026-08-21
+This file exists only to trigger the Android workflow after mobile camera/menu fixes.
