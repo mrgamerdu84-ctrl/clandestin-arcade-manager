@@ -71,15 +71,34 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease bundleRelease --no-daemon
 
+      - name: Prepare stable Android download names
+        shell: bash
+        run: |
+          mkdir -p release-android
+          APK=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "APK introuvable"
+            exit 1
+          fi
+          cp "$APK" release-android/Clandestin-Arcade-Manager-Android.apk
+
+          AAB=$(find android/app/build/outputs/bundle -type f -name "*.aab" 2>/dev/null | head -n 1 || true)
+          if [ -n "$AAB" ]; then
+            cp "$AAB" release-android/Clandestin-Arcade-Manager-Android.aab
+          fi
+
+          sha256sum release-android/Clandestin-Arcade-Manager-Android.apk > release-android/SHA256SUMS.txt
+          if [ -f release-android/Clandestin-Arcade-Manager-Android.aab ]; then
+            sha256sum release-android/Clandestin-Arcade-Manager-Android.aab >> release-android/SHA256SUMS.txt
+          fi
+
       - name: Upload Actions artifact fallback
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: cosmic-coin-android
-          path: |
-            android/app/build/outputs/apk/**/*.apk
-            android/app/build/outputs/bundle/**/*.aab
-          if-no-files-found: warn
+          name: Clandestin-Arcade-Manager-Android
+          path: release-android/*
+          if-no-files-found: error
           retention-days: 1
 
       - name: Publish Android build to GitHub Release
@@ -92,7 +111,6 @@ jobs:
           gh release view "$TAG" >/dev/null 2>&1 || \
             gh release create "$TAG" \
               --title "Clandestin Arcade Manager Android v${VERSION}" \
-              --notes "Version Android installable de Clandestin Arcade Manager. Téléchargez le fichier APK sur votre téléphone puis ouvrez-le pour l'installer."
+              --notes "Version Android installable de Clandestin Arcade Manager. Téléchargez Clandestin-Arcade-Manager-Android.apk puis ouvrez-le sur votre téléphone."
 
-          find android/app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -print0 | \
-            xargs -0 -r gh release upload "$TAG" --clobber
+          gh release upload "$TAG" release-android/* --clobber
