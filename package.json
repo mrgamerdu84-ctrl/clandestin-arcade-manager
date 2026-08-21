@@ -5,7 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "patch:game": "node scripts/apply-club-evolution.mjs && node scripts/apply-platform-ui.mjs",
+    "patch:game": "node scripts/apply-club-evolution.mjs",
     "dev": "npm run patch:game && vite dev",
     "build": "npm run patch:game && vite build",
     "build:dev": "npm run patch:game && vite build --mode development",
