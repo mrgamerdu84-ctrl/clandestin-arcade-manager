@@ -34,6 +34,15 @@ jobs:
       - name: Build static web assets for Android
         run: npm run build:desktop
 
+      - name: Ensure Android platform is complete
+        shell: bash
+        run: |
+          if [ ! -f android/gradlew ]; then
+            echo "Android platform incomplete: recreating it"
+            rm -rf android
+            ./node_modules/.bin/cap add android
+          fi
+
       - name: Sync Android platform
         run: ./node_modules/.bin/cap sync android
 
