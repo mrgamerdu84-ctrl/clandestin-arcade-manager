@@ -5,13 +5,13 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "dev": "node scripts/apply-club-evolution.mjs && vite dev",
+    "build": "node scripts/apply-club-evolution.mjs && vite build",
+    "build:dev": "node scripts/apply-club-evolution.mjs && vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "build:desktop": "vite build --config vite.desktop.config.ts",
+    "build:desktop": "node scripts/apply-club-evolution.mjs && vite build --config vite.desktop.config.ts",
     "electron": "npm run build:desktop && electron .",
     "electron:pack": "npm run build:desktop && npx @electron/packager . \"Clandestin Arcade Manager\" --overwrite --out=electron-release --ignore=\"^/src\" --ignore=\"^/public/models/android-meshy\" --ignore=\"^/electron-release\"",
     "dist:win": "npm run build:desktop && electron-builder --win nsis --x64"
