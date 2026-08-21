@@ -4,7 +4,7 @@ import path from 'node:path';
 const file = path.resolve('src/game/cosmicCoin.ts');
 let src = fs.readFileSync(file, 'utf8');
 
-if (src.includes('ANDROID_PLAYABILITY_PATCH_V1')) {
+if (src.includes('ANDROID_PLAYABILITY_PATCH_V2')) {
   console.log('[android-playability] already applied');
   process.exit(0);
 }
@@ -17,7 +17,7 @@ function replaceOnce(search, replacement, label) {
 
 replaceOnce(
   "export function startCosmicCoin(): () => void {",
-  "export function startCosmicCoin(): () => void {\n/* ANDROID_PLAYABILITY_PATCH_V1 — mobile exposure/camera/touch safety */",
+  "export function startCosmicCoin(): () => void {\n/* ANDROID_PLAYABILITY_PATCH_V2 — mobile exposure/camera/touch safety */",
   'marker',
 );
 
@@ -67,6 +67,20 @@ replaceOnce(
   "function resize(){\n  const w = canvas.clientWidth, h = canvas.clientHeight;\n  renderer.setSize(w,h,false);\n  camera.aspect = w/h;\n  camera.updateProjectionMatrix();\n}",
   "function resize(){\n  const w = canvas.clientWidth, h = canvas.clientHeight;\n  renderer.setSize(w,h,false);\n  camera.aspect = w/h;\n  if(isMobile) camera.fov = h > w ? 38 : 40;\n  else camera.fov = 42;\n  camera.updateProjectionMatrix();\n}",
   'mobile portrait camera fov',
+);
+
+// On Android the old default enabled tap-to-place automatically. If an item stayed
+// selected, tapLock could capture every finger drag and make the indoor camera feel frozen.
+replaceOnce(
+  "let tapPlace = (localStorage.getItem('cc_tapPlace') ?? (isCoarse?'1':'0')) === '1';",
+  "let tapPlace = isMobile ? false : ((localStorage.getItem('cc_tapPlace') ?? (isCoarse?'1':'0')) === '1');",
+  'mobile tap place default',
+);
+
+replaceOnce(
+  "function tapLock(e){ return tapPlace && e.pointerType!=='mouse' && placingActive(); }",
+  "function tapLock(e){\n  if(e.pointerType==='mouse') return false;\n  if(!tapPlace) return false;\n  // Never freeze one-finger orbit just because a shop item remains selected.\n  // Lock only while an object is actually being moved, or while editing the exterior.\n  try {\n    if(exteriorMode) return !!(hoodEdit && (hoodCarry || hoodMove || hoodErase));\n    return !!movingMachine;\n  } catch(err) { return false; }\n}",
+  'mobile touch camera lock',
 );
 
 // Clamp later exposure writes too, not only the startup value.
