@@ -38,11 +38,13 @@ if (!src.includes('tile.userData.phase = g.userData.tilePhase;')) {
 }
 
 // Add a lightweight show podium. On mobile this replaces the heavier PC-style show area.
-replaceOnce(
-  '\n});\n\n\n/* ---------- écrans allumés ----------',
-  `\n  'podium': ()=>{\n    const g = group();\n    const base = cyl(0.7,0.78,0.18,'#20152c',24,{metalness:0.25,roughness:0.5});\n    base.position.y=0.09; g.add(base);\n    const top = cyl(0.64,0.64,0.08,'#5b285f',24,{emissive:0xff2e88,emissiveIntensity:0.45,metalness:0.35,roughness:0.38});\n    top.position.y=0.22; g.add(top);\n    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.66,0.035,8,28),\n      new THREE.MeshStandardMaterial({color:0x20e6d0,emissive:0x20e6d0,emissiveIntensity:1.1,roughness:0.35}));\n    ring.rotation.x=Math.PI/2; ring.position.y=0.27; g.add(ring);\n    g.userData.showPodium = true;\n    return g;\n  },\n});\n\n\n/* ---------- écrans allumés ----------`,
-  'podium builder',
-);
+if (!src.includes("'podium': ()=>{")) {
+  const podiumBuilder = `  'podium': ()=>{\n    const g = group();\n    const base = cyl(0.7,0.78,0.18,'#20152c',24,{metalness:0.25,roughness:0.5});\n    base.position.y=0.09; g.add(base);\n    const top = cyl(0.64,0.64,0.08,'#5b285f',24,{emissive:0xff2e88,emissiveIntensity:0.45,metalness:0.35,roughness:0.38});\n    top.position.y=0.22; g.add(top);\n    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.66,0.035,8,28),\n      new THREE.MeshStandardMaterial({color:0x20e6d0,emissive:0x20e6d0,emissiveIntensity:1.1,roughness:0.35}));\n    ring.rotation.x=Math.PI/2; ring.position.y=0.27; g.add(ring);\n    g.userData.showPodium = true;\n    return g;\n  },\n`;
+  const builderEnd = /\n\s*}\);\s*\n\s*\/\* ---------- écrans allumés ----------/;
+  const match = src.match(builderEnd);
+  if (!match || match.index == null) throw new Error('[club-evolution] patch target not found: podium builder');
+  src = src.slice(0, match.index) + '\n' + podiumBuilder + src.slice(match.index);
+}
 
 // Make the old all-in-one dance floor a controller only; the actual floor is built tile by tile.
 replaceOnce(
