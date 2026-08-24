@@ -13,9 +13,6 @@ import appCss from "../styles.css?url";
 import { BRAND } from "@/lib/brand";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
-const TIKOWIKO_SECURITY_CLIENT =
-  "https://pixel-perfect-preview-16.lovable.app/tikowiko-security-client.js";
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -122,10 +119,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <script
-          src={TIKOWIKO_SECURITY_CLIENT}
-          data-app-name="Clandestine Arcade"
-        />
         {children}
         <Scripts />
       </body>
